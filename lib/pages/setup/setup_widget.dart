@@ -4,7 +4,6 @@ import '/custom_code/widgets/index.dart' as custom_widgets;
 import '/index.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:percent_indicator/percent_indicator.dart';
 import 'package:provider/provider.dart';
 import 'setup_model.dart';
 export 'setup_model.dart';
@@ -53,7 +52,7 @@ class _SetupWidgetState extends State<SetupWidget> {
           backgroundColor: FlutterFlowTheme.of(context).primary,
           automaticallyImplyLeading: false,
           title: Text(
-            'Page Title',
+            'Download Gemma',
             style: FlutterFlowTheme.of(context).headlineMedium.override(
                   font: GoogleFonts.interTight(
                     fontWeight:
@@ -71,7 +70,7 @@ class _SetupWidgetState extends State<SetupWidget> {
                 ),
           ),
           actions: [],
-          centerTitle: false,
+          centerTitle: true,
           elevation: 2.0,
         ),
         body: SafeArea(
@@ -118,16 +117,6 @@ class _SetupWidgetState extends State<SetupWidget> {
                     safeSetState(() {});
                   },
                 ),
-              ),
-              LinearPercentIndicator(
-                percent: _model.downloadProgress!,
-                width: MediaQuery.sizeOf(context).width * 1.0,
-                lineHeight: 12.0,
-                animation: true,
-                animateFromLastPercent: true,
-                progressColor: FlutterFlowTheme.of(context).primary,
-                backgroundColor: FlutterFlowTheme.of(context).accent4,
-                padding: EdgeInsets.zero,
               ),
             ],
           ),
