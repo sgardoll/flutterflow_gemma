@@ -31,7 +31,7 @@ class FFAppState extends ChangeNotifier {
 
   late FlutterSecureStorage secureStorage;
 
-  String _hfToken = 'huggingFaceToken';
+  String _hfToken = '';
   String get hfToken => _hfToken;
   set hfToken(String value) {
     _hfToken = value;
