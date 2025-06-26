@@ -103,21 +103,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
 
                         safeSetState(() {});
                       },
-                      onResponseReceived: (response) async {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              response,
-                              style: TextStyle(
-                                color: FlutterFlowTheme.of(context).primaryText,
-                              ),
-                            ),
-                            duration: Duration(milliseconds: 4000),
-                            backgroundColor:
-                                FlutterFlowTheme.of(context).secondary,
-                          ),
-                        );
-                      },
+                      onResponseReceived: (response) async {},
                     ),
                   ),
                 ),

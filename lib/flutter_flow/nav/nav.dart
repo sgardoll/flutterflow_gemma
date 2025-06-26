@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 
 import '/index.dart';
@@ -33,12 +34,40 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
       debugLogDiagnostics: true,
       refreshListenable: appStateNotifier,
       navigatorKey: appNavigatorKey,
-      errorBuilder: (context, state) => SetupWidget(),
+      errorBuilder: (context, state) => appStateNotifier.showSplashImage
+          ? Builder(
+              builder: (context) => Container(
+                color: FlutterFlowTheme.of(context).primaryText,
+                child: Center(
+                  child: Image.asset(
+                    'assets/images/gemmaLogo.png',
+                    width: MediaQuery.sizeOf(context).width * 0.5,
+                    height: MediaQuery.sizeOf(context).height * 0.5,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ),
+            )
+          : SetupWidget(),
       routes: [
         FFRoute(
           name: '_initialize',
           path: '/',
-          builder: (context, _) => SetupWidget(),
+          builder: (context, _) => appStateNotifier.showSplashImage
+              ? Builder(
+                  builder: (context) => Container(
+                    color: FlutterFlowTheme.of(context).primaryText,
+                    child: Center(
+                      child: Image.asset(
+                        'assets/images/gemmaLogo.png',
+                        width: MediaQuery.sizeOf(context).width * 0.5,
+                        height: MediaQuery.sizeOf(context).height * 0.5,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
+                )
+              : SetupWidget(),
         ),
         FFRoute(
           name: HomePageWidget.routeName,

@@ -70,6 +70,8 @@ class _GemmaAuthenticatedSetupWidgetState
   bool _isLoadingModelInfo = false;
 
   final TextEditingController _customUrlController = TextEditingController();
+  final TextEditingController _tokenController = TextEditingController();
+  String _enteredToken = '';
 
   // Predefined model options - Focus on multimodal Gemma 3 models
   final List<Map<String, String>> _modelOptions = [
@@ -80,18 +82,23 @@ class _GemmaAuthenticatedSetupWidgetState
     },
     {
       'value': 'gemma-3-nano-e4b-it',
-      'label': 'Gemma 3 Nano E4B (Multimodal)',
-      'description': 'Efficient with vision support'
+      'label': 'Gemma 3 4B Edge (Multimodal)',
+      'description': 'Optimized 4B model with vision support'
     },
     {
       'value': 'gemma-3-nano-e2b-it',
-      'label': 'Gemma 3 Nano E2B (Multimodal)',
-      'description': 'Smallest with vision support'
+      'label': 'Gemma 3 2B Edge (Multimodal)',
+      'description': 'Compact 2B model with vision support'
     },
     {
       'value': 'gemma-3-2b-it',
       'label': 'Gemma 3 2B Instruct (Text-only)',
       'description': 'Balanced performance, text-only'
+    },
+    {
+      'value': 'gemma-1b-it',
+      'label': 'Gemma 3 1B Instruct (Text-only)',
+      'description': 'Most compact model, fastest inference, 555MB'
     },
     {
       'value': 'other',
@@ -103,6 +110,8 @@ class _GemmaAuthenticatedSetupWidgetState
   @override
   void initState() {
     super.initState();
+    _enteredToken = widget.huggingFaceToken;
+    _tokenController.text = widget.huggingFaceToken;
     _loadExistingModels();
     _loadModelInfo();
   }
@@ -110,6 +119,7 @@ class _GemmaAuthenticatedSetupWidgetState
   @override
   void dispose() {
     _customUrlController.dispose();
+    _tokenController.dispose();
     super.dispose();
   }
 
@@ -133,9 +143,11 @@ class _GemmaAuthenticatedSetupWidgetState
 
     try {
       final modelIdentifier = _showCustomUrl ? _customUrl : _selectedModel;
+      final currentToken =
+          _enteredToken.isNotEmpty ? _enteredToken : widget.huggingFaceToken;
       if (modelIdentifier != null && modelIdentifier.isNotEmpty) {
-        final info = await getHuggingfaceModelInfo(
-            modelIdentifier, widget.huggingFaceToken);
+        final info =
+            await getHuggingfaceModelInfo(modelIdentifier, currentToken);
         setState(() {
           _selectedModelInfo = info;
         });
@@ -314,6 +326,61 @@ class _GemmaAuthenticatedSetupWidgetState
 
             if (!_isSetupInProgress && !_isSetupComplete) ...[
               const SizedBox(height: 24),
+
+              // HuggingFace Token Input
+              Text(
+                'HuggingFace Token',
+                style: FlutterFlowTheme.of(context).titleMedium.override(
+                      fontFamily: 'Inter',
+                      color: widget.textColor ??
+                          FlutterFlowTheme.of(context).primaryText,
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _tokenController,
+                decoration: InputDecoration(
+                  hintText:
+                      'Enter your HuggingFace token (required for download)',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 16,
+                  ),
+                  suffixIcon: Icon(
+                    _enteredToken.isNotEmpty
+                        ? Icons.check_circle
+                        : Icons.info_outline,
+                    color:
+                        _enteredToken.isNotEmpty ? Colors.green : Colors.grey,
+                  ),
+                ),
+                obscureText: true,
+                onChanged: (value) {
+                  setState(() {
+                    _enteredToken = value;
+                  });
+                  // Save token to app state for future use
+                  if (value.isNotEmpty) {
+                    FFAppState().update(() {
+                      FFAppState().hfToken = value;
+                    });
+                  }
+                  _loadModelInfo();
+                },
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Get your token at: https://huggingface.co/settings/tokens',
+                style: FlutterFlowTheme.of(context).bodySmall.override(
+                      fontFamily: 'Inter',
+                      color: Colors.grey[600],
+                    ),
+              ),
+              const SizedBox(height: 16),
 
               // Model Selection
               Text(
@@ -591,8 +658,10 @@ class _GemmaAuthenticatedSetupWidgetState
                 child: ElevatedButton(
                   onPressed: _canDownload() ? _setupGemmaModel : null,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: widget.primaryColor ??
-                        FlutterFlowTheme.of(context).primary,
+                    backgroundColor: _canDownload()
+                        ? (widget.primaryColor ??
+                            FlutterFlowTheme.of(context).primary)
+                        : Colors.grey,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
@@ -600,7 +669,7 @@ class _GemmaAuthenticatedSetupWidgetState
                     ),
                   ),
                   child: Text(
-                    'Download & Setup Model',
+                    _getDownloadButtonText(),
                     style: FlutterFlowTheme.of(context).titleMedium.override(
                           fontFamily: 'Inter',
                           color: Colors.white,
@@ -609,6 +678,20 @@ class _GemmaAuthenticatedSetupWidgetState
                   ),
                 ),
               ),
+
+              // Helper text when button is disabled
+              if (!_canDownload()) ...[
+                const SizedBox(height: 8),
+                Text(
+                  _getHelpText(),
+                  style: FlutterFlowTheme.of(context).bodySmall.override(
+                        fontFamily: 'Inter',
+                        color: Colors.orange[700],
+                        fontWeight: FontWeight.w500,
+                      ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ],
 
             // Progress Section
@@ -728,11 +811,51 @@ class _GemmaAuthenticatedSetupWidgetState
   }
 
   bool _canDownload() {
-    if (widget.huggingFaceToken.isEmpty) return false;
+    final currentToken =
+        _enteredToken.isNotEmpty ? _enteredToken : widget.huggingFaceToken;
+    if (currentToken.isEmpty) return false;
     if (_showCustomUrl) {
       return _customUrl != null && _customUrl!.isNotEmpty;
     }
     return _selectedModel != 'other';
+  }
+
+  String _getDownloadButtonText() {
+    final currentToken =
+        _enteredToken.isNotEmpty ? _enteredToken : widget.huggingFaceToken;
+
+    if (currentToken.isEmpty) {
+      return 'Enter HuggingFace Token to Download';
+    }
+
+    if (_showCustomUrl && (_customUrl == null || _customUrl!.isEmpty)) {
+      return 'Enter Custom Model URL';
+    }
+
+    if (_selectedModel == 'other' && !_showCustomUrl) {
+      return 'Select a Model to Download';
+    }
+
+    return 'Download & Setup Model';
+  }
+
+  String _getHelpText() {
+    final currentToken =
+        _enteredToken.isNotEmpty ? _enteredToken : widget.huggingFaceToken;
+
+    if (currentToken.isEmpty) {
+      return 'Please enter a valid HuggingFace token';
+    }
+
+    if (_showCustomUrl && (_customUrl == null || _customUrl!.isEmpty)) {
+      return 'Please enter a valid model URL';
+    }
+
+    if (_selectedModel == 'other' && !_showCustomUrl) {
+      return 'Please select a model to download';
+    }
+
+    return '';
   }
 
   Future<void> _setupGemmaModel() async {
@@ -760,9 +883,11 @@ class _GemmaAuthenticatedSetupWidgetState
         }
       });
 
+      final currentToken =
+          _enteredToken.isNotEmpty ? _enteredToken : widget.huggingFaceToken;
       final modelPath = await downloadAuthenticatedModel(
         _showCustomUrl ? _customUrl! : _selectedModel,
-        widget.huggingFaceToken,
+        currentToken,
         (downloaded, total, percentage) async {
           setState(() {
             _downloadedBytes = downloaded;

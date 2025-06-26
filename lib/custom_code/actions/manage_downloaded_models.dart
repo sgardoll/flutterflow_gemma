@@ -48,11 +48,11 @@ Future<List<dynamic>> manageDownloadedModels(
         String description = 'Downloaded model file';
 
         if (fileName.contains('gemma-3n-E4B-it')) {
-          modelType = 'Gemma 3 4B Instruct';
-          description = 'Multimodal text and image input, 128K context window';
+          modelType = 'Gemma 3 4B Edge';
+          description = 'Optimized 4B model with vision support';
         } else if (fileName.contains('gemma-3n-E2B-it')) {
-          modelType = 'Gemma 3 2B Instruct';
-          description = 'Multimodal text and image input, efficient 2B model';
+          modelType = 'Gemma 3 2B Edge';
+          description = 'Compact 2B model with vision support';
         } else if (fileName.contains('Gemma3-1B-IT')) {
           modelType = 'Gemma 3 1B Instruct';
           description = 'Compact 1B model optimized for mobile deployment';
