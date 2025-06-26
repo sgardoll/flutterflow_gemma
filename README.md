@@ -128,18 +128,256 @@ GemmaChatWidget(
 
 The integration provides several custom actions you can use in FlutterFlow Action Flows:
 
-- **`downloadAuthenticatedModel`**: Download models with progress tracking
-- **`initializeLocalGemmaModel`**: Initialize downloaded models
-- **`createGemmaSession`**: Create new chat sessions
-- **`sendGemmaMessage`**: Send messages and get AI responses
-- **`closeGemmaModel`**: Clean up resources
+##### **`downloadAuthenticatedModel`**
+Downloads models from Hugging Face with authentication and progress tracking.
 
-#### Example Action Flow
+**Parameters:**
+- `modelIdentifier` (String): Model name or custom URL
+- `huggingFaceToken` (String): Your HF authentication token
+- `onProgress` (Function): Progress callback with downloaded bytes, total bytes, and percentage
 
-1. **Download Model**: Use `downloadAuthenticatedModel` with progress callback
-2. **Initialize Model**: Call `initializeLocalGemmaModel` with model path
-3. **Create Session**: Use `createGemmaSession` to start conversations
-4. **Send Messages**: Call `sendGemmaMessage` for AI interactions
+**Returns:** `Future<String?>` - Path to downloaded model file
+
+**Example Usage:**
+```dart
+String? modelPath = await downloadAuthenticatedModel(
+  'gemma-3-2b-it',
+  'your_hf_token_here',
+  (downloaded, total, percentage) {
+    print('Download progress: $percentage%');
+    setState(() {
+      downloadProgress = percentage;
+    });
+  },
+);
+```
+
+##### **`initializeLocalGemmaModel`**
+Initializes a downloaded model for inference.
+
+**Parameters:**
+- `localModelPath` (String): Path to the model file
+- `modelType` (String): Model identifier for configuration
+- `preferredBackend` (String): 'gpu' or 'cpu'
+- `maxTokens` (int): Maximum response length (512-8192)
+- `supportImage` (bool): Enable image processing (if supported)
+- `numOfThreads` (int): CPU threads (1-8)
+- `temperature` (double): Creativity level (0.0-2.0)
+- `topK` (double): Response diversity (1.0-40.0)
+- `topP` (double): Nucleus sampling (0.0-1.0)
+- `randomSeed` (int): Reproducibility seed
+
+**Returns:** `Future<bool>` - Success status
+
+**Example Usage:**
+```dart
+bool success = await initializeLocalGemmaModel(
+  modelPath,
+  'gemma-3-2b-it',
+  'gpu',
+  4096,
+  false,
+  4,
+  0.8,
+  1.0,
+  1.0,
+  42,
+);
+```
+
+##### **`createGemmaSession`**
+Creates a new chat session with specified parameters.
+
+**Parameters:**
+- `temperature` (double): Response creativity (0.0-2.0)
+- `randomSeed` (int): Seed for reproducible responses
+- `topK` (int): Top-K sampling parameter (1-40)
+
+**Returns:** `Future<bool>` - Success status
+
+**Example Usage:**
+```dart
+bool sessionCreated = await createGemmaSession(
+  0.7,  // Slightly creative responses
+  123,  // Reproducible seed
+  5,    // Moderate diversity
+);
+```
+
+##### **`sendGemmaMessage`**
+Sends a message to the AI and gets a response.
+
+**Parameters:**
+- `message` (String): User's message text
+- `imageBytes` (Uint8List?, optional): Image data for multimodal models
+
+**Returns:** `Future<String?>` - AI response text
+
+**Example Usage:**
+```dart
+String? response = await sendGemmaMessage(
+  'Explain quantum computing in simple terms',
+  null, // No image
+);
+
+// With image (for supported models)
+String? response = await sendGemmaMessage(
+  'What do you see in this image?',
+  imageBytes,
+);
+```
+
+##### **`closeGemmaModel`**
+Properly closes the model and frees resources.
+
+**Parameters:** None
+
+**Returns:** `Future<void>`
+
+**Example Usage:**
+```dart
+await closeGemmaModel(); // Call when done or switching models
+```
+
+##### **Additional Actions**
+
+- **`downloadGemmaModel`**: Basic model download without authentication
+- **`initializeGemmaModel`**: Initialize model from asset bundle
+- **`installGemmaFromAsset`**: Install pre-bundled model files
+- **`manageDownloadedModels`**: List, delete, or manage downloaded models
+- **`getHuggingfaceModelInfo`**: Get model metadata before download
+- **`debugModelPaths`**: Debug model file locations and status
+
+#### Example Action Flows
+
+##### **Complete Setup Flow**
+```dart
+// 1. Download Model with Progress
+onPressed: () async {
+  setState(() { isDownloading = true; });
+  
+  String? modelPath = await downloadAuthenticatedModel(
+    selectedModel,
+    hfToken,
+    (downloaded, total, percentage) {
+      setState(() {
+        downloadProgress = percentage;
+      });
+    },
+  );
+  
+  if (modelPath != null) {
+    // 2. Initialize Model
+    bool initialized = await initializeLocalGemmaModel(
+      modelPath,
+      selectedModel,
+      'gpu',
+      4096,
+      false,
+      4,
+      0.8,
+      1.0,
+      1.0,
+      1,
+    );
+    
+    if (initialized) {
+      // 3. Create Session
+      bool sessionReady = await createGemmaSession(0.8, 1, 1);
+      
+      if (sessionReady) {
+        // 4. Navigate to Chat
+        context.pushNamed('ChatPage');
+      }
+    }
+  }
+  
+  setState(() { isDownloading = false; });
+}
+```
+
+##### **Chat Message Flow**
+```dart
+// Send message and handle response
+onSendMessage: (String userMessage) async {
+  // Add user message to chat
+  setState(() {
+    messages.add(ChatMessage(text: userMessage, isUser: true));
+    isLoading = true;
+  });
+  
+  // Get AI response
+  String? aiResponse = await sendGemmaMessage(userMessage, null);
+  
+  // Add AI response to chat
+  setState(() {
+    if (aiResponse != null) {
+      messages.add(ChatMessage(text: aiResponse, isUser: false));
+    } else {
+      messages.add(ChatMessage(text: 'Sorry, I couldn\'t respond.', isUser: false));
+    }
+    isLoading = false;
+  });
+}
+```
+
+##### **Model Management Flow**
+```dart
+// List and manage downloaded models
+onManageModels: () async {
+  // Get list of downloaded models
+  List<dynamic> models = await manageDownloadedModels(null, null);
+  
+  // Display models in UI
+  for (var model in models) {
+    print('Model: ${model['modelType']}');
+    print('Size: ${model['sizeFormatted']}');
+    print('Path: ${model['filePath']}');
+  }
+  
+  // Delete specific model
+  if (shouldDelete) {
+    await manageDownloadedModels('delete', modelPath);
+  }
+}
+```
+
+##### **Error Handling Flow**
+```dart
+// Robust error handling
+try {
+  String? modelPath = await downloadAuthenticatedModel(
+    modelId, 
+    token, 
+    progressCallback
+  );
+  
+  if (modelPath == null) {
+    throw Exception('Download failed');
+  }
+  
+  bool initialized = await initializeLocalGemmaModel(/* params */);
+  if (!initialized) {
+    throw Exception('Model initialization failed');
+  }
+  
+  bool sessionReady = await createGemmaSession(0.8, 1, 1);
+  if (!sessionReady) {
+    throw Exception('Session creation failed');
+  }
+  
+} catch (e) {
+  // Handle different error types
+  if (e.toString().contains('Authentication')) {
+    showError('Invalid Hugging Face token');
+  } else if (e.toString().contains('Storage')) {
+    showError('Insufficient storage space');
+  } else if (e.toString().contains('Memory')) {
+    showError('Not enough RAM for this model');
+  } else {
+    showError('Setup failed: ${e.toString()}');
+  }
+}
 
 ## 🎨 Customization
 
