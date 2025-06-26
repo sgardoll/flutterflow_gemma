@@ -14,13 +14,28 @@ Future<bool> createGemmaSession(
   int topK,
 ) async {
   try {
-    final gemmaManager = GemmaManager();
+    print('createGemmaSession: Starting session creation...');
+    print('Parameters: temp=$temperature, seed=$randomSeed, topK=$topK');
 
-    return await gemmaManager.createSession(
+    final gemmaManager = GemmaManager();
+    print(
+        'createGemmaSession: GemmaManager initialized=${gemmaManager.isInitialized}');
+    print('createGemmaSession: Already has session=${gemmaManager.hasSession}');
+
+    // If we already have a session, just return true
+    if (gemmaManager.hasSession) {
+      print('createGemmaSession: Session already exists, skipping creation');
+      return true;
+    }
+
+    final result = await gemmaManager.createSession(
       temperature: temperature,
       randomSeed: randomSeed,
       topK: topK,
     );
+
+    print('createGemmaSession: Session creation result=$result');
+    return result;
   } catch (e) {
     print('Error in createGemmaSession: $e');
     return false;

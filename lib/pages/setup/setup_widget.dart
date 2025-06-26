@@ -1,10 +1,10 @@
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
+import '/custom_code/actions/index.dart' as actions;
 import '/custom_code/widgets/index.dart' as custom_widgets;
 import '/index.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:percent_indicator/percent_indicator.dart';
 import 'package:provider/provider.dart';
 import 'setup_model.dart';
 export 'setup_model.dart';
@@ -53,7 +53,7 @@ class _SetupWidgetState extends State<SetupWidget> {
           backgroundColor: FlutterFlowTheme.of(context).primary,
           automaticallyImplyLeading: false,
           title: Text(
-            'Page Title',
+            'Download Gemma',
             style: FlutterFlowTheme.of(context).headlineMedium.override(
                   font: GoogleFonts.interTight(
                     fontWeight:
@@ -71,65 +71,92 @@ class _SetupWidgetState extends State<SetupWidget> {
                 ),
           ),
           actions: [],
-          centerTitle: false,
+          centerTitle: true,
           elevation: 2.0,
         ),
         body: SafeArea(
           top: true,
-          child: Column(
-            mainAxisSize: MainAxisSize.max,
-            children: [
-              Container(
-                width: double.infinity,
-                height: 400.0,
-                child: custom_widgets.GemmaAuthenticatedSetupWidget(
-                  width: double.infinity,
-                  height: 400.0,
-                  modelName: 'gemma-3-4b-it',
-                  huggingFaceToken: FFAppState().hfToken,
-                  preferredBackend: 'gpu',
-                  maxTokens: 1024,
-                  supportImage: true,
-                  maxNumImages: 1,
-                  primaryColor: FlutterFlowTheme.of(context).primary,
-                  backgroundColor:
-                      FlutterFlowTheme.of(context).primaryBackground,
-                  textColor: FlutterFlowTheme.of(context).primaryText,
-                  onSetupComplete: () async {
+          child: Container(
+            width: MediaQuery.sizeOf(context).width * 1.0,
+            height: MediaQuery.sizeOf(context).height * 1.0,
+            decoration: BoxDecoration(),
+            child: Container(
+              width: MediaQuery.sizeOf(context).width * 1.0,
+              height: MediaQuery.sizeOf(context).height * 1.0,
+              child: custom_widgets.GemmaAuthenticatedSetupWidget(
+                width: MediaQuery.sizeOf(context).width * 1.0,
+                height: MediaQuery.sizeOf(context).height * 1.0,
+                huggingFaceToken: FFAppState().hfToken,
+                preferredBackend: 'gpu',
+                maxTokens: 1024,
+                supportImage: true,
+                maxNumImages: 1,
+                primaryColor: FlutterFlowTheme.of(context).primary,
+                backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
+                textColor: FlutterFlowTheme.of(context).primaryText,
+                onSetupComplete: () async {
+                  _model.createSessionOutput = await actions.createGemmaSession(
+                    0.8,
+                    1,
+                    1,
+                  );
+                  if (_model.createSessionOutput!) {
                     context.pushNamed(HomePageWidget.routeName);
-                  },
-                  onSetupFailed: (error) async {
+                  } else {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
-                          'Setup Failed',
-                          style: TextStyle(
-                            color: FlutterFlowTheme.of(context).primaryText,
-                          ),
+                          'Failed to create chat session',
+                          style: FlutterFlowTheme.of(context)
+                              .labelLarge
+                              .override(
+                                font: GoogleFonts.inter(
+                                  fontWeight: FlutterFlowTheme.of(context)
+                                      .labelLarge
+                                      .fontWeight,
+                                  fontStyle: FlutterFlowTheme.of(context)
+                                      .labelLarge
+                                      .fontStyle,
+                                ),
+                                color: FlutterFlowTheme.of(context).primaryText,
+                                letterSpacing: 0.0,
+                                fontWeight: FlutterFlowTheme.of(context)
+                                    .labelLarge
+                                    .fontWeight,
+                                fontStyle: FlutterFlowTheme.of(context)
+                                    .labelLarge
+                                    .fontStyle,
+                              ),
                         ),
                         duration: Duration(milliseconds: 4000),
-                        backgroundColor: FlutterFlowTheme.of(context).secondary,
+                        backgroundColor: FlutterFlowTheme.of(context).error,
                       ),
                     );
-                  },
-                  onProgress: (progress) async {
-                    _model.downloadProgress =
-                        ((progress ?? 0) / 100.0).clamp(0.0, 1.0);
-                    safeSetState(() {});
-                  },
-                ),
+                  }
+
+                  safeSetState(() {});
+                },
+                onSetupFailed: (error) async {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Setup Failed',
+                        style: TextStyle(
+                          color: FlutterFlowTheme.of(context).primaryText,
+                        ),
+                      ),
+                      duration: Duration(milliseconds: 4000),
+                      backgroundColor: FlutterFlowTheme.of(context).secondary,
+                    ),
+                  );
+                },
+                onProgress: (progress) async {
+                  _model.downloadProgress =
+                      ((progress ?? 0) / 100.0).clamp(0.0, 1.0);
+                  safeSetState(() {});
+                },
               ),
-              LinearPercentIndicator(
-                percent: _model.downloadProgress!,
-                width: MediaQuery.sizeOf(context).width * 1.0,
-                lineHeight: 12.0,
-                animation: true,
-                animateFromLastPercent: true,
-                progressColor: FlutterFlowTheme.of(context).primary,
-                backgroundColor: FlutterFlowTheme.of(context).accent4,
-                padding: EdgeInsets.zero,
-              ),
-            ],
+            ),
           ),
         ),
       ),

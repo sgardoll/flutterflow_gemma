@@ -21,6 +21,22 @@ class GemmaManager {
   // Model file manager
   ModelFileManager get modelManager => FlutterGemmaPlugin.instance.modelManager;
 
+  // Helper function to determine if a model supports vision
+  bool _isMultimodalModel(String modelType) {
+    final multimodalModels = [
+      'gemma-3-4b-it',
+      'gemma-3-12b-it',
+      'gemma-3-27b-it',
+      'gemma-3-nano-e4b-it',
+      'gemma-3-nano-e2b-it',
+    ];
+    return multimodalModels.any((model) =>
+        modelType.toLowerCase().contains(model.toLowerCase()) ||
+        modelType.toLowerCase().contains('nano') ||
+        modelType.toLowerCase().contains('vision') ||
+        modelType.toLowerCase().contains('multimodal'));
+  }
+
   // Initialize the model
   Future<bool> initializeModel({
     required String modelType,
@@ -34,12 +50,18 @@ class GemmaManager {
       // Close existing model if any
       await closeModel();
 
+      // Check if the model actually supports vision
+      final actualSupportImage = supportImage && _isMultimodalModel(modelType);
+
+      print(
+          'GemmaManager: Model=$modelType, RequestedVision=$supportImage, ActualVision=$actualSupportImage');
+
       // Create the model - using dynamic to avoid enum issues
       _model = await FlutterGemmaPlugin.instance.createModel(
         modelType: _getModelType(modelType),
         preferredBackend: _getBackend(backend),
         maxTokens: maxTokens,
-        supportImage: supportImage,
+        supportImage: actualSupportImage,
         maxNumImages: maxNumImages,
       );
 
@@ -50,6 +72,31 @@ class GemmaManager {
       return true;
     } catch (e) {
       print('Error initializing Gemma model: $e');
+
+      // If image support failed, try without it
+      if (supportImage && e.toString().contains('Vision')) {
+        print(
+            'Vision initialization failed, retrying without image support...');
+        try {
+          _model = await FlutterGemmaPlugin.instance.createModel(
+            modelType: _getModelType(modelType),
+            preferredBackend: _getBackend(backend),
+            maxTokens: maxTokens,
+            supportImage: false,
+            maxNumImages: 1,
+          );
+
+          _isInitialized = true;
+          _currentModelType = modelType;
+          _currentBackend = backend;
+
+          print('Model initialized successfully without vision support');
+          return true;
+        } catch (fallbackError) {
+          print('Fallback initialization also failed: $fallbackError');
+        }
+      }
+
       return false;
     }
   }
@@ -60,14 +107,32 @@ class GemmaManager {
     int randomSeed = 1,
     int topK = 1,
   }) async {
-    if (!_isInitialized || _model == null) return false;
+    print('GemmaManager.createSession: Starting...');
+    print(
+        'GemmaManager.createSession: _isInitialized=$_isInitialized, _model!=null=${_model != null}');
+    print('GemmaManager.createSession: hasExistingSession=${_session != null}');
+
+    if (!_isInitialized || _model == null) {
+      print(
+          'GemmaManager.createSession: Model not initialized or null, returning false');
+      return false;
+    }
+
+    // Close existing session if any
+    if (_session != null) {
+      print('GemmaManager.createSession: Closing existing session...');
+      await closeSession();
+    }
 
     try {
+      print(
+          'GemmaManager.createSession: About to call _model!.createSession...');
       _session = await _model!.createSession(
         temperature: temperature,
         randomSeed: randomSeed,
         topK: topK,
       );
+      print('GemmaManager.createSession: Session created successfully!');
       return true;
     } catch (e) {
       print('Error creating session: $e');
