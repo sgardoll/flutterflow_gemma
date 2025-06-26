@@ -53,7 +53,7 @@ class _SetupWidgetState extends State<SetupWidget> {
           backgroundColor: FlutterFlowTheme.of(context).primary,
           automaticallyImplyLeading: false,
           title: Text(
-            'Download Gemma',
+            'Download & Setup Gemma',
             style: FlutterFlowTheme.of(context).headlineMedium.override(
                   font: GoogleFonts.interTight(
                     fontWeight:

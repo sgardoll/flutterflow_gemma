@@ -21,7 +21,11 @@ Future<String?> downloadAuthenticatedModel(
     final Map<String, String> modelUrls = {
       'gemma-3-4b-it':
           'https://huggingface.co/google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-3n-E4B-it-int4.task',
+      'gemma-3-nano-e4b-it':
+          'https://huggingface.co/google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-3n-E4B-it-int4.task',
       'gemma-3-2b-it':
+          'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task',
+      'gemma-3-nano-e2b-it':
           'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task',
       'gemma-1b-it':
           'https://huggingface.co/litert-community/Gemma3-1B-IT/resolve/main/Gemma3-1B-IT_multi-prefill-seq_q4_ekv2048.task',

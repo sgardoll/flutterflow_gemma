@@ -26,9 +26,29 @@ Future<dynamic> getHuggingfaceModelInfo(
         'provider': 'Google',
         'repository': 'google/gemma-3n-E4B-it-litert-preview',
       },
+      'gemma-3-nano-e4b-it': {
+        'name': 'Gemma 3 4B Edge',
+        'description': 'Optimized 4B model with vision support',
+        'url':
+            'https://huggingface.co/google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-3n-E4B-it-int4.task',
+        'fileSize': 4400000000, // ~4.4GB based on litert performance table
+        'fileName': 'gemma-3n-E4B-it-int4.task',
+        'provider': 'Google',
+        'repository': 'google/gemma-3n-E4B-it-litert-preview',
+      },
       'gemma-3-2b-it': {
         'name': 'Gemma 3 2B Instruct',
         'description': 'Multimodal text and image input, efficient 2B model',
+        'url':
+            'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task',
+        'fileSize': 2500000000, // ~2.5GB estimated
+        'fileName': 'gemma-3n-E2B-it-int4.task',
+        'provider': 'Google',
+        'repository': 'google/gemma-3n-E2B-it-litert-preview',
+      },
+      'gemma-3-nano-e2b-it': {
+        'name': 'Gemma 3 2B Edge',
+        'description': 'Compact 2B model with vision support',
         'url':
             'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task',
         'fileSize': 2500000000, // ~2.5GB estimated
