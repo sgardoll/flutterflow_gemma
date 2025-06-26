@@ -267,14 +267,3 @@ For issues and questions:
 2. Review FlutterFlow custom code documentation
 3. Open an issue on GitHub
 4. Consult the flutter_gemma package documentation
-
-## 🙏 Acknowledgments
-
-- Google for the Gemma AI models
-- FlutterFlow for the no-code platform
-- flutter_gemma package contributors
-- Hugging Face for model hosting
-
----
-
-**Note**: This integration is optimized for FlutterFlow's custom code requirements and follows all FlutterFlow best practices for maximum compatibility.
