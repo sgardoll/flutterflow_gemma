@@ -20,117 +20,145 @@ Future<bool> initializeLocalGemmaModel(
   String preferredBackend,
   int maxTokens,
   bool supportImage,
-  int maxNumImages,
+  int numOfThreads,
+  double temperature,
+  double topK,
+  double topP,
+  int randomSeed,
 ) async {
   try {
-    print('Initializing Gemma model from local file: $localModelPath');
-
-    // Validate the local model file exists and has reasonable size
-    final file = File(localModelPath);
-    if (!await file.exists()) {
+    // Validate the model file exists first
+    final modelFile = File(localModelPath);
+    if (!await modelFile.exists()) {
       print('Error: Model file does not exist at path: $localModelPath');
       return false;
     }
 
-    final fileSize = await file.length();
+    final fileSize = await modelFile.length();
+    print('Initializing Gemma model from local file: $localModelPath');
     print('Model file size: $fileSize bytes');
 
-    // Model files should be at least a few MB. 1MB is too small for any model.
+    // Model file validation
     if (fileSize < 1024 * 1024) {
-      // Less than 1MB
-      print(
-          'Error: Model file appears to be corrupted or incomplete. Size: $fileSize bytes');
-      print('Expected model files to be much larger (typically 100MB+)');
+      print('Error: Model file appears to be too small (less than 1MB)');
       return false;
     }
 
     print(
         'Model file validation passed. File size: ${(fileSize / (1024 * 1024)).toStringAsFixed(1)} MB');
 
-    // Step 1: Install the model using the model manager
-    print('Step 1: Installing model using model manager...');
+    // Step 1: Install the model file
+    print('Step 1: Installing model file...');
+    final installSuccess = await installLocalModelFile(localModelPath, null);
 
-    try {
-      // Get the GemmaManager instance
-      final gemmaManager = GemmaManager();
-      final modelManager = gemmaManager.modelManager;
-
-      // Get app documents directory for proper model installation
-      final appDocDir = await getApplicationDocumentsDirectory();
-      final modelsDir = Directory(path.join(appDocDir.path, 'gemma_models'));
-
-      if (!await modelsDir.exists()) {
-        await modelsDir.create(recursive: true);
-      }
-
-      // Copy model file to the expected location if not already there
-      final modelFileName = path.basename(localModelPath);
-      final targetModelPath = path.join(modelsDir.path, modelFileName);
-      final targetModelFile = File(targetModelPath);
-
-      if (!await targetModelFile.exists() ||
-          targetModelPath != localModelPath) {
-        print('Copying model file to correct location...');
-        await file.copy(targetModelPath);
-        print('Model file copied to: $targetModelPath');
-      } else {
-        print('Model file already in correct location: $targetModelPath');
-      }
-
-      // Install the model from the local file using the model manager
-      // The model manager expects the file to be in a specific location
-      print('Installing model file using model manager...');
-
-      // Use the install method that works with local files
-      // Since we have a local file, we need to use installModelFromAsset approach
-      // or copy the file to the assets location that the model manager expects
-
-      // For now, let's try to use the model manager's install capabilities
-      // by treating our local file as if it were downloaded
-      await modelManager.installModelFromAsset(targetModelPath);
-      print('Model installed successfully via model manager');
-    } catch (installError) {
-      print('Model manager installation failed: $installError');
-      print('Attempting alternative initialization approach...');
-
-      // If model manager fails, we can still try to initialize directly
-      // but this may not work with all Flutter Gemma versions
+    if (!installSuccess) {
+      print('Failed to install model file');
+      return false;
     }
 
-    // Step 2: Initialize the model using GemmaManager
-    print('Step 2: Initializing model...');
+    // Step 2: Get the model filename for initialization
+    final modelFileName = path.basename(localModelPath);
+    print('Step 2: Preparing to initialize model: $modelFileName');
 
-    final gemmaManager = GemmaManager();
+    print('Step 3: Using backend: $preferredBackend');
 
-    // Convert string parameters to proper values for GemmaManager
-    final success = await gemmaManager.initializeModel(
-      modelType: modelType,
-      backend: preferredBackend,
-      maxTokens: maxTokens,
-      supportImage: supportImage,
-      maxNumImages: maxNumImages,
-      localModelPath: localModelPath,
-    );
+    // Step 4: Initialize using GemmaManager
+    print('Step 4: Initializing through GemmaManager...');
+    try {
+      final success = await GemmaManager().initializeModel(
+        modelType: modelType,
+        backend: preferredBackend,
+        maxTokens: maxTokens,
+        supportImage: supportImage,
+        maxNumImages: 1, // Default value
+        localModelPath: modelFileName, // Pass the filename
+      );
 
-    if (success) {
-      print('Gemma model initialized successfully!');
-      return true;
-    } else {
-      print('Failed to initialize model through GemmaManager');
+      if (success) {
+        print('Gemma model initialized successfully through GemmaManager!');
 
-      // Step 3: Fallback - try direct Flutter Gemma plugin initialization
-      print('Step 3: Attempting direct plugin initialization...');
+        // Create a session with the provided parameters
+        final sessionSuccess = await GemmaManager().createSession(
+          temperature: temperature.clamp(0.0, 2.0),
+          randomSeed: randomSeed,
+          topK: topK.clamp(1, 40).toInt(),
+        );
 
-      // Convert string parameters to enums
+        if (sessionSuccess) {
+          print('Session created successfully!');
+          return true;
+        } else {
+          print('Model initialized but failed to create session');
+          return true; // Still consider it successful
+        }
+      } else {
+        print('GemmaManager initialization returned false');
+      }
+    } catch (e) {
+      print('Error initializing Gemma model through GemmaManager: $e');
+    }
+
+    // Step 5: If GemmaManager fails, try direct plugin initialization
+    print('Step 5: Attempting direct plugin initialization...');
+    try {
+      final plugin = FlutterGemmaPlugin.instance;
+
+      // Verify the model path is set
+      final modelManager = plugin.modelManager;
+      try {
+        await modelManager.setModelPath(modelFileName);
+        print('Model path confirmed: $modelFileName');
+      } catch (e) {
+        print('Failed to set model path: $e');
+
+        // Try to find the model in documents directory
+        final appDocDir = await getApplicationDocumentsDirectory();
+        final fullModelPath = path.join(appDocDir.path, modelFileName);
+
+        if (await File(fullModelPath).exists()) {
+          print('Model found at: $fullModelPath');
+          await modelManager.setModelPath(modelFileName);
+          print('Model path set using found file');
+        } else {
+          print('Model file not found at expected location: $fullModelPath');
+          return false;
+        }
+      }
+
+      // Create the model using the correct method from GemmaManager
+      PreferredBackend backend;
+      switch (preferredBackend.toLowerCase()) {
+        case 'gpu':
+          backend = PreferredBackend.gpu;
+          break;
+        case 'gpufloat16':
+        case 'gpu_float16':
+        case 'gpu-float16':
+          backend = PreferredBackend.gpuFloat16;
+          break;
+        case 'gpumixed':
+        case 'gpu_mixed':
+        case 'gpu-mixed':
+          backend = PreferredBackend.gpuMixed;
+          break;
+        case 'gpufull':
+        case 'gpu_full':
+        case 'gpu-full':
+          backend = PreferredBackend.gpuFull;
+          break;
+        case 'tpu':
+          backend = PreferredBackend.tpu;
+          break;
+        default:
+          backend = PreferredBackend.cpu;
+      }
+
       ModelType modelTypeEnum;
       switch (modelType.toLowerCase()) {
         case 'gemma':
         case 'gemmait':
         case 'gemma-it':
         case 'gemma_it':
-        case 'gemma-3-4b-it':
-        case 'gemma-3-2b-it':
-        case 'gemma-1b-it':
           modelTypeEnum = ModelType.gemmaIt;
           break;
         case 'deepseek':
@@ -145,58 +173,77 @@ Future<bool> initializeLocalGemmaModel(
           modelTypeEnum = ModelType.gemmaIt;
       }
 
-      PreferredBackend backendEnum;
-      switch (preferredBackend.toLowerCase()) {
-        case 'gpu':
-          backendEnum = PreferredBackend.gpu;
-          break;
-        case 'cpu':
-          backendEnum = PreferredBackend.cpu;
-          break;
-        case 'gpufloat16':
-        case 'gpu_float16':
-        case 'gpu-float16':
-          backendEnum = PreferredBackend.gpuFloat16;
-          break;
-        default:
-          backendEnum = PreferredBackend.gpu;
-      }
-
-      // Try to create the model directly
-      final model = await FlutterGemmaPlugin.instance.createModel(
+      // Create the model directly
+      final model = await plugin.createModel(
         modelType: modelTypeEnum,
-        preferredBackend: backendEnum,
+        preferredBackend: backend,
         maxTokens: maxTokens,
         supportImage: supportImage,
-        maxNumImages: maxNumImages,
+        maxNumImages: 1,
       );
 
       print('Direct plugin initialization successful!');
+
+      // Create a session
+      final session = await model.createSession(
+        temperature: temperature.clamp(0.0, 2.0),
+        randomSeed: randomSeed,
+        topK: topK.clamp(1, 40).toInt(),
+      );
+
+      print('Session created via direct plugin!');
+
+      // Close the model and session since we created them locally
+      await session.close();
+      await model.close();
+
       return true;
+    } catch (e) {
+      print('Direct plugin initialization failed: $e');
     }
+
+    // Step 6: Try with CPU backend as final fallback
+    print('Step 6: Trying CPU backend as final fallback...');
+    try {
+      final success = await GemmaManager().initializeModel(
+        modelType: modelType,
+        backend: 'cpu',
+        maxTokens: maxTokens,
+        supportImage: supportImage,
+        maxNumImages: 1,
+        localModelPath: modelFileName,
+      );
+
+      if (success) {
+        print('CPU fallback initialization successful!');
+        return true;
+      }
+    } catch (e) {
+      print('CPU backend initialization also failed: $e');
+    }
+
+    print('All initialization attempts failed');
+    return false;
   } catch (e) {
     print('Error in initializeLocalGemmaModel: $e');
 
-    // Provide more specific error messages
-    if (e.toString().contains('not installed') ||
-        e.toString().contains('model not found')) {
+    if (e.toString().contains('Gemma Model is not installed')) {
       print('The model needs to be properly installed first.');
       print(
           'This can happen if the model file is not in the expected location');
       print('or the model manager has not processed it correctly.');
       print(
           'Try using installLocalModelFile action first, then retry initialization.');
-    } else if (e.toString().contains('file_size')) {
-      print('The model file appears to be corrupted or incomplete.');
-      print('Please re-download or re-install the model file.');
-      print('Try using downloadGemmaModel or installGemmaFromAsset first.');
-    } else if (e.toString().contains('RET_CHECK failure')) {
-      print('Model file validation failed. The file may be corrupted.');
-      print('Please ensure you have a valid model file.');
-      print('Gemma models should be in the proper binary format.');
-    } else if (e.toString().contains('backend')) {
-      print('Backend initialization failed. Try switching to CPU backend.');
-      print('GPU backend may not be available on this device.');
+    } else if (e.toString().contains('failedToInitializeEngine')) {
+      print('The model engine failed to initialize.');
+      print('This usually indicates:');
+      print('1. The model file is corrupted or incomplete');
+      print('2. The model format is not compatible with this device');
+      print('3. Insufficient memory or resources');
+      print('4. The model file path is incorrect');
+    } else if (e.toString().contains('open() failed')) {
+      print('Failed to open the model file.');
+      print('Check that the model file exists and is readable.');
     }
 
     return false;

@@ -145,6 +145,7 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
         borderRadius: BorderRadius.circular(widget.borderRadius),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           // Chat messages
           Expanded(
@@ -200,51 +201,65 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
                 ),
               ),
             ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _messageController,
-                    enabled: !_isLoading,
-                    decoration: InputDecoration(
-                      hintText: widget.placeholder,
-                      border: OutlineInputBorder(
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        maxHeight: 120, // Limit max height of text field
+                      ),
+                      child: TextField(
+                        controller: _messageController,
+                        enabled: !_isLoading,
+                        decoration: InputDecoration(
+                          hintText: widget.placeholder,
+                          border: OutlineInputBorder(
+                            borderRadius:
+                                BorderRadius.circular(widget.borderRadius),
+                            borderSide: BorderSide(
+                              color: FlutterFlowTheme.of(context).alternate,
+                            ),
+                          ),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: widget.paddingHorizontal,
+                            vertical: widget.paddingVertical,
+                          ),
+                        ),
+                        style: TextStyle(
+                          color: widget.textColor ??
+                              FlutterFlowTheme.of(context).primaryText,
+                        ),
+                        maxLines: 5, // Limit to 5 lines max
+                        minLines: 1,
+                        onSubmitted: (_) => _sendMessage(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    onPressed: _isLoading ? null : _sendMessage,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: FlutterFlowTheme.of(context).primary,
+                      shape: RoundedRectangleBorder(
                         borderRadius:
                             BorderRadius.circular(widget.borderRadius),
-                        borderSide: BorderSide(
-                          color: FlutterFlowTheme.of(context).alternate,
-                        ),
                       ),
-                      contentPadding: EdgeInsets.symmetric(
+                      padding: EdgeInsets.symmetric(
                         horizontal: widget.paddingHorizontal,
                         vertical: widget.paddingVertical,
                       ),
                     ),
-                    style: TextStyle(
-                      color: widget.textColor ??
-                          FlutterFlowTheme.of(context).primaryText,
-                    ),
-                    maxLines: null,
-                    onSubmitted: (_) => _sendMessage(),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _sendMessage,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: FlutterFlowTheme.of(context).primary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(widget.borderRadius),
+                    child: Text(
+                      widget.sendButtonText,
+                      style: TextStyle(
+                        color: FlutterFlowTheme.of(context).primaryBackground,
+                      ),
                     ),
                   ),
-                  child: Text(
-                    widget.sendButtonText,
-                    style: TextStyle(
-                      color: FlutterFlowTheme.of(context).primaryBackground,
-                    ),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],

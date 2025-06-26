@@ -8,6 +8,11 @@ class SetupModel extends FlutterFlowModel<SetupWidget> {
 
   double? downloadProgress = 0.0;
 
+  ///  State fields for stateful widgets in this page.
+
+  // Stores action output result for [Custom Action - createGemmaSession] action in GemmaAuthenticatedSetupWidget widget.
+  bool? createSessionOutput;
+
   @override
   void initState(BuildContext context) {}
 

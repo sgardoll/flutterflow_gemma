@@ -38,42 +38,76 @@ Future<bool> installLocalModelFile(
       return false;
     }
 
-    // Get app documents directory
-    final appDocDir = await getApplicationDocumentsDirectory();
-    final modelsDir = Directory(path.join(appDocDir.path, 'gemma_models'));
-
-    if (!await modelsDir.exists()) {
-      await modelsDir.create(recursive: true);
-    }
-
-    // Copy model file to app directory
+    // Get the flutter_gemma model manager
+    final modelManager = FlutterGemmaPlugin.instance.modelManager;
     final modelFileName = path.basename(localModelPath);
-    final targetModelPath = path.join(modelsDir.path, modelFileName);
-    final targetModelFile = File(targetModelPath);
 
-    print('Copying model file to app directory...');
-    await modelFile.copy(targetModelPath);
-    print('Model file copied to: $targetModelPath');
-
-    // Handle LoRA file if provided
-    String? targetLoraPath;
-    if (localLoraPath != null) {
-      final loraFile = File(localLoraPath);
-      if (await loraFile.exists()) {
-        final loraFileName = path.basename(localLoraPath);
-        targetLoraPath = path.join(modelsDir.path, loraFileName);
-        await loraFile.copy(targetLoraPath);
-        print('LoRA file copied to: $targetLoraPath');
-      } else {
-        print('Warning: LoRA file not found at: $localLoraPath');
-      }
+    // Step 1: Clear any existing model completely
+    try {
+      print('Clearing any existing model state...');
+      await modelManager.deleteModel();
+      print('Existing model state cleared');
+    } catch (e) {
+      print('No existing model to clear: $e');
     }
 
-    // Model file is now in the correct location for flutter_gemma to use
-    // No need to call installModelFromAsset for already downloaded files
-    print('Model file is ready for use at: $targetModelPath');
-    print('Model installed successfully from local file!');
-    return true;
+    // Step 2: Clear the app documents directory of any old model files
+    final appDocDir = await getApplicationDocumentsDirectory();
+    print('App documents directory: ${appDocDir.path}');
+
+    try {
+      final documentsFiles = await appDocDir.list().toList();
+      for (final entity in documentsFiles) {
+        if (entity is File && entity.path.endsWith('.task')) {
+          print('Removing old model file: ${entity.path}');
+          await entity.delete();
+        }
+      }
+    } catch (e) {
+      print('Could not clear old model files: $e');
+    }
+
+    // Step 3: Copy the model file to the documents root directory
+    final targetModelPath = path.join(appDocDir.path, modelFileName);
+    print('Copying model to: $targetModelPath');
+
+    await modelFile.copy(targetModelPath);
+    print('Model file copied successfully');
+
+    // Step 4: Verify the file was copied correctly
+    final copiedFile = File(targetModelPath);
+    if (!await copiedFile.exists()) {
+      print('Error: Failed to copy model file to target location');
+      return false;
+    }
+
+    final copiedSize = await copiedFile.length();
+    if (copiedSize != fileSize) {
+      print(
+          'Error: Copied file size mismatch. Original: $fileSize, Copied: $copiedSize');
+      return false;
+    }
+
+    print(
+        'File copy verified. Size: ${(copiedSize / (1024 * 1024)).toStringAsFixed(1)} MB');
+
+    // Step 5: Wait a moment for file system operations to complete
+    await Future.delayed(Duration(milliseconds: 200));
+
+    // Step 6: Register the model with the plugin using just the filename
+    print('Registering model with plugin: $modelFileName');
+    try {
+      await modelManager.setModelPath(modelFileName);
+      print('Model path registered successfully!');
+
+      // Small delay to let the registration complete
+      await Future.delayed(Duration(milliseconds: 300));
+
+      return true;
+    } catch (e) {
+      print('Error registering model: $e');
+      return false;
+    }
   } catch (e) {
     print('Error in installLocalModelFile: $e');
 
@@ -82,6 +116,10 @@ Future<bool> installLocalModelFile(
       print(
           'The model file appears to be corrupted or in an unsupported format.');
       print('Please ensure you have a valid Gemma model file.');
+    } else if (e.toString().contains('permission')) {
+      print('Permission denied. Check file system permissions.');
+    } else if (e.toString().contains('space')) {
+      print('Insufficient storage space to copy the model file.');
     }
 
     return false;

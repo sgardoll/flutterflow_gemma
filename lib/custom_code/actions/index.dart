@@ -7,3 +7,6 @@ export 'send_gemma_message.dart' show sendGemmaMessage;
 export 'download_authenticated_model.dart' show downloadAuthenticatedModel;
 export 'initialize_local_gemma_model.dart' show initializeLocalGemmaModel;
 export 'install_local_model_file.dart' show installLocalModelFile;
+export 'debug_model_paths.dart' show debugModelPaths;
+export 'manage_downloaded_models.dart' show manageDownloadedModels;
+export 'get_huggingface_model_info.dart' show getHuggingfaceModelInfo;

@@ -86,7 +86,6 @@ class _SetupWidgetState extends State<SetupWidget> {
               child: custom_widgets.GemmaAuthenticatedSetupWidget(
                 width: MediaQuery.sizeOf(context).width * 1.0,
                 height: MediaQuery.sizeOf(context).height * 1.0,
-                modelName: 'gemma-3-4b-it',
                 huggingFaceToken: FFAppState().hfToken,
                 preferredBackend: 'gpu',
                 maxTokens: 1024,
@@ -96,12 +95,46 @@ class _SetupWidgetState extends State<SetupWidget> {
                 backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
                 textColor: FlutterFlowTheme.of(context).primaryText,
                 onSetupComplete: () async {
-                  context.pushNamed(HomePageWidget.routeName);
-
-                  await actions.installGemmaFromAsset(
-                    '',
-                    '',
+                  _model.createSessionOutput = await actions.createGemmaSession(
+                    0.8,
+                    1,
+                    1,
                   );
+                  if (_model.createSessionOutput!) {
+                    context.pushNamed(HomePageWidget.routeName);
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Failed to create chat session',
+                          style: FlutterFlowTheme.of(context)
+                              .labelLarge
+                              .override(
+                                font: GoogleFonts.inter(
+                                  fontWeight: FlutterFlowTheme.of(context)
+                                      .labelLarge
+                                      .fontWeight,
+                                  fontStyle: FlutterFlowTheme.of(context)
+                                      .labelLarge
+                                      .fontStyle,
+                                ),
+                                color: FlutterFlowTheme.of(context).primaryText,
+                                letterSpacing: 0.0,
+                                fontWeight: FlutterFlowTheme.of(context)
+                                    .labelLarge
+                                    .fontWeight,
+                                fontStyle: FlutterFlowTheme.of(context)
+                                    .labelLarge
+                                    .fontStyle,
+                              ),
+                        ),
+                        duration: Duration(milliseconds: 4000),
+                        backgroundColor: FlutterFlowTheme.of(context).error,
+                      ),
+                    );
+                  }
+
+                  safeSetState(() {});
                 },
                 onSetupFailed: (error) async {
                   ScaffoldMessenger.of(context).showSnackBar(
