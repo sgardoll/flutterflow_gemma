@@ -7,8 +7,6 @@ import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-import '/custom_code/widgets/index.dart'; // Imports other custom widgets
-
 class GemmaAuthenticatedSetupWidget extends StatefulWidget {
   const GemmaAuthenticatedSetupWidget({
     super.key,

@@ -50,42 +50,49 @@ class _HomePageWidgetState extends State<HomePageWidget> {
             width: MediaQuery.sizeOf(context).width * 1.0,
             height: MediaQuery.sizeOf(context).height * 1.0,
             decoration: BoxDecoration(),
-            child: Container(
-              width: MediaQuery.sizeOf(context).width * 1.0,
-              height: MediaQuery.sizeOf(context).height * 1.0,
-              child: custom_widgets.GemmaChatWidget(
-                width: MediaQuery.sizeOf(context).width * 1.0,
-                height: MediaQuery.sizeOf(context).height * 1.0,
-                backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
-                textColor: FlutterFlowTheme.of(context).primaryText,
-                borderRadius: 12.0,
-                paddingHorizontal: 24.0,
-                paddingVertical: 24.0,
-                placeholder: 'Placeholder Text',
-                sendButtonText: 'Send',
-                onMessageSent: (message) async {
-                  _model.sendMessageOutput = await actions.sendGemmaMessage(
-                    message,
-                    null,
-                  );
+            child: Column(
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                Container(
+                  width: MediaQuery.sizeOf(context).width * 1.0,
+                  height: MediaQuery.sizeOf(context).height * 1.0,
+                  child: custom_widgets.GemmaChatWidget(
+                    width: MediaQuery.sizeOf(context).width * 1.0,
+                    height: MediaQuery.sizeOf(context).height * 1.0,
+                    backgroundColor:
+                        FlutterFlowTheme.of(context).primaryBackground,
+                    textColor: FlutterFlowTheme.of(context).primaryText,
+                    borderRadius: 12.0,
+                    paddingHorizontal: 24.0,
+                    paddingVertical: 24.0,
+                    placeholder: 'Placeholder Text',
+                    sendButtonText: 'Send',
+                    onMessageSent: (message) async {
+                      _model.sendMessageOutput = await actions.sendGemmaMessage(
+                        message,
+                        null,
+                      );
 
-                  safeSetState(() {});
-                },
-                onResponseReceived: (response) async {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        response,
-                        style: TextStyle(
-                          color: FlutterFlowTheme.of(context).primaryText,
+                      safeSetState(() {});
+                    },
+                    onResponseReceived: (response) async {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            response,
+                            style: TextStyle(
+                              color: FlutterFlowTheme.of(context).primaryText,
+                            ),
+                          ),
+                          duration: Duration(milliseconds: 4000),
+                          backgroundColor:
+                              FlutterFlowTheme.of(context).secondary,
                         ),
-                      ),
-                      duration: Duration(milliseconds: 4000),
-                      backgroundColor: FlutterFlowTheme.of(context).secondary,
-                    ),
-                  );
-                },
-              ),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
           ),
         ),

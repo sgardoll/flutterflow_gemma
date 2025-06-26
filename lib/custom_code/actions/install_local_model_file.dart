@@ -69,15 +69,9 @@ Future<bool> installLocalModelFile(
       }
     }
 
-    // Use ModelFileManager to install the model
-    final modelManager = FlutterGemmaPlugin.instance.modelManager;
-
-    // Install as if from asset (since it's now in app directory)
-    await modelManager.installModelFromAsset(
-      targetModelPath,
-      loraPath: targetLoraPath,
-    );
-
+    // Model file is now in the correct location for flutter_gemma to use
+    // No need to call installModelFromAsset for already downloaded files
+    print('Model file is ready for use at: $targetModelPath');
     print('Model installed successfully from local file!');
     return true;
   } catch (e) {
