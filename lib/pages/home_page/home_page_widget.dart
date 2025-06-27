@@ -115,8 +115,8 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                       placeholder: 'Enter chat text...',
                       sendButtonText: 'Send',
                       imageButtonColor: FlutterFlowTheme.of(context).primary,
+                      maxImageSize: 1024,
                       onMessageSent: (message) async {
-                        // This is for FlutterFlow state management only - don't return response
                         _model.sendMessageOutput =
                             await actions.sendGemmaMessage(
                           message,
@@ -124,22 +124,10 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                         );
 
                         safeSetState(() {});
-                        // Don't return the response - the widget handles this directly
                       },
                       onResponseReceived: (response) async {},
-                      onImageMessageSent: (message, imageFile) async {
-                        // This is for FlutterFlow state management only - don't return response
-                        await actions.sendGemmaMessageWithImage(
-                          message,
-                          imageFile,
-                        );
-                        // Don't return the response - the widget handles this directly
-                      },
-                      onModelCapabilitiesCheck: () async {
-                        // This callback can be used to set App State variables
-                        // based on the detected model capabilities
-                        print('Model capabilities check triggered');
-                      },
+                      onImageMessageSent: (message, imageFile) async {},
+                      onModelCapabilitiesCheck: () async {},
                     ),
                   ),
                 ),

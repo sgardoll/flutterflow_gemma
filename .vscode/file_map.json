@@ -1,11 +1,43 @@
 {
+  "close_gemma_model.dart": {
+    "old_identifier_name": "closeGemmaModel",
+    "new_identifier_name": "closeGemmaModel",
+    "type": "A",
+    "is_deleted": false,
+    "current_checksum": "b24677ddbed3e33f19ff8cb678e7fc9aa58306b9ebcd0f16df6ae9413b2e76f8",
+    "original_checksum": "25fc53bf8cc0599a11bedaa5a423f125afec9984617b5d32e2c1e13751aa4d02"
+  },
+  "create_gemma_session.dart": {
+    "old_identifier_name": "createGemmaSession",
+    "new_identifier_name": "createGemmaSession",
+    "type": "A",
+    "is_deleted": false,
+    "current_checksum": "c6f9c96655e9dc02f5fb4216a579d5c83368a03a6ab0b0fe1c143fba1254ca2f",
+    "original_checksum": "aa8a8657686147b92ea35d85e532ef426ea282458b1cc8c118037664a531d2ff"
+  },
+  "download_gemma_model.dart": {
+    "old_identifier_name": "downloadGemmaModel",
+    "new_identifier_name": "downloadGemmaModel",
+    "type": "A",
+    "is_deleted": false,
+    "current_checksum": "d1e0a64dc794b65a84dde766e41e8da6b9127a6392cb2e6380a174e8f5fc1b5e",
+    "original_checksum": "55b3237387335c3149d20597740798777db72527aca961d5d53e6b4005eac4b9"
+  },
   "initialize_gemma_model.dart": {
     "old_identifier_name": "initializeGemmaModel",
     "new_identifier_name": "initializeGemmaModel",
     "type": "A",
     "is_deleted": false,
-    "current_checksum": "397311407186eeff69e2afcebb83c94b2e72e0e7e9ef99d05a3e41cc30442a26",
+    "current_checksum": "807efa6b236eebf34d78bc2cfddc66af8bf181e62de24d17a60622928a023c29",
     "original_checksum": "397311407186eeff69e2afcebb83c94b2e72e0e7e9ef99d05a3e41cc30442a26"
+  },
+  "install_gemma_from_asset.dart": {
+    "old_identifier_name": "installGemmaFromAsset",
+    "new_identifier_name": "installGemmaFromAsset",
+    "type": "A",
+    "is_deleted": false,
+    "current_checksum": "0f47db35279b8e5512c5f0e8e7804e3725b89c1f153cb2686122becee107370c",
+    "original_checksum": "c883932049c5b46e3ec29f2c5a413fabb147fb94e1deab06efeacb87896e13ac"
   },
   "send_gemma_message.dart": {
     "old_identifier_name": "sendGemmaMessage",
@@ -13,31 +45,55 @@
     "type": "A",
     "is_deleted": false,
     "current_checksum": "33168907248ff190822ad2977d0b87a071165b84ec2a3e93712873e9354dac52",
-    "original_checksum": "33168907248ff190822ad2977d0b87a071165b84ec2a3e93712873e9354dac52"
+    "original_checksum": "0ab86c1dfbc0b4639b8487a24dc6b3578f51615b999f3ddb344a5d7e80c5f34f"
+  },
+  "download_authenticated_model.dart": {
+    "old_identifier_name": "downloadAuthenticatedModel",
+    "new_identifier_name": "downloadAuthenticatedModel",
+    "type": "A",
+    "is_deleted": false,
+    "current_checksum": "6a5f6bbef8995dd1a8d63b6770eb996c7c4cf2d4ebf398326779695c851f2511",
+    "original_checksum": "827564036eaf11b5d42609b79f06d1c0b17f5f555b997a503267591172022470"
   },
   "initialize_local_gemma_model.dart": {
     "old_identifier_name": "initializeLocalGemmaModel",
     "new_identifier_name": "initializeLocalGemmaModel",
     "type": "A",
     "is_deleted": false,
-    "current_checksum": "7d136fcafbc01ffa93f77a1e13f382be8c66cd94353ef49f0a153cb339d11056",
-    "original_checksum": "7d136fcafbc01ffa93f77a1e13f382be8c66cd94353ef49f0a153cb339d11056"
+    "current_checksum": "38a99f935ab59f00357e3353c55c9771337bb6d51d178356d1cd161213f55657",
+    "original_checksum": "b9ba8545437c2b171aedf1ca4c839fc42959a03700f6b142e1c49da4b015fdf9"
+  },
+  "install_local_model_file.dart": {
+    "old_identifier_name": "installLocalModelFile",
+    "new_identifier_name": "installLocalModelFile",
+    "type": "A",
+    "is_deleted": false,
+    "current_checksum": "8b1ae4d32ed6ad60079f443c04c2aabbd54406627e9253c31457e4ddbc782c06",
+    "original_checksum": "892100cacf8b78b15c076d5c7011e290764a82cbe9ea9d83d44c078ae18239ad"
+  },
+  "debug_model_paths.dart": {
+    "old_identifier_name": "debugModelPaths",
+    "new_identifier_name": "debugModelPaths",
+    "type": "A",
+    "is_deleted": false,
+    "current_checksum": "0a2a7e24e10ee1b72865257c487b05b08273953458c305b83b698e10b3df4e07",
+    "original_checksum": "2c3ef17d02e83ef4c29e5b2c4fa3c246650bb3e1ec727cdd5c5651f5690dbba4"
   },
   "manage_downloaded_models.dart": {
     "old_identifier_name": "manageDownloadedModels",
     "new_identifier_name": "manageDownloadedModels",
     "type": "A",
     "is_deleted": false,
-    "current_checksum": "bd849011ace1a26bae2d844387b629f886f57baa8833a4ab30992f34573bc1db",
+    "current_checksum": "be4de3566089a7b6de96a8dbdf87eaa4266b1a1243a6e3d42fbb56c267b7be98",
     "original_checksum": "bd849011ace1a26bae2d844387b629f886f57baa8833a4ab30992f34573bc1db"
   },
-  "send_gemma_message_with_image.dart": {
-    "old_identifier_name": "sendGemmaMessageWithImage",
-    "new_identifier_name": "sendGemmaMessageWithImage",
+  "get_huggingface_model_info.dart": {
+    "old_identifier_name": "getHuggingfaceModelInfo",
+    "new_identifier_name": "getHuggingfaceModelInfo",
     "type": "A",
     "is_deleted": false,
-    "current_checksum": "b6eb7c8c0893afb1494c7370d01eb9a02606c55c8f60000217b27a8b6a1ba1ad",
-    "original_checksum": "b6eb7c8c0893afb1494c7370d01eb9a02606c55c8f60000217b27a8b6a1ba1ad"
+    "current_checksum": "2539be75a612973ea535818ea0f60979f35017550eb12f549cdfd97050395b5a",
+    "original_checksum": "324e7632df6a8ca9419d39771bd7064e7f1d8b7289ba839fa5fdf4c083137b25"
   },
   "gemma_chat_widget.dart": {
     "old_identifier_name": "GemmaChatWidget",
@@ -45,7 +101,7 @@
     "type": "W",
     "is_deleted": false,
     "current_checksum": "a38bbfeebac8b5549cb832aa7ba8fa0a7bf8fc95855c3416fa41dcde2308c4b2",
-    "original_checksum": "a38bbfeebac8b5549cb832aa7ba8fa0a7bf8fc95855c3416fa41dcde2308c4b2"
+    "original_checksum": "dfc6751ec5b2110bd39da1c2ada63892e949804cc308cd4395994050204c01a6"
   },
   "gemma_authenticated_setup_widget.dart": {
     "old_identifier_name": "GemmaAuthenticatedSetupWidget",
@@ -53,7 +109,7 @@
     "type": "W",
     "is_deleted": false,
     "current_checksum": "0a27c45d49495fb28cdb5d04c902518038cd313a48130cece7c70ddc337bb788",
-    "original_checksum": "0a27c45d49495fb28cdb5d04c902518038cd313a48130cece7c70ddc337bb788"
+    "original_checksum": "3bbb0ca2f71936c2246b1084800f471a54a3e19376758a97d6a75c79ebacbe64"
   },
   "custom_functions.dart": {
     "old_identifier_name": "CustomFunctions",
@@ -68,31 +124,64 @@
     "new_identifier_name": "pubspec.yaml",
     "type": "D",
     "is_deleted": false,
-    "current_checksum": "555646e4c209b94449ebd791565ae67f0940804e33f7307f02e7ad190aec471b",
-    "original_checksum": "555646e4c209b94449ebd791565ae67f0940804e33f7307f02e7ad190aec471b"
+    "current_checksum": "1e50b6f122008222156978b72664a5dafd2430487de9ce279dda788fd8f53d67",
+    "original_checksum": "fd890849ff5e753398cdbf33a32f78a94fd979a954f9b1cd9339c4b211c86d2c"
+  },
+  "download_authenticated_model_simple.dart": {
+    "old_identifier_name": "downloadAuthenticatedModelSimple",
+    "new_identifier_name": "downloadAuthenticatedModelSimple",
+    "type": "A",
+    "is_deleted": true,
+    "current_checksum": "756ce24fa4d855142ebb2dd2e12540d74efb97b63af8f098d99e32e8c2fbcec3",
+    "original_checksum": "756ce24fa4d855142ebb2dd2e12540d74efb97b63af8f098d99e32e8c2fbcec3"
+  },
+  "download_and_initialize_gemma.dart": {
+    "old_identifier_name": "downloadAndInitializeGemma",
+    "new_identifier_name": "downloadAndInitializeGemma",
+    "type": "A",
+    "is_deleted": true,
+    "current_checksum": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+  },
+  "register_existing_model.dart": {
+    "old_identifier_name": "registerExistingModel",
+    "new_identifier_name": "registerExistingModel",
+    "type": "A",
+    "is_deleted": true,
+    "current_checksum": "3988212c4c89a4b65d0055245adcd5ef6e9508e12b9465f62c46940c6ad554fc"
+  },
+  "create_gemma_chat.dart": {
+    "old_identifier_name": "createGemmaChat",
+    "new_identifier_name": "createGemmaChat",
+    "type": "A",
+    "is_deleted": false,
+    "current_checksum": "c3909d1dde7a263b793338eeb79fba48eb50122bc8a90a6472b38bb6125a81b8"
+  },
+  "send_gemma_message_with_image.dart": {
+    "old_identifier_name": "sendGemmaMessageWithImage",
+    "new_identifier_name": "sendGemmaMessageWithImage",
+    "type": "A",
+    "is_deleted": false,
+    "current_checksum": "b6eb7c8c0893afb1494c7370d01eb9a02606c55c8f60000217b27a8b6a1ba1ad"
   },
   "manage_conversation_history.dart": {
     "old_identifier_name": "manageConversationHistory",
     "new_identifier_name": "manageConversationHistory",
     "type": "A",
     "is_deleted": false,
-    "current_checksum": "052ee810ca73ba42bdb5e0416d9b624cb2d42d4c8b9c90e6453dc2f44f6cd9e6",
-    "original_checksum": "052ee810ca73ba42bdb5e0416d9b624cb2d42d4c8b9c90e6453dc2f44f6cd9e6"
+    "current_checksum": "052ee810ca73ba42bdb5e0416d9b624cb2d42d4c8b9c90e6453dc2f44f6cd9e6"
   },
   "test_vision_capabilities.dart": {
     "old_identifier_name": "testVisionCapabilities",
     "new_identifier_name": "testVisionCapabilities",
     "type": "A",
     "is_deleted": false,
-    "current_checksum": "28396b60f35f7e238f7c32698bec6ac1303fe1cb91384354bf436747ec41ddd5",
-    "original_checksum": "28396b60f35f7e238f7c32698bec6ac1303fe1cb91384354bf436747ec41ddd5"
+    "current_checksum": "28396b60f35f7e238f7c32698bec6ac1303fe1cb91384354bf436747ec41ddd5"
   },
   "test_multimodal_chat.dart": {
     "old_identifier_name": "testMultimodalChat",
     "new_identifier_name": "testMultimodalChat",
     "type": "A",
     "is_deleted": false,
-    "current_checksum": "ee00c5548d45a4ff4509d0f8a8ec62ceef7891c428208320b3c58eafd4582c8c",
-    "original_checksum": "ee00c5548d45a4ff4509d0f8a8ec62ceef7891c428208320b3c58eafd4582c8c"
+    "current_checksum": "ee00c5548d45a4ff4509d0f8a8ec62ceef7891c428208320b3c58eafd4582c8c"
   }
 }
