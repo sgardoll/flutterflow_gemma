@@ -114,7 +114,6 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                       paddingVertical: 24.0,
                       placeholder: 'Enter chat text...',
                       sendButtonText: 'Send',
-                      enableMultimodal: true,
                       imageButtonColor: FlutterFlowTheme.of(context).primary,
                       onMessageSent: (message) async {
                         _model.sendMessageOutput =
@@ -132,6 +131,11 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                           message,
                           imageFile,
                         );
+                      },
+                      onModelCapabilitiesCheck: () async {
+                        // This callback can be used to set App State variables
+                        // based on the detected model capabilities
+                        print('Model capabilities check triggered');
                       },
                     ),
                   ),
