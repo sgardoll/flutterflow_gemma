@@ -35,11 +35,22 @@ class GemmaManager {
       'gemma-3-nano-e4b-it',
       'gemma-3-nano-e2b-it',
     ];
-    return multimodalModels.any((model) =>
-        modelType.toLowerCase().contains(model.toLowerCase()) ||
+
+    // Also check for display names used in the UI
+    final multimodalDisplayNames = [
+      'gemma 3 4b edge',
+      'gemma 3 12b edge',
+      'gemma 3 27b edge',
+      'gemma 3 nano',
+    ];
+
+    return multimodalModels.any(
+            (model) => modelType.toLowerCase().contains(model.toLowerCase())) ||
+        multimodalDisplayNames.any((displayName) =>
+            modelType.toLowerCase().contains(displayName.toLowerCase())) ||
         modelType.toLowerCase().contains('nano') ||
         modelType.toLowerCase().contains('vision') ||
-        modelType.toLowerCase().contains('multimodal'));
+        modelType.toLowerCase().contains('multimodal');
   }
 
   // Initialize the model

@@ -96,14 +96,26 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
           'gemma-3-nano-e2b-it',
         ];
 
+        // Also check for display names used in the UI
+        final multimodalDisplayNames = [
+          'gemma 3 4b edge',
+          'gemma 3 12b edge',
+          'gemma 3 27b edge',
+          'gemma 3 nano',
+        ];
+
         modelSupportsMultimodal = multimodalModels.any((model) =>
-            modelType.toLowerCase().contains(model.toLowerCase()) ||
+                modelType.toLowerCase().contains(model.toLowerCase())) ||
+            multimodalDisplayNames.any((displayName) =>
+                modelType.toLowerCase().contains(displayName.toLowerCase())) ||
             modelType.toLowerCase().contains('nano') ||
             modelType.toLowerCase().contains('vision') ||
-            modelType.toLowerCase().contains('multimodal'));
+            modelType.toLowerCase().contains('multimodal');
 
         print(
-            'GemmaChatWidget: Model type: $modelType, Supports multimodal: $modelSupportsMultimodal');
+            'GemmaChatWidget: Model type: "$modelType", Supports multimodal: $modelSupportsMultimodal');
+        print(
+            'GemmaChatWidget: Model type contains "gemma 3 4b edge": ${modelType.toLowerCase().contains('gemma 3 4b edge')}');
       } else {
         print('GemmaChatWidget: No model initialized or model type unknown');
         modelSupportsMultimodal = false;
