@@ -7,7 +7,12 @@ import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-import 'package:gemma/custom_code/actions/download_authenticated_model.dart';
+import '/custom_code/actions/index.dart' as actions; // Imports custom actions
+
+import '/custom_code/actions/download_authenticated_model.dart';
+import '/custom_code/actions/get_huggingface_model_info.dart';
+import '/custom_code/actions/manage_downloaded_models.dart';
+import '/custom_code/actions/initialize_local_gemma_model.dart';
 
 import 'package:http/http.dart' as http;
 import 'dart:io';
@@ -476,6 +481,8 @@ class _GemmaAuthenticatedSetupWidgetState
                       vertical: 16,
                     ),
                   ),
+                  maxLines: 1,
+                  scrollPadding: EdgeInsets.zero,
                   onChanged: (value) {
                     _customUrl = value;
                     if (value.isNotEmpty) {
@@ -885,21 +892,30 @@ class _GemmaAuthenticatedSetupWidgetState
 
       final currentToken =
           _enteredToken.isNotEmpty ? _enteredToken : widget.huggingFaceToken;
-      final modelPath = await downloadAuthenticatedModel(
-        _showCustomUrl ? _customUrl! : _selectedModel,
-        currentToken,
-        (downloaded, total, percentage) async {
-          setState(() {
-            _downloadedBytes = downloaded;
-            _totalBytes = total;
-            _downloadProgress = percentage;
-          });
+      // For custom URLs, we need a different approach since downloadAuthenticatedModel expects model names
+      final String? modelPath;
+      if (_showCustomUrl) {
+        // For custom URLs, we'd need a different download function
+        // For now, show an error message
+        throw Exception(
+            'Custom URL downloads not yet implemented. Please use predefined models.');
+      } else {
+        modelPath = await downloadAuthenticatedModel(
+          _selectedModel,
+          currentToken,
+          (downloaded, total, percentage) async {
+            setState(() {
+              _downloadedBytes = downloaded;
+              _totalBytes = total;
+              _downloadProgress = percentage;
+            });
 
-          if (widget.onProgress != null) {
-            await widget.onProgress!(percentage.round());
-          }
-        },
-      );
+            if (widget.onProgress != null) {
+              await widget.onProgress!(percentage.round());
+            }
+          },
+        );
+      }
 
       if (modelPath == null) {
         throw Exception(
