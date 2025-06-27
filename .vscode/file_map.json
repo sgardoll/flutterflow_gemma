@@ -44,8 +44,8 @@
     "new_identifier_name": "GemmaChatWidget",
     "type": "W",
     "is_deleted": false,
-    "current_checksum": "22fe5402abc9f48290df169d2a0950af98331976891d9cbcb5dceee5c55192a1",
-    "original_checksum": "22fe5402abc9f48290df169d2a0950af98331976891d9cbcb5dceee5c55192a1"
+    "current_checksum": "fb6b9a35d4c5c7fcb853bacbe76536bfce0dd940e492909c7d972c4b0b3dfd25",
+    "original_checksum": "fb6b9a35d4c5c7fcb853bacbe76536bfce0dd940e492909c7d972c4b0b3dfd25"
   },
   "gemma_authenticated_setup_widget.dart": {
     "old_identifier_name": "GemmaAuthenticatedSetupWidget",

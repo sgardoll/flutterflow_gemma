@@ -11,6 +11,12 @@ import '../GemmaManager.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:typed_data';
 
+// FlutterFlow Action Flow Editor Callbacks:
+// - onMessageSent: Triggered when user sends a text message (use for: logging, analytics, app state updates)
+// - onResponseReceived: Triggered when AI responds (use for: notifications, saving to database, UI updates)
+// - onImageMessageSent: Triggered when user sends image + text (use for: image processing, storage, special handling)
+// - onModelCapabilitiesCheck: Triggered on init to check if model supports multimodal (should return bool to App State)
+
 class GemmaChatWidget extends StatefulWidget {
   const GemmaChatWidget({
     super.key,
@@ -23,12 +29,12 @@ class GemmaChatWidget extends StatefulWidget {
     this.paddingVertical = 12.0,
     this.placeholder = 'Type your message...',
     this.sendButtonText = 'Send',
-    this.enableMultimodal = false,
     this.imageButtonColor,
     this.maxImageSize = 1024,
     required this.onMessageSent,
     this.onResponseReceived,
     this.onImageMessageSent,
+    this.onModelCapabilitiesCheck,
   });
 
   final double? width;
@@ -40,13 +46,13 @@ class GemmaChatWidget extends StatefulWidget {
   final double paddingVertical;
   final String placeholder;
   final String sendButtonText;
-  final bool enableMultimodal;
   final Color? imageButtonColor;
   final int maxImageSize;
   final Future Function(String message) onMessageSent;
   final Future Function(String response)? onResponseReceived;
   final Future Function(String message, FFUploadedFile imageFile)?
       onImageMessageSent;
+  final Future Function()? onModelCapabilitiesCheck;
 
   @override
   State<GemmaChatWidget> createState() => _GemmaChatWidgetState();
@@ -58,6 +64,8 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
   final List<ChatMessage> _messages = [];
   final ImagePicker _imagePicker = ImagePicker();
   bool _isLoading = false;
+  bool _isMultimodalAvailable =
+      false; // Tracks if model actually supports multimodal
   FFUploadedFile? _selectedImage;
   final GemmaManager _gemmaManager = GemmaManager();
 
@@ -65,6 +73,59 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
   void initState() {
     super.initState();
     // Don't initialize here - rely on the model being already initialized
+
+    // Check model capabilities and auto-enable multimodal if supported
+    _checkModelCapabilities();
+  }
+
+  Future<void> _checkModelCapabilities() async {
+    try {
+      // Check if the GemmaManager has a multimodal-capable model loaded
+      bool modelSupportsMultimodal = false;
+
+      // Get the current model type from GemmaManager
+      if (_gemmaManager.isInitialized &&
+          _gemmaManager.currentModelType != null) {
+        // Use the same logic as GemmaManager to detect multimodal models
+        final modelType = _gemmaManager.currentModelType!;
+        final multimodalModels = [
+          'gemma-3-4b-it',
+          'gemma-3-12b-it',
+          'gemma-3-27b-it',
+          'gemma-3-nano-e4b-it',
+          'gemma-3-nano-e2b-it',
+        ];
+
+        modelSupportsMultimodal = multimodalModels.any((model) =>
+            modelType.toLowerCase().contains(model.toLowerCase()) ||
+            modelType.toLowerCase().contains('nano') ||
+            modelType.toLowerCase().contains('vision') ||
+            modelType.toLowerCase().contains('multimodal'));
+
+        print(
+            'GemmaChatWidget: Model type: $modelType, Supports multimodal: $modelSupportsMultimodal');
+      } else {
+        print('GemmaChatWidget: No model initialized or model type unknown');
+        modelSupportsMultimodal = false;
+      }
+
+      // Call FlutterFlow action to check/store capabilities
+      if (widget.onModelCapabilitiesCheck != null) {
+        await widget.onModelCapabilitiesCheck!();
+        // The FlutterFlow action should set an App State variable with the result
+      }
+
+      setState(() {
+        _isMultimodalAvailable = modelSupportsMultimodal;
+      });
+
+      print('Multimodal capabilities detected: $_isMultimodalAvailable');
+    } catch (e) {
+      print('Error checking model capabilities: $e');
+      setState(() {
+        _isMultimodalAvailable = false;
+      });
+    }
   }
 
   Future<void> _pickImage() async {
@@ -296,7 +357,7 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   // Image picker button (only show if multimodal is enabled)
-                  if (widget.enableMultimodal) ...[
+                  if (_isMultimodalAvailable) ...[
                     IconButton(
                       onPressed: _isLoading ? null : _pickImage,
                       icon: Icon(
