@@ -1,0 +1,82 @@
+{
+  "initialize_gemma_model.dart": {
+    "old_identifier_name": "initializeGemmaModel",
+    "new_identifier_name": "initializeGemmaModel",
+    "type": "A",
+    "is_deleted": false,
+    "current_checksum": "397311407186eeff69e2afcebb83c94b2e72e0e7e9ef99d05a3e41cc30442a26",
+    "original_checksum": "397311407186eeff69e2afcebb83c94b2e72e0e7e9ef99d05a3e41cc30442a26"
+  },
+  "send_gemma_message.dart": {
+    "old_identifier_name": "sendGemmaMessage",
+    "new_identifier_name": "sendGemmaMessage",
+    "type": "A",
+    "is_deleted": false,
+    "current_checksum": "0ab86c1dfbc0b4639b8487a24dc6b3578f51615b999f3ddb344a5d7e80c5f34f",
+    "original_checksum": "0ab86c1dfbc0b4639b8487a24dc6b3578f51615b999f3ddb344a5d7e80c5f34f"
+  },
+  "download_authenticated_model.dart": {
+    "old_identifier_name": "downloadAuthenticatedModel",
+    "new_identifier_name": "downloadAuthenticatedModel",
+    "type": "A",
+    "is_deleted": false,
+    "current_checksum": "827564036eaf11b5d42609b79f06d1c0b17f5f555b997a503267591172022470",
+    "original_checksum": "827564036eaf11b5d42609b79f06d1c0b17f5f555b997a503267591172022470"
+  },
+  "initialize_local_gemma_model.dart": {
+    "old_identifier_name": "initializeLocalGemmaModel",
+    "new_identifier_name": "initializeLocalGemmaModel",
+    "type": "A",
+    "is_deleted": false,
+    "current_checksum": "b9ba8545437c2b171aedf1ca4c839fc42959a03700f6b142e1c49da4b015fdf9",
+    "original_checksum": "b9ba8545437c2b171aedf1ca4c839fc42959a03700f6b142e1c49da4b015fdf9"
+  },
+  "manage_downloaded_models.dart": {
+    "old_identifier_name": "manageDownloadedModels",
+    "new_identifier_name": "manageDownloadedModels",
+    "type": "A",
+    "is_deleted": false,
+    "current_checksum": "bd849011ace1a26bae2d844387b629f886f57baa8833a4ab30992f34573bc1db",
+    "original_checksum": "bd849011ace1a26bae2d844387b629f886f57baa8833a4ab30992f34573bc1db"
+  },
+  "get_huggingface_model_info.dart": {
+    "old_identifier_name": "getHuggingfaceModelInfo",
+    "new_identifier_name": "getHuggingfaceModelInfo",
+    "type": "A",
+    "is_deleted": false,
+    "current_checksum": "324e7632df6a8ca9419d39771bd7064e7f1d8b7289ba839fa5fdf4c083137b25",
+    "original_checksum": "324e7632df6a8ca9419d39771bd7064e7f1d8b7289ba839fa5fdf4c083137b25"
+  },
+  "gemma_chat_widget.dart": {
+    "old_identifier_name": "GemmaChatWidget",
+    "new_identifier_name": "GemmaChatWidget",
+    "type": "W",
+    "is_deleted": false,
+    "current_checksum": "dfc6751ec5b2110bd39da1c2ada63892e949804cc308cd4395994050204c01a6",
+    "original_checksum": "dfc6751ec5b2110bd39da1c2ada63892e949804cc308cd4395994050204c01a6"
+  },
+  "gemma_authenticated_setup_widget.dart": {
+    "old_identifier_name": "GemmaAuthenticatedSetupWidget",
+    "new_identifier_name": "GemmaAuthenticatedSetupWidget",
+    "type": "W",
+    "is_deleted": false,
+    "current_checksum": "3bbb0ca2f71936c2246b1084800f471a54a3e19376758a97d6a75c79ebacbe64",
+    "original_checksum": "3bbb0ca2f71936c2246b1084800f471a54a3e19376758a97d6a75c79ebacbe64"
+  },
+  "custom_functions.dart": {
+    "old_identifier_name": "CustomFunctions",
+    "new_identifier_name": "CustomFunctions",
+    "type": "F",
+    "is_deleted": false,
+    "current_checksum": "415688756283460139fa2817ca006943c32a3ceb940e28ef903ca9cef86a1b08",
+    "original_checksum": "415688756283460139fa2817ca006943c32a3ceb940e28ef903ca9cef86a1b08"
+  },
+  "pubspec.yaml": {
+    "old_identifier_name": "pubspec.yaml",
+    "new_identifier_name": "pubspec.yaml",
+    "type": "D",
+    "is_deleted": false,
+    "current_checksum": "edd22a06f808279bbd4497671004c36099f8ea774493cb286d8d648ddeadc0a9",
+    "original_checksum": "42f0f04f12c7b23f735372bf388856b7ace1e572f66d5fbc032cc8664c7b82cb"
+  }
+}

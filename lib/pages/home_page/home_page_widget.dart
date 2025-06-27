@@ -1,9 +1,13 @@
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
+import '/flutter_flow/flutter_flow_widgets.dart';
+import 'dart:ui';
 import '/custom_code/actions/index.dart' as actions;
 import '/custom_code/widgets/index.dart' as custom_widgets;
+import '/index.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'home_page_model.dart';
 export 'home_page_model.dart';
 
@@ -47,7 +51,41 @@ class _HomePageWidgetState extends State<HomePageWidget> {
         backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
         appBar: AppBar(
           backgroundColor: FlutterFlowTheme.of(context).primary,
-          automaticallyImplyLeading: true,
+          automaticallyImplyLeading: false,
+          leading: FFButtonWidget(
+            onPressed: () async {
+              await actions.closeGemmaModel();
+
+              context.goNamed(SetupWidget.routeName);
+            },
+            text: '',
+            icon: Icon(
+              Icons.chevron_left_outlined,
+              size: 30.0,
+            ),
+            options: FFButtonOptions(
+              height: 40.0,
+              padding: EdgeInsetsDirectional.fromSTEB(16.0, 0.0, 16.0, 0.0),
+              iconPadding: EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 0.0),
+              color: FlutterFlowTheme.of(context).primary,
+              textStyle: FlutterFlowTheme.of(context).titleSmall.override(
+                    font: GoogleFonts.interTight(
+                      fontWeight:
+                          FlutterFlowTheme.of(context).titleSmall.fontWeight,
+                      fontStyle:
+                          FlutterFlowTheme.of(context).titleSmall.fontStyle,
+                    ),
+                    color: Colors.white,
+                    letterSpacing: 0.0,
+                    fontWeight:
+                        FlutterFlowTheme.of(context).titleSmall.fontWeight,
+                    fontStyle:
+                        FlutterFlowTheme.of(context).titleSmall.fontStyle,
+                  ),
+              elevation: 0.0,
+              borderRadius: BorderRadius.circular(8.0),
+            ),
+          ),
           title: Text(
             'Gemma Offline Chat',
             style: FlutterFlowTheme.of(context).headlineMedium.override(
@@ -92,7 +130,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                       borderRadius: 12.0,
                       paddingHorizontal: 24.0,
                       paddingVertical: 24.0,
-                      placeholder: 'Placeholder Text',
+                      placeholder: 'Enter chat text...',
                       sendButtonText: 'Send',
                       onMessageSent: (message) async {
                         _model.sendMessageOutput =
