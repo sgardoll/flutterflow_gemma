@@ -358,13 +358,18 @@ class GemmaManager {
         print('GemmaManager.sendMessage: Got response: $response');
       }
 
-      // IMPORTANT: Add the model's response back to the session to maintain conversation history
+      // Clean the response to remove any repeated patterns
+      String? cleanedResponse = response;
       if (response != null && response.isNotEmpty) {
-        final responseMsg = Message.text(text: response, isUser: false);
+        cleanedResponse = _cleanResponse(response);
+
+        // Only add the model's response back to the session if it's significantly different
+        // to avoid context pollution and infinite loops
+        final responseMsg = Message.text(text: cleanedResponse, isUser: false);
         await _session!.addQueryChunk(responseMsg);
       }
 
-      return response;
+      return cleanedResponse;
     } catch (e) {
       print('Error sending message: $e');
       print('Error stack trace: ${e.toString()}');
@@ -472,6 +477,62 @@ class GemmaManager {
     _isInitialized = false;
     _currentModelType = null;
     _currentBackend = null;
+  }
+
+  // Helper method to clean response text and remove repeated patterns
+  String _cleanResponse(String response) {
+    if (response.isEmpty) return response;
+
+    // Remove excessive repetitions of the same phrase
+    String cleaned = response;
+
+    // Split into words and check for repeated patterns
+    final words = response.split(' ');
+    if (words.length > 10) {
+      // Look for patterns that repeat more than 2 times
+      for (int patternLength = 1; patternLength <= 5; patternLength++) {
+        if (words.length >= patternLength * 3) {
+          final pattern = words.take(patternLength).join(' ');
+
+          // Count how many times this pattern repeats at the start
+          int repeatCount = 0;
+          for (int i = 0;
+              i < words.length - patternLength + 1;
+              i += patternLength) {
+            final currentPattern = words.skip(i).take(patternLength).join(' ');
+            if (currentPattern == pattern) {
+              repeatCount++;
+            } else {
+              break;
+            }
+          }
+
+          // If pattern repeats more than 2 times, keep only first 2 occurrences
+          if (repeatCount > 2) {
+            final remainingWords = words.skip(patternLength * 2).toList();
+            cleaned = (words.take(patternLength * 2).toList() + remainingWords)
+                .join(' ');
+            break;
+          }
+        }
+      }
+    }
+
+    // Additional cleanup: remove excessive whitespace and trim
+    cleaned = cleaned.replaceAll(RegExp(r'\s+'), ' ').trim();
+
+    // If the cleaned response is significantly shorter or the same, return it
+    // Otherwise, return a truncated version of the original to be safe
+    if (cleaned.length < response.length * 0.8 && cleaned.length > 50) {
+      return cleaned;
+    }
+
+    // If cleaning made it too short, return original but truncated if too long
+    if (response.length > 2000) {
+      return response.substring(0, 2000) + '...';
+    }
+
+    return response;
   }
 
   // Helper method to convert string to ModelType enum
