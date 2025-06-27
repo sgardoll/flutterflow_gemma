@@ -250,16 +250,16 @@ class _GemmaAuthenticatedSetupWidgetState
         await widget.onSetupComplete();
         print('onSetupComplete callback completed!');
       } else {
-        print(
-            'Model initialization FAILED - but calling onSetupComplete anyway for testing');
-        // TEMPORARY: Call onSetupComplete even if initialization failed (for debugging)
+        print('Model initialization FAILED');
         setState(() {
           _isSetupInProgress = false;
-          _isSetupComplete = true;
-          _currentStep = 'Model ready for use! (Debug mode)';
+          _errorMessage = 'Failed to initialize model. Please try again.';
+          _currentStep = '';
         });
-        await widget.onSetupComplete();
-        // throw Exception('Failed to initialize model');
+
+        if (widget.onSetupFailed != null) {
+          await widget.onSetupFailed!('Failed to initialize model');
+        }
       }
     } catch (e) {
       print('ERROR in _useExistingModel: $e');

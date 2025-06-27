@@ -1,0 +1,627 @@
+ # FlutterFlow Custom Code Cursor Rules
+
+## Overview
+    These rules ensure that all custom code written for FlutterFlow projects will parse correctly when synced via the FlutterFlow VS Code plugin. Follow these guidelines precisely to avoid parsing errors and ensure successful integration.
+
+## Directory Structure
+
+### Syncable Directories
+The FlutterFlow VS Code plugin can only sync files within these specific directories:
+
+```
+lib/
+├── custom_code/
+│   ├── widgets/      # Custom widgets
+│   ├── actions/      # Custom actions  
+│   ├── functions/    # Custom functions
+│   └── index.dart    # Auto-generated index file (DO NOT MODIFY)
+```
+
+**CRITICAL**: Only files within `/lib/custom_code/` can be synced with FlutterFlow. Any files outside this directory will be ignored.
+
+## Custom Widget Requirements
+
+### 1. File Header (MANDATORY)
+Every custom widget file MUST start with this exact header:
+
+```dart
+// Automatic FlutterFlow imports
+import '/backend/backend.dart';
+import '/backend/schema/structs/index.dart';
+import '/backend/schema/enums/enums.dart';
+import '/actions/actions.dart' as action_blocks;
+import '/flutter_flow/flutter_flow_theme.dart';
+import '/flutter_flow/flutter_flow_util.dart';
+import '/custom_code/widgets/index.dart'; // Imports other custom widgets
+import '/custom_code/actions/index.dart'; // Imports custom actions
+import '/flutter_flow/custom_functions.dart'; // Imports custom functions
+import 'package:flutter/material.dart';
+// Begin custom widget code
+// DO NOT REMOVE OR MODIFY THE CODE ABOVE!
+```
+
+### 2. Widget Structure
+```dart
+class YourWidgetName extends StatefulWidget {
+  const YourWidgetName({
+    super.key,
+    this.width,
+    this.height,
+    // Add your custom parameters here
+  });
+
+  final double? width;
+  final double? height;
+  // Declare your custom parameters here
+
+  @override
+  State<YourWidgetName> createState() => _YourWidgetNameState();
+}
+
+class _YourWidgetNameState extends State<YourWidgetName> {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: widget.width ?? double.infinity,
+      height: widget.height ?? double.infinity,
+      // Your widget implementation
+    );
+  }
+}
+```
+
+### 3. Parameter Guidelines
+
+#### ALWAYS Use Simple Types
+```dart
+// ✅ CORRECT - Use simple types
+final String? text;
+final double? padding;
+final int? count;
+final bool? isActive;
+final Color? backgroundColor;
+final List<String>? items;
+final List<int>? numbers;
+final List<DocumentReference>? documentRefs;
+final List<ProductStruct>? products; // List of custom data types
+
+// ❌ INCORRECT - Avoid complex Flutter types
+final EdgeInsets? padding;         // Break into paddingTop, paddingBottom, etc.
+final Duration? animationDuration; // Use int animationDurationMs instead
+final TextStyle? style;           // Break into individual properties
+```
+
+#### Action Parameters (Callbacks)
+```dart
+// ✅ CORRECT - Action parameters for callbacks
+final Future Function()? onTap;
+final Future Function(String value)? onTextChanged;
+final Future Function(int index)? onItemSelected;
+final Future Function()? onRefresh;
+final Future Function(List<String> items)? onMultiSelect;
+
+// Action parameters appear in FlutterFlow UI as "Action" type
+// Users can attach Action Flows directly to these parameters
+
+// Usage in widget
+class CustomButton extends StatefulWidget {
+  const CustomButton({
+    super.key,
+    this.width,
+    this.height,
+    required this.onPressed,
+    this.onLongPress,
+  });
+
+  final double? width;
+  final double? height;
+  final Future Function() onPressed;  // Required action
+  final Future Function()? onLongPress; // Optional action
+
+  @override
+  State<CustomButton> createState() => _CustomButtonState();
+}
+
+class _CustomButtonState extends State<CustomButton> {
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () async {
+        await widget.onPressed(); // Always await actions
+      },
+      onLongPress: widget.onLongPress != null 
+        ? () async {
+            await widget.onLongPress!();
+          }
+        : null,
+      child: Container(
+        width: widget.width,
+        height: widget.height,
+        // Button implementation
+      ),
+    );
+  }
+}
+
+// Action with return value (for getting data back)
+final Future<String> Function()? onGetUserInput;
+final Future<bool> Function(String message)? onConfirm;
+```
+
+#### Color Parameters
+```dart
+// ✅ CORRECT
+final Color? primaryColor;
+
+// ❌ INCORRECT
+final int? primaryColorValue;
+final Color primaryColor = Color(0xFF000000);
+```
+
+#### Widget Builder Parameters
+```dart
+// ✅ CORRECT - For passing dynamic widgets
+final Widget Function(BuildContext) headerBuilder;
+final Widget Function(BuildContext)? footerBuilder;
+
+// Usage example
+class CustomCard extends StatelessWidget {
+  const CustomCard({
+    super.key,
+    required this.headerBuilder,
+    required this.content,
+  });
+
+  final Widget Function(BuildContext) headerBuilder;
+  final Widget content;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Column(
+        children: [
+          headerBuilder(context),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: content,
+          ),
+        ],
+      ),
+    );
+  }
+}
+```
+
+#### Complex Type Breakdown Examples
+```dart
+// Instead of EdgeInsets
+final double paddingTop;
+final double paddingBottom;
+final double paddingLeft;
+final double paddingRight;
+
+// Instead of Duration
+final int animationDurationMs;
+
+// Instead of enum
+final String type; // 'info', 'success', 'error'
+```
+
+### 4. App State Access
+```dart
+// Single word names only, no dots or special characters
+FFAppState().notificationdisplay = true;  // ✅ CORRECT
+FFAppState().notification.display = true; // ❌ INCORRECT
+
+// Reset flags after use
+void didUpdateWidget(covariant MyWidget oldWidget) {
+  super.didUpdateWidget(oldWidget);
+  if (FFAppState().notificationdisplay) {
+    // Perform action
+    FFAppState().notificationdisplay = false; // Reset flag
+  }
+}
+```
+
+## Custom Action Requirements
+
+### 1. File Header (MANDATORY)
+```dart
+// Automatic FlutterFlow imports
+import '/backend/backend.dart';
+import '/backend/schema/structs/index.dart';
+import '/backend/schema/enums/enums.dart';
+import '/flutter_flow/flutter_flow_theme.dart';
+import '/flutter_flow/flutter_flow_util.dart';
+import '/custom_code/actions/index.dart'; // Imports other custom actions
+import '/flutter_flow/custom_functions.dart'; // Imports custom functions
+import 'package:flutter/material.dart';
+// Begin custom action code
+// DO NOT REMOVE OR MODIFY THE CODE ABOVE!
+```
+
+### 2. Action Structure
+```dart
+// Actions ALWAYS return Future
+Future<ReturnType?> yourActionName(
+  // Parameters
+  String requiredParam,
+  String? optionalParam,
+) async {
+  // Action implementation
+  
+  // Return value (if any)
+  return result;
+}
+
+// With BuildContext (when Include Build Context is enabled)
+Future<void> actionWithContext(BuildContext context) async {
+  // Can access context for navigation, showing dialogs, etc.
+}
+```
+
+### 3. Return Types
+```dart
+// Void action
+Future<void> performTask() async { }
+
+// Return single value
+Future<String?> getUserName() async { 
+  return 'John Doe';
+}
+
+// Return list
+Future<List<ProductStruct>> searchProducts(String query) async {
+  return productList;
+}
+
+// Return custom data type
+Future<UserStruct?> getUserData() async {
+  return UserStruct(
+    name: 'John',
+    email: 'john@example.com'
+  );
+}
+```
+
+## Custom Function Requirements
+
+### 1. Limited Imports
+Custom functions can ONLY use these imports:
+```dart
+import 'dart:convert';
+import 'dart:math' as math;
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+import 'package:timeago/timeago.dart' as timeago;
+import 'lat_lng.dart';
+import 'place.dart';
+import 'uploaded_file.dart';
+import '/backend/backend.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '/backend/schema/structs/index.dart';
+import '/backend/schema/enums/enums.dart';
+import '/auth/firebase_auth/auth_util.dart';
+```
+
+### 2. Function Structure
+```dart
+// Functions are synchronous (not async)
+String formatCurrency(double amount) {
+  return '\$${amount.toStringAsFixed(2)}';
+}
+
+// Can return any type
+List<int> generateSequence(int length) {
+  return List.generate(length, (i) => i + 1);
+}
+```
+
+## Data Type Mappings
+
+### FlutterFlow to Dart Type Reference
+
+| FlutterFlow Type | Dart Type | Example |
+|-----------------|-----------|---------|
+| Text | String | `final String name;` |
+| Number | double | `final double price;` |
+| Integer | int | `final int count;` |
+| Boolean | bool | `final bool isActive;` |
+| Color | Color | `final Color? backgroundColor;` |
+| Image Path | String | `final String imagePath;` |
+| Date Time | DateTime | `final DateTime createdAt;` |
+| Lat/Lng | LatLng | `final LatLng location;` |
+| Document Reference | DocumentReference | `final DocumentReference userRef;` |
+| Place | FFPlace | `final FFPlace selectedPlace;` |
+| Uploaded File | FFUploadedFile | `final FFUploadedFile document;` |
+| JSON | dynamic | `final dynamic data;` |
+| Uploaded File (Bytes) | Uint8List | `final Uint8List fileBytes;` |
+| Custom Data Type | <TypeName>Struct | `final ProductStruct product;` |
+| Action | Future<void> Function() | `final Future<void> Function() onTap;` |
+| Action (with params) | Future<void> Function(T) | `final Future<void> Function(String) onChanged;` |
+| Widget Builder | Widget Function(BuildContext) | `final Widget Function(BuildContext) headerBuilder;` |
+
+## Custom Data Types (Structs)
+
+### Naming Convention
+- Always use **UpperCamelCase** for custom data types
+- FlutterFlow automatically appends "Struct" to the type name
+- Example: Type "Product" becomes class "ProductStruct"
+
+### Usage Example
+```dart
+// Creating instance
+final product = ProductStruct(
+  id: '123',
+  name: 'Widget',
+  price: 29.99,
+);
+
+// Accessing properties
+String? productName = product.name;
+double? productPrice = product.price;
+
+// Updating nested structs
+if (product.details != null) {
+  product.details!.description = 'Updated description';
+}
+```
+
+## Theme Integration
+
+### Accessing FlutterFlow Theme
+```dart
+// Colors
+FlutterFlowTheme.of(context).primary
+FlutterFlowTheme.of(context).secondary
+FlutterFlowTheme.of(context).tertiary
+FlutterFlowTheme.of(context).primaryBackground
+FlutterFlowTheme.of(context).secondaryBackground
+FlutterFlowTheme.of(context).primaryText
+FlutterFlowTheme.of(context).secondaryText
+
+// Text Styles
+FlutterFlowTheme.of(context).bodyLarge
+FlutterFlowTheme.of(context).bodyMedium
+FlutterFlowTheme.of(context).bodySmall
+FlutterFlowTheme.of(context).headlineLarge
+FlutterFlowTheme.of(context).headlineMedium
+FlutterFlowTheme.of(context).headlineSmall
+```
+
+## Common Patterns
+
+### 1. Complete Custom Widget Example
+```dart
+// Automatic FlutterFlow imports
+import '/backend/backend.dart';
+import '/backend/schema/structs/index.dart';
+import '/backend/schema/enums/enums.dart';
+import '/actions/actions.dart' as action_blocks;
+import '/flutter_flow/flutter_flow_theme.dart';
+import '/flutter_flow/flutter_flow_util.dart';
+import '/custom_code/widgets/index.dart';
+import '/custom_code/actions/index.dart';
+import '/flutter_flow/custom_functions.dart';
+import 'package:flutter/material.dart';
+// Begin custom widget code
+// DO NOT REMOVE OR MODIFY THE CODE ABOVE!
+
+class AdvancedCustomWidget extends StatefulWidget {
+  const AdvancedCustomWidget({
+    super.key,
+    this.width,
+    this.height,
+    required this.title,
+    this.subtitle,
+    this.items,
+    this.backgroundColor,
+    this.paddingTop = 16.0,
+    this.paddingBottom = 16.0,
+    this.animationDurationMs = 300,
+    this.cardType = 'standard',
+    required this.onCardTapped,
+    this.onItemSelected,
+    this.customHeader,
+    this.product,
+  });
+
+  final double? width;
+  final double? height;
+  final String title;
+  final String? subtitle;
+  final List<String>? items;
+  final Color? backgroundColor;
+  final double paddingTop;
+  final double paddingBottom;
+  final int animationDurationMs;
+  final String cardType; // Instead of enum
+  final Future Function() onCardTapped; // Action parameter
+  final Future Function(int index)? onItemSelected; // Action with params
+  final Widget Function(BuildContext)? customHeader; // Widget builder
+  final ProductStruct? product; // Custom data type
+
+  @override
+  State<AdvancedCustomWidget> createState() => _AdvancedCustomWidgetState();
+}
+
+class _AdvancedCustomWidgetState extends State<AdvancedCustomWidget> {
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () async {
+        await widget.onCardTapped();
+      },
+      child: Container(
+        width: widget.width,
+        height: widget.height,
+        padding: EdgeInsets.only(
+          top: widget.paddingTop,
+          bottom: widget.paddingBottom,
+        ),
+        decoration: BoxDecoration(
+          color: widget.backgroundColor ?? 
+                 FlutterFlowTheme.of(context).primaryBackground,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          children: [
+            if (widget.customHeader != null)
+              widget.customHeader!(context)
+            else
+              Text(
+                widget.title,
+                style: FlutterFlowTheme.of(context).headlineMedium,
+              ),
+            if (widget.items != null)
+              ...widget.items!.asMap().entries.map((entry) {
+                return ListTile(
+                  title: Text(entry.value),
+                  onTap: widget.onItemSelected != null
+                    ? () async {
+                        await widget.onItemSelected!(entry.key);
+                      }
+                    : null,
+                );
+              }).toList(),
+          ],
+        ),
+      ),
+    );
+  }
+}
+```
+
+### 2. FFAppState Pattern
+```dart
+// Read
+final cartItems = FFAppState().cartItems;
+
+// Update
+FFAppState().update(() {
+  FFAppState().isDarkMode = true;
+  FFAppState().cartCount = 5;
+});
+
+// List operations
+FFAppState().addToCartItems(item);
+FFAppState().removeFromCartItems(item);
+FFAppState().removeAtIndexFromCartItems(0);
+FFAppState().updateCartItemsAtIndex(0, (item) => item..quantity = 2);
+```
+
+### 3. Firebase Auth Variables
+```dart
+// Available variables
+currentUserEmail          // String?
+currentUserUid           // String
+currentUserDisplayName   // String?
+currentUserPhoto         // String?
+currentPhoneNumber       // String?
+currentJwtToken         // String?
+currentUserEmailVerified // bool
+
+// Usage
+if (currentUserEmailVerified) {
+  // Perform verified user actions
+}
+```
+
+### 4. Navigation Pattern
+```dart
+// In actions with BuildContext
+Future<void> navigateToPage(BuildContext context) async {
+  context.pushNamed('PageName');
+}
+```
+
+## Package Dependencies
+
+### Adding Packages
+When adding pub.dev packages, use the standard format in custom actions/widgets:
+
+```yaml
+dependencies:
+  package_name: ^1.0.0
+```
+
+### Using Git Dependencies
+```yaml
+dependencies:
+  package_name:
+    git:
+      url: https://github.com/username/repository.git
+      ref: main  # or specific branch/tag
+```
+
+## Error Prevention Checklist
+
+### Before Syncing
+1. ✅ File is in `/lib/custom_code/` directory
+2. ✅ Correct file header with mandatory imports
+3. ✅ No modification of auto-generated comments
+4. ✅ All parameters use simple types
+5. ✅ Custom data types use UpperCamelCase
+6. ✅ Actions return Future<T>
+7. ✅ No complex Flutter types in parameters
+8. ✅ Colors are nullable Color type
+9. ✅ Enums replaced with String values
+10. ✅ EdgeInsets broken into individual doubles
+11. ✅ Action parameters use Future<void> Function() pattern
+12. ✅ Widget builders use Widget Function(BuildContext) pattern
+
+### Common Errors to Avoid
+1. ❌ Modifying the "DO NOT REMOVE OR MODIFY" section
+2. ❌ Using dots in FFAppState property names
+3. ❌ Using enum types instead of strings
+4. ❌ Non-nullable Color parameters
+5. ❌ Complex parameter types (EdgeInsets, Duration, TextStyle)
+6. ❌ Forgetting to return Future in actions
+7. ❌ Using unavailable imports in custom functions
+8. ❌ Incorrect file location outside custom_code folder
+9. ❌ Not awaiting Action parameter calls
+10. ❌ Using VoidCallback instead of Future<void> Function() for actions
+
+## VS Code Plugin Usage
+
+### Syncing Process
+1. Ensure all files are saved
+2. Files must be in correct directories
+3. Use the FlutterFlow VS Code extension sync command
+4. Check for parsing errors in the output
+5. Fix any reported issues before re-syncing
+
+### Troubleshooting Sync Issues
+- Verify file headers match exactly
+- Check parameter types are all simple
+- Ensure no syntax errors in Dart code
+- Confirm files are in `/lib/custom_code/`
+- Review FlutterFlow console for specific errors
+
+## Best Practices
+
+1. **Always test locally** before syncing to FlutterFlow
+2. **Use simple types** for all parameters
+3. **Follow naming conventions** strictly
+4. **Document complex logic** with comments
+5. **Handle null cases** appropriately
+6. **Reset App State flags** after use
+7. **Break complex types** into simple parameters
+8. **Use theme colors** instead of hardcoded values
+9. **Leverage generated classes** (FFButton, FFPlace, etc.)
+10. **Test edge cases** thoroughly
+
+## Configuration Files
+
+While not directly related to custom code, be aware that FlutterFlow also allows editing:
+- `AndroidManifest.xml`
+- `Info.plist` 
+- `Entitlements.plist`
+- `main.dart`
+
+These are edited through the FlutterFlow interface, not via VS Code sync.
+
+---
+
+By following these comprehensive rules, your custom code will parse perfectly in FlutterFlow every time. Remember: when in doubt, use simpler types and follow the exact patterns shown in the examples.

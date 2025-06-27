@@ -12,24 +12,16 @@
     "new_identifier_name": "sendGemmaMessage",
     "type": "A",
     "is_deleted": false,
-    "current_checksum": "0ab86c1dfbc0b4639b8487a24dc6b3578f51615b999f3ddb344a5d7e80c5f34f",
-    "original_checksum": "0ab86c1dfbc0b4639b8487a24dc6b3578f51615b999f3ddb344a5d7e80c5f34f"
-  },
-  "download_authenticated_model.dart": {
-    "old_identifier_name": "downloadAuthenticatedModel",
-    "new_identifier_name": "downloadAuthenticatedModel",
-    "type": "A",
-    "is_deleted": false,
-    "current_checksum": "827564036eaf11b5d42609b79f06d1c0b17f5f555b997a503267591172022470",
-    "original_checksum": "827564036eaf11b5d42609b79f06d1c0b17f5f555b997a503267591172022470"
+    "current_checksum": "e0d749c324a8872536a311b43cb381bb3c3fd482e43502ab911a6420e8088eb7",
+    "original_checksum": "e0d749c324a8872536a311b43cb381bb3c3fd482e43502ab911a6420e8088eb7"
   },
   "initialize_local_gemma_model.dart": {
     "old_identifier_name": "initializeLocalGemmaModel",
     "new_identifier_name": "initializeLocalGemmaModel",
     "type": "A",
     "is_deleted": false,
-    "current_checksum": "b9ba8545437c2b171aedf1ca4c839fc42959a03700f6b142e1c49da4b015fdf9",
-    "original_checksum": "b9ba8545437c2b171aedf1ca4c839fc42959a03700f6b142e1c49da4b015fdf9"
+    "current_checksum": "7d136fcafbc01ffa93f77a1e13f382be8c66cd94353ef49f0a153cb339d11056",
+    "original_checksum": "7d136fcafbc01ffa93f77a1e13f382be8c66cd94353ef49f0a153cb339d11056"
   },
   "manage_downloaded_models.dart": {
     "old_identifier_name": "manageDownloadedModels",
@@ -39,29 +31,29 @@
     "current_checksum": "bd849011ace1a26bae2d844387b629f886f57baa8833a4ab30992f34573bc1db",
     "original_checksum": "bd849011ace1a26bae2d844387b629f886f57baa8833a4ab30992f34573bc1db"
   },
-  "get_huggingface_model_info.dart": {
-    "old_identifier_name": "getHuggingfaceModelInfo",
-    "new_identifier_name": "getHuggingfaceModelInfo",
+  "send_gemma_message_with_image.dart": {
+    "old_identifier_name": "sendGemmaMessageWithImage",
+    "new_identifier_name": "sendGemmaMessageWithImage",
     "type": "A",
     "is_deleted": false,
-    "current_checksum": "324e7632df6a8ca9419d39771bd7064e7f1d8b7289ba839fa5fdf4c083137b25",
-    "original_checksum": "324e7632df6a8ca9419d39771bd7064e7f1d8b7289ba839fa5fdf4c083137b25"
+    "current_checksum": "43bc7a2d83d5ab4520b28e642260abdad9e672abd383ab9cff5a794cd6476f43",
+    "original_checksum": "43bc7a2d83d5ab4520b28e642260abdad9e672abd383ab9cff5a794cd6476f43"
   },
   "gemma_chat_widget.dart": {
     "old_identifier_name": "GemmaChatWidget",
     "new_identifier_name": "GemmaChatWidget",
     "type": "W",
     "is_deleted": false,
-    "current_checksum": "d2f5da9fd7f25b5c60fe24232ca1a6668d4984e70030c4f9e313a85d9bb0c3bb",
-    "original_checksum": "d2f5da9fd7f25b5c60fe24232ca1a6668d4984e70030c4f9e313a85d9bb0c3bb"
+    "current_checksum": "22fe5402abc9f48290df169d2a0950af98331976891d9cbcb5dceee5c55192a1",
+    "original_checksum": "22fe5402abc9f48290df169d2a0950af98331976891d9cbcb5dceee5c55192a1"
   },
   "gemma_authenticated_setup_widget.dart": {
     "old_identifier_name": "GemmaAuthenticatedSetupWidget",
     "new_identifier_name": "GemmaAuthenticatedSetupWidget",
     "type": "W",
     "is_deleted": false,
-    "current_checksum": "3bbb0ca2f71936c2246b1084800f471a54a3e19376758a97d6a75c79ebacbe64",
-    "original_checksum": "3bbb0ca2f71936c2246b1084800f471a54a3e19376758a97d6a75c79ebacbe64"
+    "current_checksum": "16c4cfdc0e13711735d1b30698ebb100fe45a23e78dd424f0659ff0a63e0cd1c",
+    "original_checksum": "16c4cfdc0e13711735d1b30698ebb100fe45a23e78dd424f0659ff0a63e0cd1c"
   },
   "custom_functions.dart": {
     "old_identifier_name": "CustomFunctions",
@@ -76,7 +68,7 @@
     "new_identifier_name": "pubspec.yaml",
     "type": "D",
     "is_deleted": false,
-    "current_checksum": "edd22a06f808279bbd4497671004c36099f8ea774493cb286d8d648ddeadc0a9",
-    "original_checksum": "edd22a06f808279bbd4497671004c36099f8ea774493cb286d8d648ddeadc0a9"
+    "current_checksum": "555646e4c209b94449ebd791565ae67f0940804e33f7307f02e7ad190aec471b",
+    "original_checksum": "555646e4c209b94449ebd791565ae67f0940804e33f7307f02e7ad190aec471b"
   }
 }

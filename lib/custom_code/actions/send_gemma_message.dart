@@ -18,6 +18,7 @@ Future<String?> sendGemmaMessage(
     // Convert FFUploadedFile to Uint8List if provided
     final imageBytes = imageFile?.bytes;
 
+    // Use sendMessage for session-based messaging instead of sendChatMessage
     return await gemmaManager.sendMessage(
       message,
       imageBytes: imageBytes,
