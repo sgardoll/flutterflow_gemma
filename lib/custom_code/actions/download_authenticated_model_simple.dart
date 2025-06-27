@@ -11,19 +11,29 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:http/http.dart' as http;
 
-Future<String?> downloadAuthenticatedModel(
+Future<String?> downloadAuthenticatedModelSimple(
   String modelNameOrUrl,
   String huggingFaceToken,
   Future Function(int downloaded, int total, double percentage)? onProgress,
+  Future Function(String errorType, String message, String? repository)?
+      onError,
 ) async {
   try {
     String modelUrl;
+    String? repository;
 
     // Check if the input is a URL or a predefined model name
     if (modelNameOrUrl.startsWith('https://')) {
       // It's a custom URL, use it directly
       modelUrl = modelNameOrUrl;
       print('Using custom URL: $modelUrl');
+
+      // Extract repository from URL for access request
+      final uri = Uri.parse(modelUrl);
+      final pathSegments = uri.pathSegments;
+      if (pathSegments.length >= 2) {
+        repository = '${pathSegments[0]}/${pathSegments[1]}';
+      }
     } else {
       // It's a predefined model name, look it up in the map
       final Map<String, String> modelUrls = {
@@ -42,6 +52,10 @@ Future<String?> downloadAuthenticatedModel(
       final foundUrl = modelUrls[modelNameOrUrl];
       if (foundUrl == null) {
         print('Error: Unknown model name: $modelNameOrUrl');
+        if (onError != null) {
+          await onError(
+              'unknown_model', 'Unknown model name: $modelNameOrUrl', null);
+        }
         return null;
       }
       modelUrl = foundUrl;
@@ -122,27 +136,56 @@ Future<String?> downloadAuthenticatedModel(
       // Check if it's a restricted access error
       if (responseBody.contains('restricted') &&
           responseBody.contains('authorized list')) {
-        print('Error: Model access is restricted. You need to request access.');
-        print('Visit the model page to request access.');
+        print('Error: Model access is restricted.');
+        if (onError != null) {
+          await onError(
+            'restricted_access',
+            'Access to this model is restricted. You need to request access.',
+            repository,
+          );
+        }
       } else {
         print('Error: Authentication failed. Check your Hugging Face token.');
-        print('Make sure you have access to the model repository.');
+        if (onError != null) {
+          await onError(
+            'authentication_failed',
+            'Authentication failed. Please check your HuggingFace token.',
+            null,
+          );
+        }
       }
-      print('URL: $modelUrl');
       return null;
     } else if (streamedResponse.statusCode == 404) {
       print('Error: Model file not found at URL: $modelUrl');
-      print('Please verify the URL is correct and the file exists.');
+      if (onError != null) {
+        await onError(
+          'not_found',
+          'Model file not found. Please verify the URL is correct.',
+          null,
+        );
+      }
       return null;
     } else {
       print('Error downloading model: ${streamedResponse.statusCode}');
       print('Response reason: ${streamedResponse.reasonPhrase}');
-      print('URL: $modelUrl');
-      print('Headers sent: $headers');
+      if (onError != null) {
+        await onError(
+          'download_failed',
+          'Download failed with status: ${streamedResponse.statusCode}',
+          null,
+        );
+      }
       return null;
     }
   } catch (e) {
-    print('Error in downloadAuthenticatedModel: $e');
+    print('Error in downloadAuthenticatedModelSimple: $e');
+    if (onError != null) {
+      await onError(
+        'exception',
+        'Error: ${e.toString()}',
+        null,
+      );
+    }
     return null;
   }
 }
