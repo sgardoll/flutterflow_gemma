@@ -24,6 +24,14 @@ Future<String?> sendGemmaMessageWithImage(
       return null;
     }
 
+    // Debug: Check image size and format
+    print('sendGemmaMessageWithImage: Image size: ${imageBytes.length} bytes');
+    if (imageBytes.length >= 4) {
+      final header = imageBytes.take(4).toList();
+      print(
+          'sendGemmaMessageWithImage: Image header: ${header.map((b) => '0x${b.toRadixString(16).padLeft(2, '0')}').join(' ')}');
+    }
+
     // Enhanced prompt for better image understanding
     String enhancedMessage = message;
     if (message.toLowerCase().contains('what is this') ||
@@ -35,8 +43,42 @@ Future<String?> sendGemmaMessageWithImage(
               message;
     }
 
-    // First, try to send the message normally
+    // Check if we have a chat instance for multimodal support
+    if (!gemmaManager.hasChat) {
+      print(
+          'sendGemmaMessageWithImage: Creating chat instance for multimodal support...');
+      final chatCreated = await gemmaManager.createChat(
+        temperature: 0.8,
+        randomSeed: 1,
+        topK: 1,
+      );
+
+      if (!chatCreated) {
+        print('sendGemmaMessageWithImage: Failed to create chat instance');
+      }
+    }
+
+    // Try to send using chat first (better for multimodal)
+    if (gemmaManager.hasChat) {
+      try {
+        print('sendGemmaMessageWithImage: Sending via chat (multimodal)...');
+        final response = await gemmaManager.sendChatMessage(
+          enhancedMessage,
+          imageBytes: imageBytes,
+        );
+
+        if (response != null && response.isNotEmpty) {
+          print('sendGemmaMessageWithImage: Got chat response');
+          return response;
+        }
+      } catch (chatError) {
+        print('sendGemmaMessageWithImage: Chat failed: $chatError');
+      }
+    }
+
+    // Fallback to session-based approach
     try {
+      print('sendGemmaMessageWithImage: Sending via session...');
       return await gemmaManager.sendMessage(
         enhancedMessage,
         imageBytes: imageBytes,

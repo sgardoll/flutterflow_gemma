@@ -4,7 +4,5 @@ export 'initialize_local_gemma_model.dart' show initializeLocalGemmaModel;
 export 'manage_downloaded_models.dart' show manageDownloadedModels;
 export 'send_gemma_message_with_image.dart' show sendGemmaMessageWithImage;
 export 'manage_conversation_history.dart' show manageConversationHistory;
-export 'close_gemma_model.dart' show closeGemmaModel;
-export 'create_gemma_session.dart' show createGemmaSession;
-export 'create_gemma_chat.dart' show createGemmaChat;
 export 'test_vision_capabilities.dart' show testVisionCapabilities;
+export 'test_multimodal_chat.dart' show testMultimodalChat;
