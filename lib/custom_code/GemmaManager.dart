@@ -356,6 +356,28 @@ class GemmaManager {
             'GemmaManager.sendMessage: Current model type: $_currentModelType');
         print(
             'GemmaManager.sendMessage: Is multimodal model: ${_isMultimodalModel(_currentModelType ?? '')}');
+
+        // Validate image data
+        if (imageBytes.length < 100) {
+          print(
+              'GemmaManager.sendMessage: WARNING - Image seems too small, might be corrupted');
+        }
+
+        // Check first few bytes to ensure it's a valid image format
+        if (imageBytes.length >= 4) {
+          final header = imageBytes.take(4).toList();
+          if (header[0] == 0xFF && header[1] == 0xD8) {
+            print('GemmaManager.sendMessage: Detected JPEG format');
+          } else if (header[0] == 0x89 &&
+              header[1] == 0x50 &&
+              header[2] == 0x4E &&
+              header[3] == 0x47) {
+            print('GemmaManager.sendMessage: Detected PNG format');
+          } else {
+            print(
+                'GemmaManager.sendMessage: WARNING - Unknown image format, header: ${header.map((b) => '0x${b.toRadixString(16).padLeft(2, '0')}').join(' ')}');
+          }
+        }
       } else {
         print('GemmaManager.sendMessage: No image bytes provided');
       }
@@ -363,8 +385,16 @@ class GemmaManager {
       Message msg;
       if (imageBytes != null && _isMultimodalModel(_currentModelType ?? '')) {
         print('GemmaManager.sendMessage: Creating message with image');
-        msg = Message.withImage(
-            text: message, imageBytes: imageBytes, isUser: true);
+        try {
+          msg = Message.withImage(
+              text: message, imageBytes: imageBytes, isUser: true);
+          print('GemmaManager.sendMessage: Successfully created image message');
+        } catch (imageError) {
+          print(
+              'GemmaManager.sendMessage: Error creating image message: $imageError');
+          print('GemmaManager.sendMessage: Falling back to text-only message');
+          msg = Message.text(text: message, isUser: true);
+        }
       } else {
         print('GemmaManager.sendMessage: Creating text-only message');
         if (imageBytes != null) {

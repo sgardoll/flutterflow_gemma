@@ -6,159 +6,173 @@ import 'package:flutter/material.dart';
 // Begin custom action code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-import 'package:flutter_gemma/flutter_gemma.dart';
+import '../GemmaManager.dart';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 
 Future<String> debugModelPaths() async {
-  try {
-    final resultLines = <String>[];
+  final gemmaManager = GemmaManager();
+  final buffer = StringBuffer();
 
-    // Get the application documents directory
+  buffer.writeln('=== Gemma Model Debug Information ===\n');
+
+  // 1. Check GemmaManager state
+  buffer.writeln('📱 GemmaManager Status:');
+  buffer.writeln('- Initialized: ${gemmaManager.isInitialized}');
+  buffer.writeln(
+      '- Current Model Type: ${gemmaManager.currentModelType ?? 'None'}');
+  buffer.writeln('- Current Backend: ${gemmaManager.currentBackend ?? 'None'}');
+
+  // 2. Check if current model supports vision
+  if (gemmaManager.currentModelType != null) {
+    final modelType = gemmaManager.currentModelType!;
+    final multimodalModels = [
+      'gemma-3-4b-it',
+      'gemma-3-12b-it',
+      'gemma-3-27b-it',
+      'gemma-3-nano-e4b-it',
+      'gemma-3-nano-e2b-it',
+    ];
+
+    final multimodalDisplayNames = [
+      'gemma 3 4b edge',
+      'gemma 3 12b edge',
+      'gemma 3 27b edge',
+      'gemma 3 nano',
+    ];
+
+    final isMultimodal = multimodalModels.any(
+            (model) => modelType.toLowerCase().contains(model.toLowerCase())) ||
+        multimodalDisplayNames.any((displayName) =>
+            modelType.toLowerCase().contains(displayName.toLowerCase())) ||
+        modelType.toLowerCase().contains('nano') ||
+        modelType.toLowerCase().contains('vision') ||
+        modelType.toLowerCase().contains('multimodal');
+
+    buffer.writeln('- Detected as Multimodal: $isMultimodal');
+
+    // Check specific patterns
+    buffer.writeln('\n🔍 Pattern Analysis:');
+    buffer.writeln(
+        '- Contains "gemma 3 4b edge": ${modelType.toLowerCase().contains('gemma 3 4b edge')}');
+    buffer.writeln(
+        '- Contains "nano": ${modelType.toLowerCase().contains('nano')}');
+    buffer.writeln(
+        '- Contains "vision": ${modelType.toLowerCase().contains('vision')}');
+    buffer.writeln(
+        '- Contains "multimodal": ${modelType.toLowerCase().contains('multimodal')}');
+  }
+
+  buffer.writeln('\n');
+
+  // 3. Check documents directory for model files
+  try {
     final appDocDir = await getApplicationDocumentsDirectory();
-    resultLines.add('Documents Directory: ${appDocDir.path}');
-    resultLines.add('');
+    buffer.writeln('📁 Documents Directory: ${appDocDir.path}');
 
-    // List all files in documents directory
-    resultLines.add('=== Documents Directory Files ===');
-    try {
-      final files = await appDocDir.list().toList();
-      int fileCount = 0;
-      for (final entity in files) {
-        if (entity is File) {
-          final stat = await entity.stat();
-          final name = path.basename(entity.path);
-          final sizeFormatted =
-              '${(stat.size / (1024 * 1024)).toStringAsFixed(1)} MB';
-          final isTaskFile = entity.path.endsWith('.task');
-          resultLines.add('File: $name');
-          resultLines.add('  Path: ${entity.path}');
-          resultLines.add('  Size: $sizeFormatted');
-          resultLines.add('  Is Task File: $isTaskFile');
-          resultLines.add('');
-          fileCount++;
-        }
+    final files = await appDocDir.list().toList();
+    final modelFiles = files
+        .where((f) =>
+            f is File &&
+            (f.path.endsWith('.task') ||
+                f.path.endsWith('.bin') ||
+                f.path.endsWith('.tflite')))
+        .cast<File>();
+
+    buffer.writeln('\n📊 Found Model Files:');
+    if (modelFiles.isEmpty) {
+      buffer.writeln('- No model files found');
+    } else {
+      for (final file in modelFiles) {
+        final fileName = path.basename(file.path);
+        final fileSize = await file.length();
+        final fileSizeMB = (fileSize / (1024 * 1024)).toStringAsFixed(1);
+        buffer.writeln('- $fileName (${fileSizeMB}MB)');
+
+        // Check if this looks like a multimodal model
+        final isMultimodalFile = fileName.toLowerCase().contains('3n-e') ||
+            fileName.toLowerCase().contains('nano') ||
+            fileName.toLowerCase().contains('vision') ||
+            fileName.toLowerCase().contains('multimodal') ||
+            fileName.toLowerCase().contains('gemma-3');
+        buffer.writeln('  - Appears multimodal: $isMultimodalFile');
       }
-      resultLines.add('Total files in documents: $fileCount');
-    } catch (e) {
-      resultLines.add('Error listing documents files: ${e.toString()}');
     }
-    resultLines.add('');
+  } catch (e) {
+    buffer.writeln('❌ Error checking documents directory: $e');
+  }
 
-    // Check if there's a models subdirectory
-    final modelsSubdir = Directory(path.join(appDocDir.path, 'models'));
-    final modelsSubdirExists = await modelsSubdir.exists();
-    resultLines.add('=== Models Subdirectory ===');
-    resultLines.add('Models subdirectory exists: $modelsSubdirExists');
+  // 4. Test model initialization capabilities
+  buffer.writeln('\n🧪 Vision Capability Test:');
+  if (gemmaManager.isInitialized) {
+    try {
+      // Test if we can send a message with image bytes
+      final testImageBytes = Uint8List.fromList([
+        0xFF, 0xD8, 0xFF, 0xE0, // JPEG header
+        0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01,
+        // Minimal JPEG data for testing
+        ...List.filled(100, 0xFF) // Dummy image data
+      ]);
 
-    if (modelsSubdirExists) {
+      buffer.writeln(
+          '- Created test image bytes (${testImageBytes.length} bytes)');
+      buffer.writeln('- Testing vision message creation...');
+
+      // This will tell us if the model actually accepts image messages
       try {
-        final files = await modelsSubdir.list().toList();
-        int fileCount = 0;
-        for (final entity in files) {
-          if (entity is File) {
-            final stat = await entity.stat();
-            final name = path.basename(entity.path);
-            final sizeFormatted =
-                '${(stat.size / (1024 * 1024)).toStringAsFixed(1)} MB';
-            final isTaskFile = entity.path.endsWith('.task');
-            resultLines.add('File: $name');
-            resultLines.add('  Path: ${entity.path}');
-            resultLines.add('  Size: $sizeFormatted');
-            resultLines.add('  Is Task File: $isTaskFile');
-            resultLines.add('');
-            fileCount++;
-          }
+        final response = await gemmaManager.sendMessage(
+          'This is a test to check if you can process images. Just respond with "I can see images" if you received an image with this message.',
+          imageBytes: testImageBytes,
+        );
+
+        if (response != null) {
+          buffer.writeln('✅ Model accepted image message');
+          buffer.writeln(
+              '- Response: ${response.length > 100 ? response.substring(0, 100) + '...' : response}');
+
+          // Check if the response indicates vision capability
+          final hasVisionKeywords = response.toLowerCase().contains('image') ||
+              response.toLowerCase().contains('see') ||
+              response.toLowerCase().contains('visual') ||
+              response.toLowerCase().contains('picture');
+          buffer.writeln(
+              '- Response mentions vision concepts: $hasVisionKeywords');
+        } else {
+          buffer.writeln('❌ No response from model');
         }
-        resultLines.add('Total files in models directory: $fileCount');
       } catch (e) {
-        resultLines.add('Error listing models files: ${e.toString()}');
-      }
-    }
-    resultLines.add('');
-
-    // Try to get the current model path from the model manager
-    resultLines.add('=== Model Manager Status ===');
-    try {
-      final modelManager = FlutterGemmaPlugin.instance.modelManager;
-      resultLines.add('Model manager accessible: true');
-    } catch (e) {
-      resultLines.add('Model manager accessible: false');
-      resultLines.add('Error: ${e.toString()}');
-    }
-    resultLines.add('');
-
-    // Find all .task files across the entire app directory structure
-    resultLines.add('=== All Task Files Found ===');
-    try {
-      final allTaskFiles = <Map<String, dynamic>>[];
-      await _findTaskFilesRecursively(appDocDir.parent, allTaskFiles);
-
-      if (allTaskFiles.isEmpty) {
-        resultLines.add('No .task files found');
-      } else {
-        resultLines.add('Found ${allTaskFiles.length} .task files:');
-        for (final taskFile in allTaskFiles) {
-          resultLines.add('File: ${taskFile['name']}');
-          resultLines.add('  Path: ${taskFile['path']}');
-          if (taskFile.containsKey('sizeFormatted')) {
-            resultLines.add('  Size: ${taskFile['sizeFormatted']}');
-          }
-          if (taskFile.containsKey('error')) {
-            resultLines.add('  Error: ${taskFile['error']}');
-          }
-          resultLines.add('');
-        }
+        buffer.writeln('❌ Error sending test image message: $e');
       }
     } catch (e) {
-      resultLines.add('Error searching for task files: ${e.toString()}');
+      buffer.writeln('❌ Error in vision test: $e');
     }
-
-    return resultLines.join('\n');
-  } catch (e) {
-    return 'Error: ${e.toString()}\nFailed to debug model paths';
+  } else {
+    buffer.writeln('- Model not initialized, cannot test vision');
   }
-}
 
-Future<void> _findTaskFilesRecursively(
-    Directory dir, List<Map<String, dynamic>> taskFiles) async {
-  try {
-    final entities = await dir.list().toList();
-    for (final entity in entities) {
-      if (entity is File && entity.path.endsWith('.task')) {
-        try {
-          final stat = await entity.stat();
-          taskFiles.add({
-            'name': path.basename(entity.path),
-            'path': entity.path,
-            'size': stat.size,
-            'sizeFormatted':
-                '${(stat.size / (1024 * 1024)).toStringAsFixed(1)} MB',
-          });
-        } catch (e) {
-          taskFiles.add({
-            'name': path.basename(entity.path),
-            'path': entity.path,
-            'error': e.toString(),
-          });
-        }
-      } else if (entity is Directory) {
-        // Recurse into subdirectories, but skip certain system directories
-        final dirName = path.basename(entity.path);
-        if (!dirName.startsWith('.') &&
-            dirName != 'Caches' &&
-            dirName != 'tmp' &&
-            dirName != 'Preferences') {
-          try {
-            await _findTaskFilesRecursively(entity, taskFiles);
-          } catch (e) {
-            // Ignore errors from directories we can't access
-          }
-        }
-      }
+  // 5. Platform-specific information
+  buffer.writeln('\n📱 Platform Information:');
+  buffer.writeln('- Platform: ${Platform.operatingSystem}');
+  buffer.writeln('- Platform version: ${Platform.operatingSystemVersion}');
+
+  // 6. Recommendations
+  buffer.writeln('\n💡 Recommendations:');
+  if (!gemmaManager.isInitialized) {
+    buffer.writeln('- Initialize the model first');
+  } else if (gemmaManager.currentModelType != null) {
+    final modelType = gemmaManager.currentModelType!;
+    if (!modelType.toLowerCase().contains('3n-e') &&
+        !modelType.toLowerCase().contains('nano') &&
+        !modelType.toLowerCase().contains('gemma 3')) {
+      buffer.writeln('- Consider using a Gemma 3 model with vision support');
+      buffer.writeln('- Recommended: gemma-3n-E4B-it or gemma-3n-E2B-it');
+    } else {
+      buffer.writeln('- Model appears compatible with vision');
+      buffer.writeln('- Ensure model was initialized with supportImage=true');
     }
-  } catch (e) {
-    // Ignore errors from directories we can't access
   }
+
+  return buffer.toString();
 }

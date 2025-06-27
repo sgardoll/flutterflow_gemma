@@ -24,10 +24,21 @@ Future<String?> sendGemmaMessageWithImage(
       return null;
     }
 
+    // Enhanced prompt for better image understanding
+    String enhancedMessage = message;
+    if (message.toLowerCase().contains('what is this') ||
+        message.toLowerCase().contains('what are these') ||
+        message.toLowerCase().contains('identify') ||
+        message.toLowerCase().contains('describe')) {
+      enhancedMessage =
+          "I'm sharing an image with you. Please analyze and describe what you see in this image. " +
+              message;
+    }
+
     // First, try to send the message normally
     try {
       return await gemmaManager.sendMessage(
-        message,
+        enhancedMessage,
         imageBytes: imageBytes,
       );
     } catch (e) {
@@ -39,12 +50,13 @@ Future<String?> sendGemmaMessageWithImage(
             'Token limit reached, clearing conversation history and retrying...');
 
         // Clear conversation history and create new session
-        final historyCleared = await manageConversationHistory(message, 2048);
+        final historyCleared =
+            await manageConversationHistory(enhancedMessage, 2048);
 
         if (historyCleared) {
           // Retry sending the message with fresh session
           return await gemmaManager.sendMessage(
-            message,
+            enhancedMessage,
             imageBytes: imageBytes,
           );
         } else {
