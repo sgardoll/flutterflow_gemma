@@ -116,6 +116,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                       sendButtonText: 'Send',
                       imageButtonColor: FlutterFlowTheme.of(context).primary,
                       onMessageSent: (message) async {
+                        // This is for FlutterFlow state management only - don't return response
                         _model.sendMessageOutput =
                             await actions.sendGemmaMessage(
                           message,
@@ -123,14 +124,16 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                         );
 
                         safeSetState(() {});
-                        return _model.sendMessageOutput; // Return the response
+                        // Don't return the response - the widget handles this directly
                       },
                       onResponseReceived: (response) async {},
                       onImageMessageSent: (message, imageFile) async {
-                        return await actions.sendGemmaMessageWithImage(
+                        // This is for FlutterFlow state management only - don't return response
+                        await actions.sendGemmaMessageWithImage(
                           message,
                           imageFile,
                         );
+                        // Don't return the response - the widget handles this directly
                       },
                       onModelCapabilitiesCheck: () async {
                         // This callback can be used to set App State variables

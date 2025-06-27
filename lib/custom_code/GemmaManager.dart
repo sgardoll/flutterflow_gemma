@@ -348,11 +348,29 @@ class GemmaManager {
     try {
       print('GemmaManager.sendMessage: Sending message: $message');
 
-      Message msg;
+      // Debug image handling
       if (imageBytes != null) {
+        print(
+            'GemmaManager.sendMessage: Image bytes provided, size: ${imageBytes.length}');
+        print(
+            'GemmaManager.sendMessage: Current model type: $_currentModelType');
+        print(
+            'GemmaManager.sendMessage: Is multimodal model: ${_isMultimodalModel(_currentModelType ?? '')}');
+      } else {
+        print('GemmaManager.sendMessage: No image bytes provided');
+      }
+
+      Message msg;
+      if (imageBytes != null && _isMultimodalModel(_currentModelType ?? '')) {
+        print('GemmaManager.sendMessage: Creating message with image');
         msg = Message.withImage(
             text: message, imageBytes: imageBytes, isUser: true);
       } else {
+        print('GemmaManager.sendMessage: Creating text-only message');
+        if (imageBytes != null) {
+          print(
+              'GemmaManager.sendMessage: WARNING - Image provided but model does not support multimodal');
+        }
         msg = Message.text(text: message, isUser: true);
       }
 

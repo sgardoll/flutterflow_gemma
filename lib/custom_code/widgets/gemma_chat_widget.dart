@@ -193,19 +193,36 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
     try {
       String? response;
 
-      // Call the FlutterFlow action callback (for FlutterFlow state management)
-      if (imageFile != null && widget.onImageMessageSent != null) {
-        await widget.onImageMessageSent!(messageText, imageFile);
-      } else {
-        await widget.onMessageSent(messageText);
+      // Debug image handling
+      if (imageFile != null) {
+        print(
+            'GemmaChatWidget: Image file size: ${imageFile.bytes?.length ?? 0} bytes');
+        print('GemmaChatWidget: Image file name: ${imageFile.name}');
+        print(
+            'GemmaChatWidget: Model supports multimodal: $_isMultimodalAvailable');
       }
 
-      // Directly call the Gemma actions to get the response
-      if (imageFile != null) {
+      // Directly call the Gemma manager to get the response
+      if (imageFile != null && _isMultimodalAvailable) {
+        print('GemmaChatWidget: Sending message with image to GemmaManager');
         response = await _gemmaManager.sendMessage(messageText,
             imageBytes: imageFile.bytes);
       } else {
+        print('GemmaChatWidget: Sending text-only message to GemmaManager');
         response = await _gemmaManager.sendMessage(messageText);
+      }
+
+      // Only call FlutterFlow action callbacks for state management/logging (not for processing)
+      if (imageFile != null && widget.onImageMessageSent != null) {
+        // Don't await this - it's just for FlutterFlow state management
+        widget.onImageMessageSent!(messageText, imageFile).catchError((e) {
+          print('FlutterFlow image callback error: $e');
+        });
+      } else {
+        // Don't await this - it's just for FlutterFlow state management
+        widget.onMessageSent(messageText).catchError((e) {
+          print('FlutterFlow message callback error: $e');
+        });
       }
 
       if (response != null && response.toString().isNotEmpty) {
@@ -214,9 +231,11 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
           _messages.add(ChatMessage(text: responseText, isUser: false));
         });
 
-        // Call the FlutterFlow callback if provided
+        // Call the FlutterFlow response callback if provided
         if (widget.onResponseReceived != null) {
-          await widget.onResponseReceived!(responseText);
+          widget.onResponseReceived!(responseText).catchError((e) {
+            print('FlutterFlow response callback error: $e');
+          });
         }
       } else {
         setState(() {
