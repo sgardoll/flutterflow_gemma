@@ -52,8 +52,8 @@
     "new_identifier_name": "GemmaChatWidget",
     "type": "W",
     "is_deleted": false,
-    "current_checksum": "dfc6751ec5b2110bd39da1c2ada63892e949804cc308cd4395994050204c01a6",
-    "original_checksum": "dfc6751ec5b2110bd39da1c2ada63892e949804cc308cd4395994050204c01a6"
+    "current_checksum": "d2f5da9fd7f25b5c60fe24232ca1a6668d4984e70030c4f9e313a85d9bb0c3bb",
+    "original_checksum": "d2f5da9fd7f25b5c60fe24232ca1a6668d4984e70030c4f9e313a85d9bb0c3bb"
   },
   "gemma_authenticated_setup_widget.dart": {
     "old_identifier_name": "GemmaAuthenticatedSetupWidget",
@@ -77,6 +77,6 @@
     "type": "D",
     "is_deleted": false,
     "current_checksum": "edd22a06f808279bbd4497671004c36099f8ea774493cb286d8d648ddeadc0a9",
-    "original_checksum": "42f0f04f12c7b23f735372bf388856b7ace1e572f66d5fbc032cc8664c7b82cb"
+    "original_checksum": "edd22a06f808279bbd4497671004c36099f8ea774493cb286d8d648ddeadc0a9"
   }
 }
