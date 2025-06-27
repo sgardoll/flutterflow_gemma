@@ -1,507 +1,238 @@
-# FlutterFlow Gemma Integration
+# Gemma Flutter - On-Device AI Chat Application
 
-A complete FlutterFlow integration for Google's Gemma AI models, providing local on-device AI capabilities with authenticated model downloads and real-time chat functionality.
+A sophisticated FlutterFlow application that integrates Google's Gemma 3 AI models for offline, on-device AI capabilities. This project provides a complete solution for downloading, managing, and interacting with Gemma models directly on mobile devices.
 
-## 🚀 Features
+## 🌟 Features
 
-- **Local AI Processing**: Run Gemma models directly on device without internet connectivity
-- **Authenticated Downloads**: Secure model downloads from Hugging Face with token authentication
-- **Real-time Progress**: Live download progress with file size and percentage tracking
-- **Multiple Model Support**: Support for Gemma 3-4B-IT, Gemma 3-2B-IT, and Gemma 1B-IT models
-- **Chat Interface**: Ready-to-use chat widget with message history and streaming responses
-- **FlutterFlow Compatible**: Fully compatible with FlutterFlow's custom code requirements
-- **Cross-platform**: Works on iOS and Android devices
+### Core Capabilities
 
-## 📱 Supported Models
+- **On-Device AI Processing**: Run Gemma models locally without internet connectivity
+- **Authenticated Model Downloads**: Secure model downloads from HuggingFace with token authentication
+- **Multiple Model Support**: Choose from various Gemma models including:
+  - Gemma 3 4B Instruct (Multimodal with vision support)
+  - Gemma 3 Nano Edge models (2B/4B with vision support)
+  - Gemma 3 2B/1B Instruct (Text-only models)
+  - Custom model URLs from HuggingFace
+- **Real-time Chat Interface**: Interactive chat widget for conversing with AI models
+- **Model Management**: Download, store, and manage multiple models locally
+- **Cross-platform**: Supports iOS and Android devices
 
-| Model | Size | Description |
-|-------|------|-------------|
-| `gemma-3-4b-it` | ~6.5GB | Gemma 3 4B Instruction Tuned (Best quality) |
-| `gemma-3-2b-it` | ~3.1GB | Gemma 3 2B Instruction Tuned (Balanced) |
-| `gemma-1b-it` | ~0.5GB | Gemma 1B Instruction Tuned (Fastest) |
+### Technical Features
 
-## 🛠️ Setup Requirements
+- **FlutterFlow Integration**: Built with FlutterFlow's visual development platform
+- **Custom Widgets & Actions**: Extensive custom code for model handling
+- **Secure Token Storage**: HuggingFace tokens stored securely using Flutter Secure Storage
+- **Progress Tracking**: Real-time download progress with file size information
+- **Error Handling**: Comprehensive error handling and user feedback
+- **GPU/CPU Backend Support**: Flexible backend selection for optimal performance
 
-### Prerequisites
+## 📋 Prerequisites
 
-1. **FlutterFlow Project**: This integration is designed for FlutterFlow projects
-2. **Hugging Face Account**: Required for model downloads
-3. **Hugging Face Token**: Personal access token with model access permissions
-4. **Device Storage**: Sufficient space for model files (0.5GB - 6.5GB depending on model)
+- Flutter SDK (stable release)
+- FlutterFlow account (for visual editing)
+- HuggingFace account and API token (for model downloads)
+- Xcode (for iOS development)
+- Android Studio (for Android development)
+- Minimum iOS 13.0 / Android API level 21
 
-### Hugging Face Setup
+## 🚀 Getting Started
 
-1. Create a [Hugging Face account](https://huggingface.co/join)
-2. Generate a [personal access token](https://huggingface.co/settings/tokens)
-3. Request access to Gemma models:
-   - [Gemma 3-4B-IT](https://huggingface.co/google/gemma-3n-E4B-it-litert-preview)
-   - [Gemma 3-2B-IT](https://huggingface.co/google/gemma-3n-E2B-it-litert-preview)
-   - [Gemma 1B-IT](https://huggingface.co/litert-community/Gemma3-1B-IT)
+### 1. Clone the Repository
 
-## 📦 Installation
-
-### 1. Add to pubspec.yaml
-
-Add these dependencies to your FlutterFlow project's `pubspec.yaml`:
-
-```yaml
-dependencies:
-  flutter_gemma: ^0.2.4
-  http: ^1.1.0
-  path_provider: ^2.1.1
-  path: ^1.8.3
+```bash
+git clone [repository-url]
+cd gemma-6hs3o0
 ```
 
-### 2. Copy Custom Code Files
+### 2. Install Dependencies
 
-Copy all files from the `lib/custom_code/` directory to your FlutterFlow project:
-
-```
-lib/custom_code/
-├── actions/
-│   ├── close_gemma_model.dart
-│   ├── create_gemma_session.dart
-│   ├── download_authenticated_model.dart
-│   ├── download_gemma_model.dart
-│   ├── initialize_gemma_model.dart
-│   ├── initialize_local_gemma_model.dart
-│   ├── install_gemma_from_asset.dart
-│   ├── send_gemma_message.dart
-│   └── index.dart
-├── widgets/
-│   ├── gemma_authenticated_setup_widget.dart
-│   ├── gemma_chat_widget.dart
-│   ├── gemma_model_setup_widget.dart
-│   └── index.dart
-└── GemmaManager.dart
+```bash
+flutter pub get
 ```
 
-### 3. Sync with FlutterFlow
+### 3. Platform-specific Setup
 
-Use the FlutterFlow VS Code extension to sync the custom code with your FlutterFlow project.
+#### iOS Setup
 
-## 🎯 Usage
-
-### Basic Implementation
-
-#### 1. Model Setup Page
-
-Create a setup page using the `GemmaAuthenticatedSetupWidget`:
-
-```dart
-GemmaAuthenticatedSetupWidget(
-  modelName: 'gemma-1b-it', // Start with smallest model
-  huggingFaceToken: 'your_hf_token_here',
-  preferredBackend: 'gpu',
-  maxTokens: 4096,
-  onSetupComplete: () async {
-    // Navigate to chat page
-    context.pushNamed('ChatPage');
-  },
-  onSetupFailed: (error) async {
-    // Handle setup failure
-    print('Setup failed: $error');
-  },
-)
+```bash
+cd ios
+pod install
+cd ..
 ```
 
-#### 2. Chat Interface
+#### Android Setup
 
-Use the `GemmaChatWidget` for AI conversations:
+Ensure your `android/app/build.gradle` has:
 
-```dart
-GemmaChatWidget(
-  width: MediaQuery.of(context).size.width,
-  height: MediaQuery.of(context).size.height * 0.8,
-  onMessageSent: (message) async {
-    print('User sent: $message');
-  },
-  onResponseReceived: (response) async {
-    print('AI responded: $response');
-  },
-)
+- minSdkVersion 21 or higher
+- Proper memory allocation for larger models
+
+### 4. Get HuggingFace Token
+
+1. Create an account at [HuggingFace](https://huggingface.co)
+2. Go to Settings → Access Tokens
+3. Create a new token with read permissions
+4. Copy the token for use in the app
+
+### 5. Run the Application
+
+```bash
+flutter run
 ```
 
-### Advanced Usage
+## 📱 Usage
 
-#### Custom Actions
+### Initial Setup
 
-The integration provides several custom actions you can use in FlutterFlow Action Flows:
+1. Launch the app - you'll see the Gemma setup screen
+2. Enter your HuggingFace token
+3. Select a model from the dropdown:
+   - Choose a multimodal model for vision capabilities
+   - Select text-only models for faster performance
+   - Use "Other" to specify custom model URLs
+4. Tap "Download & Setup Model"
+5. Wait for download and initialization to complete
 
-##### **`downloadAuthenticatedModel`**
-Downloads models from Hugging Face with authentication and progress tracking.
+### Using Existing Models
 
-**Parameters:**
-- `modelIdentifier` (String): Model name or custom URL
-- `huggingFaceToken` (String): Your HF authentication token
-- `onProgress` (Function): Progress callback with downloaded bytes, total bytes, and percentage
+- Previously downloaded models appear in the "Use Existing Model" section
+- Simply tap on a model to initialize it without re-downloading
 
-**Returns:** `Future<String?>` - Path to downloaded model file
+### Chat Interface
 
-**Example Usage:**
-```dart
-String? modelPath = await downloadAuthenticatedModel(
-  'gemma-3-2b-it',
-  'your_hf_token_here',
-  (downloaded, total, percentage) {
-    print('Download progress: $percentage%');
-    setState(() {
-      downloadProgress = percentage;
-    });
-  },
-);
+- After setup, you'll be redirected to the chat interface
+- Type your message and tap Send
+- The AI will process your query locally and respond
+- For multimodal models, you can include images in your queries
+
+## 🛠️ Project Structure
+
+```
+lib/
+├── app_state.dart              # Global state management
+├── main.dart                   # App entry point
+├── flutter_flow/               # FlutterFlow framework files
+├── pages/                      # App screens
+│   ├── home_page/             # Chat interface
+│   └── setup/                 # Model setup screen
+└── custom_code/               # Custom implementations
+    ├── GemmaManager.dart      # Core model management
+    ├── actions/               # Custom actions for FlutterFlow
+    │   ├── initialize_gemma_model.dart
+    │   ├── download_authenticated_model.dart
+    │   ├── send_gemma_message.dart
+    │   └── ...
+    └── widgets/               # Custom widgets
+        ├── gemma_chat_widget.dart
+        └── gemma_authenticated_setup_widget.dart
 ```
 
-##### **`initializeLocalGemmaModel`**
-Initializes a downloaded model for inference.
+## 🔧 Custom Actions
 
-**Parameters:**
-- `localModelPath` (String): Path to the model file
-- `modelType` (String): Model identifier for configuration
-- `preferredBackend` (String): 'gpu' or 'cpu'
-- `maxTokens` (int): Maximum response length (512-8192)
-- `supportImage` (bool): Enable image processing (if supported)
-- `numOfThreads` (int): CPU threads (1-8)
-- `temperature` (double): Creativity level (0.0-2.0)
-- `topK` (double): Response diversity (1.0-40.0)
-- `topP` (double): Nucleus sampling (0.0-1.0)
-- `randomSeed` (int): Reproducibility seed
+### Model Management
 
-**Returns:** `Future<bool>` - Success status
+- `initializeGemmaModel` - Initialize a model with configuration
+- `initializeLocalGemmaModel` - Initialize from local file
+- `downloadAuthenticatedModel` - Download models from HuggingFace
+- `installLocalModelFile` - Install model from device storage
+- `manageDownloadedModels` - List and manage local models
 
-**Example Usage:**
-```dart
-bool success = await initializeLocalGemmaModel(
-  modelPath,
-  'gemma-3-2b-it',
-  'gpu',
-  4096,
-  false,
-  4,
-  0.8,
-  1.0,
-  1.0,
-  42,
-);
-```
+### Chat Operations
 
-##### **`createGemmaSession`**
-Creates a new chat session with specified parameters.
+- `createGemmaSession` - Create a chat session
+- `sendGemmaMessage` - Send messages and receive responses
+- `closeGemmaModel` - Clean up model resources
 
-**Parameters:**
-- `temperature` (double): Response creativity (0.0-2.0)
-- `randomSeed` (int): Seed for reproducible responses
-- `topK` (int): Top-K sampling parameter (1-40)
+### Utilities
 
-**Returns:** `Future<bool>` - Success status
-
-**Example Usage:**
-```dart
-bool sessionCreated = await createGemmaSession(
-  0.7,  // Slightly creative responses
-  123,  // Reproducible seed
-  5,    // Moderate diversity
-);
-```
-
-##### **`sendGemmaMessage`**
-Sends a message to the AI and gets a response.
-
-**Parameters:**
-- `message` (String): User's message text
-- `imageBytes` (Uint8List?, optional): Image data for multimodal models
-
-**Returns:** `Future<String?>` - AI response text
-
-**Example Usage:**
-```dart
-String? response = await sendGemmaMessage(
-  'Explain quantum computing in simple terms',
-  null, // No image
-);
-
-// With image (for supported models)
-String? response = await sendGemmaMessage(
-  'What do you see in this image?',
-  imageBytes,
-);
-```
-
-##### **`closeGemmaModel`**
-Properly closes the model and frees resources.
-
-**Parameters:** None
-
-**Returns:** `Future<void>`
-
-**Example Usage:**
-```dart
-await closeGemmaModel(); // Call when done or switching models
-```
-
-##### **Additional Actions**
-
-- **`downloadGemmaModel`**: Basic model download without authentication
-- **`initializeGemmaModel`**: Initialize model from asset bundle
-- **`installGemmaFromAsset`**: Install pre-bundled model files
-- **`manageDownloadedModels`**: List, delete, or manage downloaded models
-- **`getHuggingfaceModelInfo`**: Get model metadata before download
-- **`debugModelPaths`**: Debug model file locations and status
-
-#### Example Action Flows
-
-##### **Complete Setup Flow**
-```dart
-// 1. Download Model with Progress
-onPressed: () async {
-  setState(() { isDownloading = true; });
-  
-  String? modelPath = await downloadAuthenticatedModel(
-    selectedModel,
-    hfToken,
-    (downloaded, total, percentage) {
-      setState(() {
-        downloadProgress = percentage;
-      });
-    },
-  );
-  
-  if (modelPath != null) {
-    // 2. Initialize Model
-    bool initialized = await initializeLocalGemmaModel(
-      modelPath,
-      selectedModel,
-      'gpu',
-      4096,
-      false,
-      4,
-      0.8,
-      1.0,
-      1.0,
-      1,
-    );
-    
-    if (initialized) {
-      // 3. Create Session
-      bool sessionReady = await createGemmaSession(0.8, 1, 1);
-      
-      if (sessionReady) {
-        // 4. Navigate to Chat
-        context.pushNamed('ChatPage');
-      }
-    }
-  }
-  
-  setState(() { isDownloading = false; });
-}
-```
-
-##### **Chat Message Flow**
-```dart
-// Send message and handle response
-onSendMessage: (String userMessage) async {
-  // Add user message to chat
-  setState(() {
-    messages.add(ChatMessage(text: userMessage, isUser: true));
-    isLoading = true;
-  });
-  
-  // Get AI response
-  String? aiResponse = await sendGemmaMessage(userMessage, null);
-  
-  // Add AI response to chat
-  setState(() {
-    if (aiResponse != null) {
-      messages.add(ChatMessage(text: aiResponse, isUser: false));
-    } else {
-      messages.add(ChatMessage(text: 'Sorry, I couldn\'t respond.', isUser: false));
-    }
-    isLoading = false;
-  });
-}
-```
-
-##### **Model Management Flow**
-```dart
-// List and manage downloaded models
-onManageModels: () async {
-  // Get list of downloaded models
-  List<dynamic> models = await manageDownloadedModels(null, null);
-  
-  // Display models in UI
-  for (var model in models) {
-    print('Model: ${model['modelType']}');
-    print('Size: ${model['sizeFormatted']}');
-    print('Path: ${model['filePath']}');
-  }
-  
-  // Delete specific model
-  if (shouldDelete) {
-    await manageDownloadedModels('delete', modelPath);
-  }
-}
-```
-
-##### **Error Handling Flow**
-```dart
-// Robust error handling
-try {
-  String? modelPath = await downloadAuthenticatedModel(
-    modelId, 
-    token, 
-    progressCallback
-  );
-  
-  if (modelPath == null) {
-    throw Exception('Download failed');
-  }
-  
-  bool initialized = await initializeLocalGemmaModel(/* params */);
-  if (!initialized) {
-    throw Exception('Model initialization failed');
-  }
-  
-  bool sessionReady = await createGemmaSession(0.8, 1, 1);
-  if (!sessionReady) {
-    throw Exception('Session creation failed');
-  }
-  
-} catch (e) {
-  // Handle different error types
-  if (e.toString().contains('Authentication')) {
-    showError('Invalid Hugging Face token');
-  } else if (e.toString().contains('Storage')) {
-    showError('Insufficient storage space');
-  } else if (e.toString().contains('Memory')) {
-    showError('Not enough RAM for this model');
-  } else {
-    showError('Setup failed: ${e.toString()}');
-  }
-}
+- `getHuggingfaceModelInfo` - Fetch model metadata
+- `debugModelPaths` - Debug model file locations
 
 ## 🎨 Customization
 
-### Widget Styling
+### Modifying the Chat Interface
 
-Both widgets support extensive customization:
+Edit `lib/custom_code/widgets/gemma_chat_widget.dart` to customize:
 
-```dart
-GemmaAuthenticatedSetupWidget(
-  primaryColor: Colors.blue,
-  backgroundColor: Colors.white,
-  textColor: Colors.black,
-  // ... other parameters
-)
+- Chat bubble styling
+- Message formatting
+- Input field appearance
+- Animation effects
 
-GemmaChatWidget(
-  primaryColor: Colors.green,
-  backgroundColor: Colors.grey[100],
-  userMessageColor: Colors.blue,
-  aiMessageColor: Colors.white,
-  // ... other parameters
-)
-```
+### Adding New Models
 
-### Model Configuration
+1. Update model options in `gemma_authenticated_setup_widget.dart`
+2. Add model metadata to the `_modelOptions` list
+3. Ensure proper model type detection in `_isMultimodalModel()`
 
-Configure model behavior:
+### Backend Configuration
 
-```dart
-// GPU acceleration (recommended)
-preferredBackend: 'gpu'
+Modify backend preferences in the setup widget:
 
-// CPU only (more compatible)
-preferredBackend: 'cpu'
+- `gpu` - For devices with GPU support
+- `cpu` - For CPU-only processing
+- Adjust thread count and memory allocation
 
-// Adjust response length
-maxTokens: 2048 // or 4096, 8192
-
-// Enable image support (if model supports it)
-supportImage: true
-maxNumImages: 1
-```
-
-## 📊 Performance Tips
-
-### Model Selection
-
-- **Development/Testing**: Use `gemma-1b-it` (500MB) for faster downloads and testing
-- **Production**: Use `gemma-3-2b-it` (3.1GB) for balanced performance and quality
-- **High-end devices**: Use `gemma-3-4b-it` (6.5GB) for best quality responses
-
-### Device Requirements
-
-- **RAM**: Minimum 4GB, recommended 6GB+ for larger models
-- **Storage**: Reserve 1-8GB for model files
-- **CPU**: ARM64 architecture recommended for optimal performance
-
-### Optimization
-
-- Enable GPU acceleration when available
-- Close models when not in use to free memory
-- Use appropriate `maxTokens` for your use case
-- Consider model caching for faster subsequent loads
-
-## 🔧 Troubleshooting
+## 🐛 Troubleshooting
 
 ### Common Issues
 
-#### Download Fails
-- Verify Hugging Face token has model access permissions
-- Check internet connectivity
-- Ensure sufficient device storage
+1. **Model Download Fails**
 
-#### Model Won't Initialize
-- Confirm model file downloaded completely
-- Check device RAM availability
-- Try CPU backend if GPU fails
+   - Verify HuggingFace token is valid
+   - Check internet connection
+   - Ensure sufficient storage space
 
-#### Poor Performance
-- Reduce `maxTokens` for faster responses
-- Close other apps to free RAM
-- Consider using a smaller model
+2. **Model Initialization Error**
 
-### Error Messages
+   - Verify model file integrity
+   - Check device compatibility
+   - Try CPU backend if GPU fails
 
-| Error | Solution |
-|-------|----------|
-| `Authentication failed` | Check Hugging Face token validity |
-| `Model file not found` | Re-download the model |
-| `Insufficient memory` | Close apps or use smaller model |
-| `GPU not supported` | Switch to CPU backend |
+3. **App Crashes on Large Models**
+   - Increase memory allocation in platform configs
+   - Use smaller model variants
+   - Enable memory optimization flags
 
-## 📱 Platform Considerations
+### Debug Tools
 
-### iOS
-- Requires iOS 12.0+
-- Benefits from Metal GPU acceleration
-- May require additional memory optimization
+- Use `debugModelPaths()` action to inspect model locations
+- Check Flutter logs for detailed error messages
+- Monitor memory usage during model loading
 
-### Android
-- Requires Android API 21+
-- GPU acceleration varies by device
-- Consider ARM64 vs ARM32 compatibility
+## 📦 Dependencies
 
-## 🔒 Security & Privacy
+Key packages used:
 
-- **Local Processing**: All AI processing happens on-device
-- **No Data Transmission**: Conversations never leave the device
-- **Token Security**: Store Hugging Face tokens securely
-- **Model Integrity**: Downloads include automatic verification
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+- `flutter_gemma: ^0.1.7` - Core Gemma integration
+- `http: ^1.2.2` - Network requests
+- `path_provider: ^2.1.5` - File system access
+- `flutter_secure_storage: ^9.2.2` - Secure token storage
+- `percent_indicator: ^4.2.3` - Progress indicators
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please read our contributing guidelines and submit pull requests for any improvements.
+1. Fork the repository
+2. Create a feature branch
+3. Follow FlutterFlow custom code guidelines
+4. Test thoroughly on both platforms
+5. Submit a pull request
 
-## 📞 Support
+## 📄 License
 
-For issues and questions:
+This project is built with FlutterFlow and uses Google's Gemma models. Please refer to:
 
-1. Check the troubleshooting section above
-2. Review FlutterFlow custom code documentation
-3. Open an issue on GitHub
-4. Consult the flutter_gemma package documentation
+- [FlutterFlow Terms](https://flutterflow.io/terms)
+- [Gemma Model License](https://ai.google.dev/gemma/terms)
+- [HuggingFace Terms](https://huggingface.co/terms-of-service)
+
+## 🙏 Acknowledgments
+
+- Google for the Gemma AI models
+- FlutterFlow team for the development platform
+- HuggingFace for model hosting
+- Flutter community for packages and support
+
+---
+
+For more information or support, please open an issue in the repository.

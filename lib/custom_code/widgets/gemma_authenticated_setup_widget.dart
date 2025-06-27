@@ -7,7 +7,12 @@ import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-import 'package:gemma/custom_code/actions/download_authenticated_model.dart';
+import '/custom_code/actions/index.dart' as actions; // Imports custom actions
+
+import '/custom_code/actions/download_authenticated_model.dart';
+import '/custom_code/actions/get_huggingface_model_info.dart';
+import '/custom_code/actions/manage_downloaded_models.dart';
+import '/custom_code/actions/initialize_local_gemma_model.dart';
 
 import 'package:http/http.dart' as http;
 import 'dart:io';
@@ -189,12 +194,15 @@ class _GemmaAuthenticatedSetupWidgetState
       'gemma-3-27b-it',
       'gemma-3-nano-e4b-it',
       'gemma-3-nano-e2b-it',
+      'gemma-3n-e4b-it', // Handle URL-extracted names
+      'gemma-3n-e2b-it', // Handle URL-extracted names
     ];
     return multimodalModels.any((model) =>
         modelType.toLowerCase().contains(model.toLowerCase()) ||
         modelType.toLowerCase().contains('nano') ||
         modelType.toLowerCase().contains('vision') ||
-        modelType.toLowerCase().contains('multimodal'));
+        modelType.toLowerCase().contains('multimodal') ||
+        modelType.toLowerCase().contains('3n-e')); // Handle Gemma 3 nano models
   }
 
   Future<void> _useExistingModel(String filePath, String modelType) async {
@@ -476,6 +484,8 @@ class _GemmaAuthenticatedSetupWidgetState
                       vertical: 16,
                     ),
                   ),
+                  maxLines: 1,
+                  scrollPadding: EdgeInsets.zero,
                   onChanged: (value) {
                     _customUrl = value;
                     if (value.isNotEmpty) {
@@ -885,8 +895,16 @@ class _GemmaAuthenticatedSetupWidgetState
 
       final currentToken =
           _enteredToken.isNotEmpty ? _enteredToken : widget.huggingFaceToken;
-      final modelPath = await downloadAuthenticatedModel(
-        _showCustomUrl ? _customUrl! : _selectedModel,
+
+      // Determine what to download - either a predefined model or custom URL
+      final String downloadTarget =
+          _showCustomUrl ? _customUrl! : _selectedModel;
+
+      // Track repository for potential access request
+      String? restrictedRepository;
+
+      final String? modelPath = await downloadAuthenticatedModel(
+        downloadTarget,
         currentToken,
         (downloaded, total, percentage) async {
           setState(() {
@@ -902,8 +920,33 @@ class _GemmaAuthenticatedSetupWidgetState
       );
 
       if (modelPath == null) {
-        throw Exception(
-            'Failed to download model. Check your token and model URL.');
+        // Check console output for restricted access message
+        // In a real implementation, we'd need to capture the error type differently
+        // For now, we'll show a generic error with instructions
+        final errorMsg = _showCustomUrl
+            ? 'Failed to download model from custom URL: $_customUrl.\n\nIf you see "restricted" in the console, you may need to request access to the model.'
+            : 'Failed to download model $_selectedModel.\n\nPlease check your HuggingFace token and try again.';
+
+        setState(() {
+          _isSetupInProgress = false;
+        });
+
+        // Extract repository from URL if it's a custom URL
+        if (_showCustomUrl && _customUrl != null) {
+          try {
+            final uri = Uri.parse(_customUrl!);
+            final pathSegments = uri.pathSegments;
+            if (pathSegments.length >= 2) {
+              restrictedRepository = '${pathSegments[0]}/${pathSegments[1]}';
+            }
+          } catch (e) {
+            print('Error parsing URL: $e');
+          }
+        }
+
+        // Show a dialog with options
+        await _showDownloadErrorDialog(errorMsg, restrictedRepository);
+        return;
       }
 
       setState(() {
@@ -911,9 +954,20 @@ class _GemmaAuthenticatedSetupWidgetState
         _currentStep = 'Model downloaded! Initializing...';
       });
 
-      final modelName = _showCustomUrl
-          ? (_selectedModelInfo?['fileName'] ?? 'custom')
-          : _selectedModel;
+      // Extract model name for initialization
+      String modelName;
+      if (_showCustomUrl) {
+        // For custom URLs, try to extract a meaningful model name from the filename
+        final fileName =
+            _selectedModelInfo?['fileName'] ?? _customUrl!.split('/').last;
+        // Extract model identifier from filename (e.g., "gemma-3n-E4B-it-int4.task" -> "gemma-3n-E4B-it")
+        modelName = fileName
+            .replaceAll(RegExp(r'\.(task|bin|gguf)$'), '')
+            .replaceAll(RegExp(r'-int\d+$'), '');
+        print('Extracted model name from custom URL: $modelName');
+      } else {
+        modelName = _selectedModel;
+      }
 
       // Determine if this model supports vision
       final isMultimodal = _isMultimodalModel(modelName);
@@ -958,5 +1012,108 @@ class _GemmaAuthenticatedSetupWidgetState
         await widget.onSetupFailed!(e.toString());
       }
     }
+  }
+
+  Future<void> _showDownloadErrorDialog(
+      String errorMessage, String? repository) async {
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.error_outline, color: Colors.red, size: 24),
+              const SizedBox(width: 8),
+              Text('Download Failed'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                errorMessage,
+                style: FlutterFlowTheme.of(context).bodyMedium,
+              ),
+              if (repository != null) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border:
+                        Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'If this is a restricted model:',
+                        style: FlutterFlowTheme.of(context).bodySmall.override(
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'You can request access on HuggingFace',
+                        style: FlutterFlowTheme.of(context).bodySmall.override(
+                              fontFamily: 'Inter',
+                              color: Colors.orange[700],
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+              child: Text(
+                'Close',
+                style: TextStyle(color: Colors.grey[600]),
+              ),
+            ),
+            if (repository != null)
+              ElevatedButton(
+                onPressed: () async {
+                  Navigator.of(dialogContext).pop();
+
+                  // Open the HuggingFace model page in browser
+                  final modelPageUrl = 'https://huggingface.co/$repository';
+                  await launchURL(modelPageUrl);
+
+                  // Show a reminder message
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Opening HuggingFace to request access...'),
+                      backgroundColor: Colors.blue,
+                      duration: Duration(seconds: 3),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.open_in_new, size: 16),
+                    const SizedBox(width: 4),
+                    Text('Request Access'),
+                  ],
+                ),
+              ),
+          ],
+        );
+      },
+    );
   }
 }
