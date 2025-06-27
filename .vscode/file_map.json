@@ -1,28 +1,4 @@
 {
-  "close_gemma_model.dart": {
-    "old_identifier_name": "closeGemmaModel",
-    "new_identifier_name": "closeGemmaModel",
-    "type": "A",
-    "is_deleted": true,
-    "current_checksum": "25fc53bf8cc0599a11bedaa5a423f125afec9984617b5d32e2c1e13751aa4d02",
-    "original_checksum": "25fc53bf8cc0599a11bedaa5a423f125afec9984617b5d32e2c1e13751aa4d02"
-  },
-  "create_gemma_session.dart": {
-    "old_identifier_name": "createGemmaSession",
-    "new_identifier_name": "createGemmaSession",
-    "type": "A",
-    "is_deleted": true,
-    "current_checksum": "aa8a8657686147b92ea35d85e532ef426ea282458b1cc8c118037664a531d2ff",
-    "original_checksum": "aa8a8657686147b92ea35d85e532ef426ea282458b1cc8c118037664a531d2ff"
-  },
-  "download_gemma_model.dart": {
-    "old_identifier_name": "downloadGemmaModel",
-    "new_identifier_name": "downloadGemmaModel",
-    "type": "A",
-    "is_deleted": false,
-    "current_checksum": "c1c181287f99411d4c1c0f450f32603f2182af913c2888ae12226aa52f20fd93",
-    "original_checksum": "55b3237387335c3149d20597740798777db72527aca961d5d53e6b4005eac4b9"
-  },
   "initialize_gemma_model.dart": {
     "old_identifier_name": "initializeGemmaModel",
     "new_identifier_name": "initializeGemmaModel",
@@ -31,21 +7,13 @@
     "current_checksum": "397311407186eeff69e2afcebb83c94b2e72e0e7e9ef99d05a3e41cc30442a26",
     "original_checksum": "397311407186eeff69e2afcebb83c94b2e72e0e7e9ef99d05a3e41cc30442a26"
   },
-  "install_gemma_from_asset.dart": {
-    "old_identifier_name": "installGemmaFromAsset",
-    "new_identifier_name": "installGemmaFromAsset",
-    "type": "A",
-    "is_deleted": true,
-    "current_checksum": "c883932049c5b46e3ec29f2c5a413fabb147fb94e1deab06efeacb87896e13ac",
-    "original_checksum": "c883932049c5b46e3ec29f2c5a413fabb147fb94e1deab06efeacb87896e13ac"
-  },
   "send_gemma_message.dart": {
     "old_identifier_name": "sendGemmaMessage",
     "new_identifier_name": "sendGemmaMessage",
     "type": "A",
     "is_deleted": false,
     "current_checksum": "e0d749c324a8872536a311b43cb381bb3c3fd482e43502ab911a6420e8088eb7",
-    "original_checksum": "0ab86c1dfbc0b4639b8487a24dc6b3578f51615b999f3ddb344a5d7e80c5f34f"
+    "original_checksum": "e0d749c324a8872536a311b43cb381bb3c3fd482e43502ab911a6420e8088eb7"
   },
   "download_authenticated_model.dart": {
     "old_identifier_name": "downloadAuthenticatedModel",
@@ -61,23 +29,7 @@
     "type": "A",
     "is_deleted": false,
     "current_checksum": "db6cb4a2e407bcc375b34f6c8ba2ce83dc55ad40323bbeab83f52e8ee2fa5379",
-    "original_checksum": "b9ba8545437c2b171aedf1ca4c839fc42959a03700f6b142e1c49da4b015fdf9"
-  },
-  "install_local_model_file.dart": {
-    "old_identifier_name": "installLocalModelFile",
-    "new_identifier_name": "installLocalModelFile",
-    "type": "A",
-    "is_deleted": true,
-    "current_checksum": "892100cacf8b78b15c076d5c7011e290764a82cbe9ea9d83d44c078ae18239ad",
-    "original_checksum": "892100cacf8b78b15c076d5c7011e290764a82cbe9ea9d83d44c078ae18239ad"
-  },
-  "debug_model_paths.dart": {
-    "old_identifier_name": "debugModelPaths",
-    "new_identifier_name": "debugModelPaths",
-    "type": "A",
-    "is_deleted": true,
-    "current_checksum": "2c3ef17d02e83ef4c29e5b2c4fa3c246650bb3e1ec727cdd5c5651f5690dbba4",
-    "original_checksum": "2c3ef17d02e83ef4c29e5b2c4fa3c246650bb3e1ec727cdd5c5651f5690dbba4"
+    "original_checksum": "db6cb4a2e407bcc375b34f6c8ba2ce83dc55ad40323bbeab83f52e8ee2fa5379"
   },
   "manage_downloaded_models.dart": {
     "old_identifier_name": "manageDownloadedModels",
@@ -101,7 +53,7 @@
     "type": "W",
     "is_deleted": false,
     "current_checksum": "b12ef7410c5a20019a5fc9a6be40e5ddf3f15d0f6b200a6ebeed187bc4dca38c",
-    "original_checksum": "dfc6751ec5b2110bd39da1c2ada63892e949804cc308cd4395994050204c01a6"
+    "original_checksum": "b12ef7410c5a20019a5fc9a6be40e5ddf3f15d0f6b200a6ebeed187bc4dca38c"
   },
   "gemma_authenticated_setup_widget.dart": {
     "old_identifier_name": "GemmaAuthenticatedSetupWidget",
@@ -125,42 +77,22 @@
     "type": "D",
     "is_deleted": false,
     "current_checksum": "07f86e96bf1a71ac8a8080ed766cc240794b53d4cd85e089b4425661baeff13a",
-    "original_checksum": "fd890849ff5e753398cdbf33a32f78a94fd979a954f9b1cd9339c4b211c86d2c"
-  },
-  "download_authenticated_model_simple.dart": {
-    "old_identifier_name": "downloadAuthenticatedModelSimple",
-    "new_identifier_name": "downloadAuthenticatedModelSimple",
-    "type": "A",
-    "is_deleted": true,
-    "current_checksum": "756ce24fa4d855142ebb2dd2e12540d74efb97b63af8f098d99e32e8c2fbcec3",
-    "original_checksum": "756ce24fa4d855142ebb2dd2e12540d74efb97b63af8f098d99e32e8c2fbcec3"
-  },
-  "download_and_initialize_gemma.dart": {
-    "old_identifier_name": "downloadAndInitializeGemma",
-    "new_identifier_name": "downloadAndInitializeGemma",
-    "type": "A",
-    "is_deleted": true,
-    "current_checksum": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
-  },
-  "register_existing_model.dart": {
-    "old_identifier_name": "registerExistingModel",
-    "new_identifier_name": "registerExistingModel",
-    "type": "A",
-    "is_deleted": true,
-    "current_checksum": "3988212c4c89a4b65d0055245adcd5ef6e9508e12b9465f62c46940c6ad554fc"
+    "original_checksum": "07f86e96bf1a71ac8a8080ed766cc240794b53d4cd85e089b4425661baeff13a"
   },
   "create_gemma_chat.dart": {
     "old_identifier_name": "createGemmaChat",
     "new_identifier_name": "createGemmaChat",
     "type": "A",
     "is_deleted": false,
-    "current_checksum": "e9f1ea828c99452620350a809c68688288df21aff2faf027d357cbec874c26fa"
+    "current_checksum": "e9f1ea828c99452620350a809c68688288df21aff2faf027d357cbec874c26fa",
+    "original_checksum": "e9f1ea828c99452620350a809c68688288df21aff2faf027d357cbec874c26fa"
   },
   "send_gemma_message_with_image.dart": {
     "old_identifier_name": "sendGemmaMessageWithImage",
     "new_identifier_name": "sendGemmaMessageWithImage",
     "type": "A",
     "is_deleted": false,
-    "current_checksum": "43bc7a2d83d5ab4520b28e642260abdad9e672abd383ab9cff5a794cd6476f43"
+    "current_checksum": "43bc7a2d83d5ab4520b28e642260abdad9e672abd383ab9cff5a794cd6476f43",
+    "original_checksum": "43bc7a2d83d5ab4520b28e642260abdad9e672abd383ab9cff5a794cd6476f43"
   }
 }

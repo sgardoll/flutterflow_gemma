@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 
 import '../GemmaManager.dart';
 
-Future closeGemmaModel() async {
+Future<void> closeGemmaModel() async {
   try {
     final gemmaManager = GemmaManager();
     await gemmaManager.closeModel();
