@@ -695,6 +695,38 @@ class _GemmaAuthenticatedSetupWidgetState
 
               const SizedBox(height: 24),
 
+              // Debug Button
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: _debugModelPaths,
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: Colors.blue),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.bug_report, color: Colors.blue, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Debug Model Paths',
+                        style: FlutterFlowTheme.of(context).bodyMedium.override(
+                              fontFamily: 'Inter',
+                              color: Colors.blue,
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
               // Download Button
               SizedBox(
                 width: double.infinity,
