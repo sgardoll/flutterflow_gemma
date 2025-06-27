@@ -194,12 +194,15 @@ class _GemmaAuthenticatedSetupWidgetState
       'gemma-3-27b-it',
       'gemma-3-nano-e4b-it',
       'gemma-3-nano-e2b-it',
+      'gemma-3n-e4b-it', // Handle URL-extracted names
+      'gemma-3n-e2b-it', // Handle URL-extracted names
     ];
     return multimodalModels.any((model) =>
         modelType.toLowerCase().contains(model.toLowerCase()) ||
         modelType.toLowerCase().contains('nano') ||
         modelType.toLowerCase().contains('vision') ||
-        modelType.toLowerCase().contains('multimodal'));
+        modelType.toLowerCase().contains('multimodal') ||
+        modelType.toLowerCase().contains('3n-e')); // Handle Gemma 3 nano models
   }
 
   Future<void> _useExistingModel(String filePath, String modelType) async {
@@ -892,34 +895,32 @@ class _GemmaAuthenticatedSetupWidgetState
 
       final currentToken =
           _enteredToken.isNotEmpty ? _enteredToken : widget.huggingFaceToken;
-      // For custom URLs, we need a different approach since downloadAuthenticatedModel expects model names
-      final String? modelPath;
-      if (_showCustomUrl) {
-        // For custom URLs, we'd need a different download function
-        // For now, show an error message
-        throw Exception(
-            'Custom URL downloads not yet implemented. Please use predefined models.');
-      } else {
-        modelPath = await downloadAuthenticatedModel(
-          _selectedModel,
-          currentToken,
-          (downloaded, total, percentage) async {
-            setState(() {
-              _downloadedBytes = downloaded;
-              _totalBytes = total;
-              _downloadProgress = percentage;
-            });
 
-            if (widget.onProgress != null) {
-              await widget.onProgress!(percentage.round());
-            }
-          },
-        );
-      }
+      // Determine what to download - either a predefined model or custom URL
+      final String downloadTarget =
+          _showCustomUrl ? _customUrl! : _selectedModel;
+
+      final String? modelPath = await downloadAuthenticatedModel(
+        downloadTarget,
+        currentToken,
+        (downloaded, total, percentage) async {
+          setState(() {
+            _downloadedBytes = downloaded;
+            _totalBytes = total;
+            _downloadProgress = percentage;
+          });
+
+          if (widget.onProgress != null) {
+            await widget.onProgress!(percentage.round());
+          }
+        },
+      );
 
       if (modelPath == null) {
-        throw Exception(
-            'Failed to download model. Check your token and model URL.');
+        final errorMsg = _showCustomUrl
+            ? 'Failed to download model from custom URL: $_customUrl. Please check your HuggingFace token and verify the URL is correct.'
+            : 'Failed to download model $_selectedModel. Please check your HuggingFace token and try again.';
+        throw Exception(errorMsg);
       }
 
       setState(() {
@@ -927,9 +928,20 @@ class _GemmaAuthenticatedSetupWidgetState
         _currentStep = 'Model downloaded! Initializing...';
       });
 
-      final modelName = _showCustomUrl
-          ? (_selectedModelInfo?['fileName'] ?? 'custom')
-          : _selectedModel;
+      // Extract model name for initialization
+      String modelName;
+      if (_showCustomUrl) {
+        // For custom URLs, try to extract a meaningful model name from the filename
+        final fileName =
+            _selectedModelInfo?['fileName'] ?? _customUrl!.split('/').last;
+        // Extract model identifier from filename (e.g., "gemma-3n-E4B-it-int4.task" -> "gemma-3n-E4B-it")
+        modelName = fileName
+            .replaceAll(RegExp(r'\.(task|bin|gguf)$'), '')
+            .replaceAll(RegExp(r'-int\d+$'), '');
+        print('Extracted model name from custom URL: $modelName');
+      } else {
+        modelName = _selectedModel;
+      }
 
       // Determine if this model supports vision
       final isMultimodal = _isMultimodalModel(modelName);

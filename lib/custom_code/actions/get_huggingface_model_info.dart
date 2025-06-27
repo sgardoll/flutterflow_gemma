@@ -96,11 +96,17 @@ Future<dynamic> _parseCustomHuggingFaceUrl(
   String? token,
 ) async {
   try {
+    print('Parsing custom HuggingFace URL: $url');
+
     // Parse URL to extract repository and file information
     final uri = Uri.parse(url);
     final pathSegments = uri.pathSegments;
 
+    print('URL path segments: $pathSegments');
+
     if (pathSegments.length < 4 || !pathSegments.contains('resolve')) {
+      print(
+          'Invalid URL format: requires at least 4 segments and must contain "resolve"');
       return null;
     }
 
@@ -109,8 +115,12 @@ Future<dynamic> _parseCustomHuggingFaceUrl(
     final repository = '$repoOwner/$repoName';
     final fileName = pathSegments.last;
 
+    print('Extracted: repository=$repository, fileName=$fileName');
+
     // Get file size from HuggingFace API
     final fileSize = await _getFileSize(repository, fileName, token);
+
+    print('File size result: $fileSize');
 
     return {
       'name': fileName,

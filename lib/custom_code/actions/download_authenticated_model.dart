@@ -12,29 +12,40 @@ import 'package:path/path.dart' as path;
 import 'package:http/http.dart' as http;
 
 Future<String?> downloadAuthenticatedModel(
-  String modelName,
+  String modelNameOrUrl,
   String huggingFaceToken,
   Future Function(int downloaded, int total, double percentage)? onProgress,
 ) async {
   try {
-    // Model URLs mapping
-    final Map<String, String> modelUrls = {
-      'gemma-3-4b-it':
-          'https://huggingface.co/google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-3n-E4B-it-int4.task',
-      'gemma-3-nano-e4b-it':
-          'https://huggingface.co/google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-3n-E4B-it-int4.task',
-      'gemma-3-2b-it':
-          'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task',
-      'gemma-3-nano-e2b-it':
-          'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task',
-      'gemma-1b-it':
-          'https://huggingface.co/litert-community/Gemma3-1B-IT/resolve/main/Gemma3-1B-IT_multi-prefill-seq_q4_ekv2048.task',
-    };
+    String modelUrl;
 
-    final modelUrl = modelUrls[modelName];
-    if (modelUrl == null) {
-      print('Error: Unknown model name: $modelName');
-      return null;
+    // Check if the input is a URL or a predefined model name
+    if (modelNameOrUrl.startsWith('https://')) {
+      // It's a custom URL, use it directly
+      modelUrl = modelNameOrUrl;
+      print('Using custom URL: $modelUrl');
+    } else {
+      // It's a predefined model name, look it up in the map
+      final Map<String, String> modelUrls = {
+        'gemma-3-4b-it':
+            'https://huggingface.co/google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-3n-E4B-it-int4.task',
+        'gemma-3-nano-e4b-it':
+            'https://huggingface.co/google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-3n-E4B-it-int4.task',
+        'gemma-3-2b-it':
+            'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task',
+        'gemma-3-nano-e2b-it':
+            'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task',
+        'gemma-1b-it':
+            'https://huggingface.co/litert-community/Gemma3-1B-IT/resolve/main/Gemma3-1B-IT_multi-prefill-seq_q4_ekv2048.task',
+      };
+
+      final foundUrl = modelUrls[modelNameOrUrl];
+      if (foundUrl == null) {
+        print('Error: Unknown model name: $modelNameOrUrl');
+        return null;
+      }
+      modelUrl = foundUrl;
+      print('Using predefined model URL for $modelNameOrUrl: $modelUrl');
     }
 
     // Get the app's documents directory
@@ -105,13 +116,17 @@ Future<String?> downloadAuthenticatedModel(
     } else if (streamedResponse.statusCode == 401) {
       print('Error: Authentication failed. Check your Hugging Face token.');
       print('Make sure you have access to the model repository.');
+      print('URL: $modelUrl');
       return null;
     } else if (streamedResponse.statusCode == 404) {
       print('Error: Model file not found at URL: $modelUrl');
+      print('Please verify the URL is correct and the file exists.');
       return null;
     } else {
       print('Error downloading model: ${streamedResponse.statusCode}');
       print('Response reason: ${streamedResponse.reasonPhrase}');
+      print('URL: $modelUrl');
+      print('Headers sent: $headers');
       return null;
     }
   } catch (e) {
