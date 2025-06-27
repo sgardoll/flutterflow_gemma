@@ -31,7 +31,7 @@
 .pub/
 /build/
 
-# Firebase – this is necessary if you use Firebase since it could otherwise 
+# Firebase – this is necessary if you use Firebase since it could otherwise 
 # lead to leaking of private certificates to your repository, which is no bueno.
 .firebase/
 
@@ -48,76 +48,3 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
-
-# iOS/CocoaPods
-ios/Pods/
-ios/.symlinks/
-ios/Podfile.lock
-ios/Flutter/Flutter.framework
-ios/Flutter/Flutter.podspec
-
-# macOS
-macos/Pods/
-macos/.symlinks/
-macos/Flutter/Flutter.framework
-macos/Flutter/ephemeral/
-
-# Build directories
-build/
-.gradle/
-*.dill
-*.dill.track.dill
-
-# Large binary files
-*.a
-*.so
-*.dylib
-*.dll
-*.framework/
-
-# APK and IPA files
-*.apk
-*.ipa
-*.aab
-
-# Flutter build artifacts
-kernel_blob.bin
-.dart_tool/flutter_build/
-
-# IDE specific
-.vscode/
-*.code-workspace
-
-# Local environment files
-.env
-.env.local
-.env.*.local
-
-# Temporary files
-*.tmp
-*.temp
-*.cache
-
-# OS generated files
-Thumbs.db
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Desktop.ini
-
-# Backup files
-*.bak
-*.backup
-*~
-
-# Log files
-*.log
-logs/
-
-# Test coverage
-coverage/
-*.lcov
-
-# Flutter/Dart test related
-test/.test_coverage.dart
-coverage_badge.svg 

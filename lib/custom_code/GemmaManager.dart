@@ -50,6 +50,21 @@ class GemmaManager {
       // Close existing model if any
       await closeModel();
 
+      // If a local model path is provided, set it first
+      if (localModelPath != null && localModelPath.isNotEmpty) {
+        try {
+          print('Setting model path in GemmaManager: $localModelPath');
+          await modelManager.setModelPath(localModelPath);
+          print('Model path set successfully in GemmaManager');
+
+          // Add a small delay to ensure the path is registered
+          await Future.delayed(Duration(milliseconds: 500));
+        } catch (e) {
+          print('Warning: Failed to set model path in GemmaManager: $e');
+          // Continue anyway as the path might have been set elsewhere
+        }
+      }
+
       // Check if the model actually supports vision
       final actualSupportImage = supportImage && _isMultimodalModel(modelType);
 
