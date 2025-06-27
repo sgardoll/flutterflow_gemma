@@ -89,7 +89,7 @@ class _SetupWidgetState extends State<SetupWidget> {
                 height: MediaQuery.sizeOf(context).height * 1.0,
                 huggingFaceToken: FFAppState().hfToken,
                 preferredBackend: 'gpu',
-                maxTokens: 4096,
+                maxTokens: 2048,
                 supportImage: true,
                 maxNumImages: 1,
                 primaryColor: FlutterFlowTheme.of(context).primary,

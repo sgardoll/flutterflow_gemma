@@ -39,7 +39,7 @@ Future<String?> sendGemmaMessageWithImage(
             'Token limit reached, clearing conversation history and retrying...');
 
         // Clear conversation history and create new session
-        final historyCleared = await manageConversationHistory(message, 4096);
+        final historyCleared = await manageConversationHistory(message, 2048);
 
         if (historyCleared) {
           // Retry sending the message with fresh session

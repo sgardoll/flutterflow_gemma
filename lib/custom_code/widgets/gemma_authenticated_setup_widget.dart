@@ -25,7 +25,7 @@ class GemmaAuthenticatedSetupWidget extends StatefulWidget {
     this.height,
     this.huggingFaceToken = '',
     this.preferredBackend = 'gpu',
-    this.maxTokens = 4096,
+    this.maxTokens = 2048,
     this.supportImage = true,
     this.maxNumImages = 1,
     this.primaryColor,
