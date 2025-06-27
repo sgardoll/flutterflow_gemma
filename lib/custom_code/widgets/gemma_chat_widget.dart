@@ -51,24 +51,7 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
   @override
   void initState() {
     super.initState();
-    _initializeGemma();
-  }
-
-  Future _initializeGemma() async {
-    // Initialize with default settings - user should call initializeGemmaModel action first
-    if (!_gemmaManager.isInitialized) {
-      await _gemmaManager.initializeModel(
-        modelType: 'gemma-2b-it',
-        backend: 'gpu',
-        maxTokens: 1024,
-        supportImage: false,
-        maxNumImages: 1,
-      );
-    }
-
-    if (!_gemmaManager.hasSession) {
-      await _gemmaManager.createSession();
-    }
+    // Don't initialize here - rely on the model being already initialized
   }
 
   Future _sendMessage() async {
@@ -87,10 +70,23 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
     await widget.onMessageSent(message);
 
     try {
-      // Get response from Gemma
-      final response = await _gemmaManager.sendMessage(message);
+      // Check if chat exists, create if not
+      if (!_gemmaManager.hasChat) {
+        print('GemmaChatWidget: No chat found, creating new chat...');
+        final chatCreated = await _gemmaManager.createChat(
+          temperature: 0.8,
+          randomSeed: 1,
+          topK: 1,
+        );
+        if (!chatCreated) {
+          throw Exception('Failed to create chat');
+        }
+      }
 
-      if (response != null) {
+      // Get response from Gemma using chat API
+      final response = await _gemmaManager.sendChatMessage(message);
+
+      if (response != null && response.isNotEmpty) {
         setState(() {
           _messages.add(ChatMessage(text: response, isUser: false));
         });
@@ -108,6 +104,7 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
         });
       }
     } catch (e) {
+      print('GemmaChatWidget Error: $e');
       setState(() {
         _messages.add(ChatMessage(
           text: 'Error: ${e.toString()}',

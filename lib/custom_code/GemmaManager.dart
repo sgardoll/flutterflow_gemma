@@ -2,6 +2,7 @@ import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:flutter_gemma/core/model.dart';
 import 'package:flutter_gemma/pigeon.g.dart';
 import 'dart:typed_data';
+import 'dart:math' as math;
 
 // Custom class to manage Gemma model functionality for FlutterFlow
 class GemmaManager {
@@ -12,6 +13,7 @@ class GemmaManager {
   // Model and session management
   InferenceModel? _model;
   InferenceModelSession? _session;
+  dynamic _chat; // Use dynamic type since InferenceChat is not exposed
 
   // Configuration
   bool _isInitialized = false;
@@ -155,11 +157,48 @@ class GemmaManager {
     }
   }
 
-  // Send message and get response
-  Future<String?> sendMessage(String message, {Uint8List? imageBytes}) async {
-    if (_session == null) return null;
+  // Create a chat instance for conversation
+  Future<bool> createChat({
+    double temperature = 0.8,
+    int randomSeed = 1,
+    int topK = 1,
+  }) async {
+    print('GemmaManager.createChat: Starting...');
+    print(
+        'GemmaManager.createChat: _isInitialized=$_isInitialized, _model!=null=${_model != null}');
+
+    if (!_isInitialized || _model == null) {
+      print(
+          'GemmaManager.createChat: Model not initialized or null, returning false');
+      return false;
+    }
 
     try {
+      print('GemmaManager.createChat: Creating chat instance...');
+      _chat = await _model!.createChat(
+        temperature: temperature,
+        randomSeed: randomSeed,
+        topK: topK,
+      );
+      print('GemmaManager.createChat: Chat created successfully!');
+      return true;
+    } catch (e) {
+      print('Error creating chat: $e');
+      return false;
+    }
+  }
+
+  // Send message using chat (maintains conversation history)
+  Future<String?> sendChatMessage(String message,
+      {Uint8List? imageBytes}) async {
+    if (_chat == null) {
+      print('GemmaManager.sendChatMessage: No chat instance available');
+      return null;
+    }
+
+    try {
+      print('GemmaManager.sendChatMessage: Sending message: $message');
+
       Message msg;
       if (imageBytes != null) {
         msg = Message.withImage(
@@ -168,10 +207,68 @@ class GemmaManager {
         msg = Message.text(text: message, isUser: true);
       }
 
+      // Add message to chat
+      await _chat.addQueryChunk(msg);
+
+      // Generate response
+      final response = await _chat.generateChatResponse();
+
+      if (response != null && response.length > 50) {
+        print(
+            'GemmaManager.sendChatMessage: Got response: ${response.substring(0, 50)}...');
+      } else {
+        print('GemmaManager.sendChatMessage: Got response: $response');
+      }
+
+      return response;
+    } catch (e) {
+      print('Error sending chat message: $e');
+      print('Error stack trace: ${e.toString()}');
+      return null;
+    }
+  }
+
+  // Send message and get response (for session-based approach)
+  Future<String?> sendMessage(String message, {Uint8List? imageBytes}) async {
+    if (_session == null) {
+      print('GemmaManager.sendMessage: No session available');
+      return null;
+    }
+
+    try {
+      print('GemmaManager.sendMessage: Sending message: $message');
+
+      Message msg;
+      if (imageBytes != null) {
+        msg = Message.withImage(
+            text: message, imageBytes: imageBytes, isUser: true);
+      } else {
+        msg = Message.text(text: message, isUser: true);
+      }
+
+      // Add the user message to the session
       await _session!.addQueryChunk(msg);
-      return await _session!.getResponse();
+
+      // Get the model's response
+      final response = await _session!.getResponse();
+
+      if (response != null && response.length > 50) {
+        print(
+            'GemmaManager.sendMessage: Got response: ${response.substring(0, 50)}...');
+      } else {
+        print('GemmaManager.sendMessage: Got response: $response');
+      }
+
+      // IMPORTANT: Add the model's response back to the session to maintain conversation history
+      if (response != null && response.isNotEmpty) {
+        final responseMsg = Message.text(text: response, isUser: false);
+        await _session!.addQueryChunk(responseMsg);
+      }
+
+      return response;
     } catch (e) {
       print('Error sending message: $e');
+      print('Error stack trace: ${e.toString()}');
       return null;
     }
   }
@@ -258,6 +355,16 @@ class GemmaManager {
   Future closeModel() async {
     await closeSession();
 
+    // Close chat if exists
+    if (_chat != null) {
+      try {
+        await _chat.close();
+      } catch (e) {
+        print('Error closing chat: $e');
+      }
+      _chat = null;
+    }
+
     if (_model != null) {
       await _model!.close();
       _model = null;
@@ -332,4 +439,5 @@ class GemmaManager {
   String? get currentModelType => _currentModelType;
   String? get currentBackend => _currentBackend;
   bool get hasSession => _session != null;
+  bool get hasChat => _chat != null;
 }
