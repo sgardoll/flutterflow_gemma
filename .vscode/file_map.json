@@ -12,8 +12,8 @@
     "new_identifier_name": "sendGemmaMessage",
     "type": "A",
     "is_deleted": false,
-    "current_checksum": "e0d749c324a8872536a311b43cb381bb3c3fd482e43502ab911a6420e8088eb7",
-    "original_checksum": "e0d749c324a8872536a311b43cb381bb3c3fd482e43502ab911a6420e8088eb7"
+    "current_checksum": "d6b612bc271c89a79e671bc0888190bb3c39303f4221e5b3c7f47e9db766cf46",
+    "original_checksum": "d6b612bc271c89a79e671bc0888190bb3c39303f4221e5b3c7f47e9db766cf46"
   },
   "initialize_local_gemma_model.dart": {
     "old_identifier_name": "initializeLocalGemmaModel",
@@ -36,8 +36,8 @@
     "new_identifier_name": "sendGemmaMessageWithImage",
     "type": "A",
     "is_deleted": false,
-    "current_checksum": "43bc7a2d83d5ab4520b28e642260abdad9e672abd383ab9cff5a794cd6476f43",
-    "original_checksum": "43bc7a2d83d5ab4520b28e642260abdad9e672abd383ab9cff5a794cd6476f43"
+    "current_checksum": "276e1f7ab10023c7fedec3f90264f20a5dbe022f276adf3b15538ddf8753576f",
+    "original_checksum": "276e1f7ab10023c7fedec3f90264f20a5dbe022f276adf3b15538ddf8753576f"
   },
   "gemma_chat_widget.dart": {
     "old_identifier_name": "GemmaChatWidget",
@@ -70,5 +70,13 @@
     "is_deleted": false,
     "current_checksum": "555646e4c209b94449ebd791565ae67f0940804e33f7307f02e7ad190aec471b",
     "original_checksum": "555646e4c209b94449ebd791565ae67f0940804e33f7307f02e7ad190aec471b"
+  },
+  "manage_conversation_history.dart": {
+    "old_identifier_name": "manageConversationHistory",
+    "new_identifier_name": "manageConversationHistory",
+    "type": "A",
+    "is_deleted": false,
+    "current_checksum": "052ee810ca73ba42bdb5e0416d9b624cb2d42d4c8b9c90e6453dc2f44f6cd9e6",
+    "original_checksum": "052ee810ca73ba42bdb5e0416d9b624cb2d42d4c8b9c90e6453dc2f44f6cd9e6"
   }
 }
