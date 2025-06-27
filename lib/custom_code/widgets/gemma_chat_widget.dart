@@ -35,6 +35,7 @@ class GemmaChatWidget extends StatefulWidget {
     this.onResponseReceived,
     this.onImageMessageSent,
     this.onModelCapabilitiesCheck,
+    this.onImageSelected,
   });
 
   final double? width;
@@ -48,11 +49,12 @@ class GemmaChatWidget extends StatefulWidget {
   final String sendButtonText;
   final Color? imageButtonColor;
   final int maxImageSize;
-  final Future Function(String message) onMessageSent;
-  final Future Function(String response)? onResponseReceived;
-  final Future Function(String message, FFUploadedFile imageFile)?
+  final Future<String?> Function(String message) onMessageSent;
+  final Future<void> Function(String response)? onResponseReceived;
+  final Future<String?> Function(String message, FFUploadedFile imageFile)?
       onImageMessageSent;
-  final Future Function()? onModelCapabilitiesCheck;
+  final Future<void> Function()? onModelCapabilitiesCheck;
+  final Future<void> Function(FFUploadedFile imageFile)? onImageSelected;
 
   @override
   State<GemmaChatWidget> createState() => _GemmaChatWidgetState();
@@ -151,12 +153,19 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
 
       if (pickedFile != null) {
         final bytes = await pickedFile.readAsBytes();
+        final uploadedFile = FFUploadedFile(
+          name: pickedFile.name,
+          bytes: bytes,
+        );
+
         setState(() {
-          _selectedImage = FFUploadedFile(
-            name: pickedFile.name,
-            bytes: bytes,
-          );
+          _selectedImage = uploadedFile;
         });
+
+        // Call the FlutterFlow callback to store the image
+        if (widget.onImageSelected != null) {
+          await widget.onImageSelected!(uploadedFile);
+        }
       }
     } catch (e) {
       print('Error picking image: $e');
