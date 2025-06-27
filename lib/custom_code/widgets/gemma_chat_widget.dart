@@ -173,6 +173,8 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
     final message = _messageController.text.trim();
     if ((message.isEmpty && _selectedImage == null) || _isLoading) return;
 
+    print('GemmaChatWidget: _sendMessage called with message: "$message"');
+
     final messageText =
         message.isNotEmpty ? message : "Please analyze this image";
     final imageFile = _selectedImage;
@@ -202,27 +204,25 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
             'GemmaChatWidget: Model supports multimodal: $_isMultimodalAvailable');
       }
 
-      // Directly call the Gemma manager to get the response
-      if (imageFile != null && _isMultimodalAvailable) {
-        print('GemmaChatWidget: Sending message with image to GemmaManager');
-        response = await _gemmaManager.sendMessage(messageText,
-            imageBytes: imageFile.bytes);
-      } else {
-        print('GemmaChatWidget: Sending text-only message to GemmaManager');
-        response = await _gemmaManager.sendMessage(messageText);
-      }
-
-      // Only call FlutterFlow action callbacks for state management/logging (not for processing)
+      // Use FlutterFlow actions for message processing to avoid duplication
       if (imageFile != null && widget.onImageMessageSent != null) {
-        // Don't await this - it's just for FlutterFlow state management
-        widget.onImageMessageSent!(messageText, imageFile).catchError((e) {
-          print('FlutterFlow image callback error: $e');
-        });
+        print(
+            'GemmaChatWidget: Sending message with image via FlutterFlow action');
+        response = await widget.onImageMessageSent!(messageText, imageFile);
+      } else if (widget.onMessageSent != null) {
+        print(
+            'GemmaChatWidget: Sending text-only message via FlutterFlow action');
+        response = await widget.onMessageSent(messageText);
       } else {
-        // Don't await this - it's just for FlutterFlow state management
-        widget.onMessageSent(messageText).catchError((e) {
-          print('FlutterFlow message callback error: $e');
-        });
+        // Fallback to direct GemmaManager call if no FlutterFlow actions provided
+        print(
+            'GemmaChatWidget: No FlutterFlow actions provided, using direct GemmaManager');
+        if (imageFile != null && _isMultimodalAvailable) {
+          response = await _gemmaManager.sendMessage(messageText,
+              imageBytes: imageFile.bytes);
+        } else {
+          response = await _gemmaManager.sendMessage(messageText);
+        }
       }
 
       if (response != null && response.toString().isNotEmpty) {
