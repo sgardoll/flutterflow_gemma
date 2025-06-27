@@ -12,7 +12,7 @@
     "new_identifier_name": "sendGemmaMessage",
     "type": "A",
     "is_deleted": false,
-    "current_checksum": "2e025c91675e492ffbbe698b1938853de5625a9045c458f7912b7e2b8743f4e0",
+    "current_checksum": "e0d749c324a8872536a311b43cb381bb3c3fd482e43502ab911a6420e8088eb7",
     "original_checksum": "2e025c91675e492ffbbe698b1938853de5625a9045c458f7912b7e2b8743f4e0"
   },
   "download_authenticated_model.dart": {
@@ -85,6 +85,6 @@
     "type": "A",
     "is_deleted": false,
     "current_checksum": "e9f1ea828c99452620350a809c68688288df21aff2faf027d357cbec874c26fa",
-    "original_checksum": "086f7e7a503b7feb3bafe24b70e577d32647ce697535e92077a2cf9102413ed4"
+    "original_checksum": "e9f1ea828c99452620350a809c68688288df21aff2faf027d357cbec874c26fa"
   }
 }
