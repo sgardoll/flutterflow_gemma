@@ -13,6 +13,7 @@ import 'package:flutter_gemma/pigeon.g.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
+import 'install_local_model_file.dart';
 
 Future<bool> initializeLocalGemmaModel(
   String localModelPath,
@@ -27,38 +28,107 @@ Future<bool> initializeLocalGemmaModel(
   int randomSeed,
 ) async {
   try {
-    // Validate the model file exists first
-    final modelFile = File(localModelPath);
-    if (!await modelFile.exists()) {
-      print('Error: Model file does not exist at path: $localModelPath');
-      return false;
-    }
+    // Step 0: Debug current state
+    print('=== Starting Gemma Model Initialization ===');
+    print('Input localModelPath: $localModelPath');
+    print('Model type: $modelType');
+    print('Backend: $preferredBackend');
 
-    final fileSize = await modelFile.length();
-    print('Initializing Gemma model from local file: $localModelPath');
-    print('Model file size: $fileSize bytes');
-
-    // Model file validation
-    if (fileSize < 1024 * 1024) {
-      print('Error: Model file appears to be too small (less than 1MB)');
-      return false;
-    }
-
-    print(
-        'Model file validation passed. File size: ${(fileSize / (1024 * 1024)).toStringAsFixed(1)} MB');
-
-    // Step 1: Install the model file
-    print('Step 1: Installing model file...');
-    final installSuccess = await installLocalModelFile(localModelPath, null);
-
-    if (!installSuccess) {
-      print('Failed to install model file');
-      return false;
-    }
-
-    // Step 2: Get the model filename for initialization
+    // Get the model filename for initialization
     final modelFileName = path.basename(localModelPath);
-    print('Step 2: Preparing to initialize model: $modelFileName');
+    print('Extracted filename: $modelFileName');
+
+    // Step 1: Check if this is a full path or just a filename
+    bool isFullPath = localModelPath.contains('/');
+    File? modelFile;
+
+    if (isFullPath) {
+      // This is a full path - validate the file exists
+      modelFile = File(localModelPath);
+      if (!await modelFile.exists()) {
+        print('Error: Model file does not exist at full path: $localModelPath');
+
+        // Try to find the file in the documents directory
+        final appDocDir = await getApplicationDocumentsDirectory();
+        final altPath = path.join(appDocDir.path, modelFileName);
+        final altFile = File(altPath);
+
+        if (await altFile.exists()) {
+          print('Found model file in documents directory: $altPath');
+          modelFile = altFile;
+        } else {
+          print('Model file not found in documents directory either: $altPath');
+          return false;
+        }
+      }
+
+      final fileSize = await modelFile.length();
+      print(
+          'Model file validation passed. File size: ${(fileSize / (1024 * 1024)).toStringAsFixed(1)} MB');
+
+      // Model file validation
+      if (fileSize < 1024 * 1024) {
+        print('Error: Model file appears to be too small (less than 1MB)');
+        return false;
+      }
+
+      // Install the model file
+      print('Step 1: Installing model file...');
+      final installSuccess = await installLocalModelFile(localModelPath, null);
+
+      if (!installSuccess) {
+        print('Failed to install model file');
+        return false;
+      }
+    } else {
+      // This is just a filename - check if it exists in documents directory
+      final appDocDir = await getApplicationDocumentsDirectory();
+      final fullPath = path.join(appDocDir.path, localModelPath);
+      modelFile = File(fullPath);
+
+      if (!await modelFile.exists()) {
+        print(
+            'Error: Model file does not exist in documents directory: $fullPath');
+
+        // Try to find any .task file that contains similar name components
+        print('Searching for similar model files...');
+        final files = await appDocDir.list().toList();
+        final taskFiles = files
+            .where((f) => f is File && f.path.endsWith('.task'))
+            .cast<File>();
+
+        for (final taskFile in taskFiles) {
+          final taskFileName = path.basename(taskFile.path);
+          print('Found task file: $taskFileName');
+
+          // Check if this might be the intended file (case-insensitive partial match)
+          if (taskFileName.toLowerCase().contains('gemma') ||
+              taskFileName.toLowerCase().contains(
+                  modelFileName.toLowerCase().split('.').first.toLowerCase())) {
+            print('Potential match found: $taskFileName');
+            // Update the filename to use the actual file found
+            final actualFile = File(taskFile.path);
+            if (await actualFile.exists()) {
+              print('Using found model file: ${taskFile.path}');
+              modelFile = actualFile;
+              // Update modelFileName to match the actual file
+              final actualFileName = path.basename(taskFile.path);
+              print('Updated model filename to: $actualFileName');
+              break;
+            }
+          }
+        }
+
+        if (modelFile == null || !await modelFile.exists()) {
+          print('No suitable model file found');
+          return false;
+        }
+      }
+    }
+
+    // Use the actual filename from the resolved file path
+    final actualModelFileName = path.basename(modelFile!.path);
+    print('Step 2: Using actual model filename: $actualModelFileName');
 
     print('Step 3: Using backend: $preferredBackend');
 
@@ -71,7 +141,7 @@ Future<bool> initializeLocalGemmaModel(
         maxTokens: maxTokens,
         supportImage: supportImage,
         maxNumImages: 1, // Default value
-        localModelPath: modelFileName, // Pass the filename
+        localModelPath: actualModelFileName, // Use the actual filename found
       );
 
       if (success) {
@@ -106,18 +176,18 @@ Future<bool> initializeLocalGemmaModel(
       // Verify the model path is set
       final modelManager = plugin.modelManager;
       try {
-        await modelManager.setModelPath(modelFileName);
-        print('Model path confirmed: $modelFileName');
+        await modelManager.setModelPath(actualModelFileName);
+        print('Model path confirmed: $actualModelFileName');
       } catch (e) {
         print('Failed to set model path: $e');
 
-        // Try to find the model in documents directory
+        // Try to find the model in documents directory again
         final appDocDir = await getApplicationDocumentsDirectory();
-        final fullModelPath = path.join(appDocDir.path, modelFileName);
+        final fullModelPath = path.join(appDocDir.path, actualModelFileName);
 
         if (await File(fullModelPath).exists()) {
           print('Model found at: $fullModelPath');
-          await modelManager.setModelPath(modelFileName);
+          await modelManager.setModelPath(actualModelFileName);
           print('Model path set using found file');
         } else {
           print('Model file not found at expected location: $fullModelPath');
@@ -211,7 +281,7 @@ Future<bool> initializeLocalGemmaModel(
         maxTokens: maxTokens,
         supportImage: supportImage,
         maxNumImages: 1,
-        localModelPath: modelFileName,
+        localModelPath: actualModelFileName,
       );
 
       if (success) {

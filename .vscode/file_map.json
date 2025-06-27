@@ -60,7 +60,7 @@
     "new_identifier_name": "initializeLocalGemmaModel",
     "type": "A",
     "is_deleted": false,
-    "current_checksum": "b9ba8545437c2b171aedf1ca4c839fc42959a03700f6b142e1c49da4b015fdf9",
+    "current_checksum": "db6cb4a2e407bcc375b34f6c8ba2ce83dc55ad40323bbeab83f52e8ee2fa5379",
     "original_checksum": "b9ba8545437c2b171aedf1ca4c839fc42959a03700f6b142e1c49da4b015fdf9"
   },
   "install_local_model_file.dart": {
@@ -108,7 +108,7 @@
     "new_identifier_name": "GemmaAuthenticatedSetupWidget",
     "type": "W",
     "is_deleted": false,
-    "current_checksum": "3bbb0ca2f71936c2246b1084800f471a54a3e19376758a97d6a75c79ebacbe64",
+    "current_checksum": "30bd8b57b5d62436a141b6023a0d242a869859ba70bc75bfdc06f9b85aef6f9c",
     "original_checksum": "3bbb0ca2f71936c2246b1084800f471a54a3e19376758a97d6a75c79ebacbe64"
   },
   "custom_functions.dart": {
