@@ -6,4 +6,3 @@ export 'manage_downloaded_models.dart' show manageDownloadedModels;
 export 'get_huggingface_model_info.dart' show getHuggingfaceModelInfo;
 export 'create_gemma_chat.dart' show createGemmaChat;
 export 'send_gemma_message_with_image.dart' show sendGemmaMessageWithImage;
-export 'close_gemma_model.dart' show closeGemmaModel;

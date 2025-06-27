@@ -13,7 +13,6 @@ import '/custom_code/actions/download_authenticated_model.dart';
 import '/custom_code/actions/get_huggingface_model_info.dart';
 import '/custom_code/actions/manage_downloaded_models.dart';
 import '/custom_code/actions/initialize_local_gemma_model.dart';
-import '/custom_code/actions/debug_model_paths.dart';
 
 import 'package:http/http.dart' as http;
 import 'dart:io';
@@ -273,38 +272,6 @@ class _GemmaAuthenticatedSetupWidgetState
       if (widget.onSetupFailed != null) {
         await widget.onSetupFailed!(e.toString());
       }
-    }
-  }
-
-  // Add this method before the _useExistingModel method to help debug the issue
-  Future<void> _debugModelPaths() async {
-    try {
-      print('=== DEBUG: Starting model path debugging ===');
-      final debugResult = await debugModelPaths();
-      print('=== DEBUG RESULT ===');
-      print(debugResult);
-      print('=== END DEBUG RESULT ===');
-
-      // Show the result in a dialog
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text('Debug Model Paths'),
-            content: SingleChildScrollView(
-              child: Text(debugResult),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: Text('Close'),
-              ),
-            ],
-          ),
-        );
-      }
-    } catch (e) {
-      print('Error in debug: $e');
     }
   }
 
@@ -694,38 +661,6 @@ class _GemmaAuthenticatedSetupWidgetState
               ],
 
               const SizedBox(height: 24),
-
-              // Debug Button
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: _debugModelPaths,
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: Colors.blue),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.bug_report, color: Colors.blue, size: 20),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Debug Model Paths',
-                        style: FlutterFlowTheme.of(context).bodyMedium.override(
-                              fontFamily: 'Inter',
-                              color: Colors.blue,
-                              fontWeight: FontWeight.w600,
-                            ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 16),
 
               // Download Button
               SizedBox(

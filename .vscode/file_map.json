@@ -108,7 +108,7 @@
     "new_identifier_name": "GemmaAuthenticatedSetupWidget",
     "type": "W",
     "is_deleted": false,
-    "current_checksum": "cbc70665fb38fd827337cdf44de1faa1e0fa2236914dab1fc49caf959fb385b7",
+    "current_checksum": "3bbb0ca2f71936c2246b1084800f471a54a3e19376758a97d6a75c79ebacbe64",
     "original_checksum": "3bbb0ca2f71936c2246b1084800f471a54a3e19376758a97d6a75c79ebacbe64"
   },
   "custom_functions.dart": {
