@@ -24,7 +24,7 @@ subprojects {
         if (project.plugins.hasPlugin("com.android.application") ||
                 project.plugins.hasPlugin("com.android.library")) {
             project.android {
-                compileSdkVersion 34
+                compileSdkVersion 35
             }
         }
         if (project.hasProperty('android')) {
@@ -43,6 +43,6 @@ subprojects {
     project.evaluationDependsOn(':app')
 }
 
-tasks.register("clean", Delete) {
-    delete rootProject.layout.buildDirectory
+task clean(type: Delete) {
+    delete rootProject.buildDir
 }

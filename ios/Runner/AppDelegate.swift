@@ -1,6 +1,4 @@
-import UIKit
-
-import Flutter
+import UIKitimport Flutter
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {

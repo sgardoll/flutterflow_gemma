@@ -126,8 +126,20 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                         safeSetState(() {});
                       },
                       onResponseReceived: (response) async {},
-                      onImageMessageSent: (message, imageFile) async {},
+                      onImageMessageSent: (message, imageFile) async {
+                        _model.sendMessageWithImageOutput =
+                            await actions.sendGemmaMessageWithImage(
+                          message,
+                          _model.imageSelected!,
+                        );
+
+                        safeSetState(() {});
+                      },
                       onModelCapabilitiesCheck: () async {},
+                      onImageSelected: (imageFile) async {
+                        _model.imageSelected = imageFile;
+                        safeSetState(() {});
+                      },
                     ),
                   ),
                 ),
