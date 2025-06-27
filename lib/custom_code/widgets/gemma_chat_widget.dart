@@ -8,6 +8,8 @@ import 'package:flutter/material.dart';
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
 import '../GemmaManager.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:typed_data';
 
 class GemmaChatWidget extends StatefulWidget {
   const GemmaChatWidget({
@@ -21,8 +23,12 @@ class GemmaChatWidget extends StatefulWidget {
     this.paddingVertical = 12.0,
     this.placeholder = 'Type your message...',
     this.sendButtonText = 'Send',
+    this.enableMultimodal = false,
+    this.imageButtonColor,
+    this.maxImageSize = 1024,
     required this.onMessageSent,
     this.onResponseReceived,
+    this.onImageMessageSent,
   });
 
   final double? width;
@@ -34,8 +40,13 @@ class GemmaChatWidget extends StatefulWidget {
   final double paddingVertical;
   final String placeholder;
   final String sendButtonText;
+  final bool enableMultimodal;
+  final Color? imageButtonColor;
+  final int maxImageSize;
   final Future Function(String message) onMessageSent;
   final Future Function(String response)? onResponseReceived;
+  final Future Function(String message, FFUploadedFile imageFile)?
+      onImageMessageSent;
 
   @override
   State<GemmaChatWidget> createState() => _GemmaChatWidgetState();
@@ -45,7 +56,9 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final List<ChatMessage> _messages = [];
+  final ImagePicker _imagePicker = ImagePicker();
   bool _isLoading = false;
+  FFUploadedFile? _selectedImage;
   final GemmaManager _gemmaManager = GemmaManager();
 
   @override
@@ -54,21 +67,66 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
     // Don't initialize here - rely on the model being already initialized
   }
 
+  Future<void> _pickImage() async {
+    try {
+      final XFile? pickedFile = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: widget.maxImageSize.toDouble(),
+        maxHeight: widget.maxImageSize.toDouble(),
+        imageQuality: 85,
+      );
+
+      if (pickedFile != null) {
+        final bytes = await pickedFile.readAsBytes();
+        setState(() {
+          _selectedImage = FFUploadedFile(
+            name: pickedFile.name,
+            bytes: bytes,
+          );
+        });
+      }
+    } catch (e) {
+      print('Error picking image: $e');
+    }
+  }
+
+  void _clearSelectedImage() {
+    setState(() {
+      _selectedImage = null;
+    });
+  }
+
   Future _sendMessage() async {
     final message = _messageController.text.trim();
-    if (message.isEmpty || _isLoading) return;
+    if ((message.isEmpty && _selectedImage == null) || _isLoading) return;
+
+    final messageText =
+        message.isNotEmpty ? message : "Please analyze this image";
+    final imageFile = _selectedImage;
 
     setState(() {
-      _messages.add(ChatMessage(text: message, isUser: true));
+      _messages.add(ChatMessage(
+        text: messageText,
+        isUser: true,
+        imageBytes: imageFile?.bytes,
+      ));
       _isLoading = true;
+      _selectedImage = null; // Clear selected image after sending
     });
 
     _messageController.clear();
     _scrollToBottom();
 
     try {
-      // Call the FlutterFlow action and get the response
-      final response = await widget.onMessageSent(message);
+      String? response;
+
+      // If we have an image and the appropriate callback, use the image message callback
+      if (imageFile != null && widget.onImageMessageSent != null) {
+        response = await widget.onImageMessageSent!(messageText, imageFile);
+      } else {
+        // Use regular message callback
+        response = await widget.onMessageSent(messageText);
+      }
 
       if (response != null && response.toString().isNotEmpty) {
         final responseText = response.toString();
@@ -172,6 +230,49 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
               ),
             ),
 
+          // Selected image preview
+          if (_selectedImage != null)
+            Container(
+              margin: EdgeInsets.all(widget.paddingHorizontal),
+              padding: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: FlutterFlowTheme.of(context).secondaryBackground,
+                borderRadius: BorderRadius.circular(widget.borderRadius),
+                border: Border.all(
+                  color: FlutterFlowTheme.of(context).alternate,
+                ),
+              ),
+              child: Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.memory(
+                      _selectedImage!.bytes!,
+                      width: 50,
+                      height: 50,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _selectedImage!.name ?? 'Selected Image',
+                      style: FlutterFlowTheme.of(context).bodyMedium,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: _clearSelectedImage,
+                    icon: Icon(
+                      Icons.close,
+                      color: FlutterFlowTheme.of(context).secondaryText,
+                      size: 20,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
           // Input area
           Container(
             padding: EdgeInsets.all(widget.paddingHorizontal),
@@ -187,6 +288,23 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
+                  // Image picker button (only show if multimodal is enabled)
+                  if (widget.enableMultimodal) ...[
+                    IconButton(
+                      onPressed: _isLoading ? null : _pickImage,
+                      icon: Icon(
+                        Icons.image,
+                        color: widget.imageButtonColor ??
+                            FlutterFlowTheme.of(context).primary,
+                      ),
+                      style: IconButton.styleFrom(
+                        padding: EdgeInsets.all(widget.paddingVertical),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+
+                  // Text input
                   Expanded(
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(
@@ -220,6 +338,8 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
                     ),
                   ),
                   const SizedBox(width: 8),
+
+                  // Send button
                   ElevatedButton(
                     onPressed: _isLoading ? null : _sendMessage,
                     style: ElevatedButton.styleFrom(
@@ -267,13 +387,38 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
               : FlutterFlowTheme.of(context).secondaryBackground,
           borderRadius: BorderRadius.circular(widget.borderRadius),
         ),
-        child: Text(
-          message.text,
-          style: TextStyle(
-            color: message.isUser
-                ? FlutterFlowTheme.of(context).primaryBackground
-                : FlutterFlowTheme.of(context).primaryText,
-          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Display image if present
+            if (message.imageBytes != null) ...[
+              ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: 200,
+                  maxHeight: 200,
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.memory(
+                    message.imageBytes!,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              if (message.text.isNotEmpty) const SizedBox(height: 8),
+            ],
+
+            // Display text if present
+            if (message.text.isNotEmpty)
+              Text(
+                message.text,
+                style: TextStyle(
+                  color: message.isUser
+                      ? FlutterFlowTheme.of(context).primaryBackground
+                      : FlutterFlowTheme.of(context).primaryText,
+                ),
+              ),
+          ],
         ),
       ),
     );
@@ -291,10 +436,12 @@ class ChatMessage {
   final String text;
   final bool isUser;
   final DateTime timestamp;
+  final Uint8List? imageBytes;
 
   ChatMessage({
     required this.text,
     required this.isUser,
     DateTime? timestamp,
+    this.imageBytes,
   }) : timestamp = timestamp ?? DateTime.now();
 }
