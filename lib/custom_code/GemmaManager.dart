@@ -92,7 +92,17 @@ class GemmaManager {
           // Register the model with the plugin's model manager
           print('GemmaManager: Registering model with plugin: $modelFileName');
           try {
-            await modelManager.setModelPath(modelFileName);
+            // Android needs the full path, iOS uses just the filename
+            String pathToRegister;
+            if (Platform.isAndroid) {
+              pathToRegister = expectedPath; // Full path for Android
+              print('GemmaManager: Android - Using full path: $pathToRegister');
+            } else {
+              pathToRegister = modelFileName; // Just filename for iOS
+              print('GemmaManager: iOS - Using filename: $pathToRegister');
+            }
+
+            await modelManager.setModelPath(pathToRegister);
             print('GemmaManager: Model path registered successfully');
           } catch (pathError) {
             print('GemmaManager: Failed to register model path: $pathError');

@@ -120,10 +120,22 @@ Future<bool> installLocalModelFile(
     // Step 5: Wait a moment for file system operations to complete
     await Future.delayed(Duration(milliseconds: 200));
 
-    // Step 6: Register the model with the plugin using just the filename
+    // Step 6: Register the model with the plugin with platform-specific handling
     print('Registering model with plugin: $modelFileName');
     try {
-      await modelManager.setModelPath(modelFileName);
+      String pathToRegister;
+
+      if (Platform.isAndroid) {
+        // Android needs the full path
+        pathToRegister = targetModelPath;
+        print('Android: Registering full path: $pathToRegister');
+      } else {
+        // iOS uses just the filename
+        pathToRegister = modelFileName;
+        print('iOS: Registering filename: $pathToRegister');
+      }
+
+      await modelManager.setModelPath(pathToRegister);
       print('Model path registered successfully!');
 
       // Small delay to let the registration complete
