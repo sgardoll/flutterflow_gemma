@@ -1,7 +1,7 @@
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/flutter_flow/flutter_flow_widgets.dart';
-import '/custom_code/actions/create_gemma_session.dart';
+
 import '/custom_code/actions/index.dart' as actions;
 import '/custom_code/widgets/index.dart' as custom_widgets;
 import '/index.dart';
@@ -97,7 +97,7 @@ class _SetupWidgetState extends State<SetupWidget> {
                 backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
                 textColor: FlutterFlowTheme.of(context).primaryText,
                 onSetupComplete: () async {
-                  _model.createSessionOutput = await actions.createGemmaSession(
+                  _model.createSessionOutput = await actions.createGemmaChat(
                     0.8,
                     1,
                     1,

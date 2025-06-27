@@ -66,34 +66,19 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
     _messageController.clear();
     _scrollToBottom();
 
-    // Call the FlutterFlow action
-    await widget.onMessageSent(message);
-
     try {
-      // Check if chat exists, create if not
-      if (!_gemmaManager.hasChat) {
-        print('GemmaChatWidget: No chat found, creating new chat...');
-        final chatCreated = await _gemmaManager.createChat(
-          temperature: 0.8,
-          randomSeed: 1,
-          topK: 1,
-        );
-        if (!chatCreated) {
-          throw Exception('Failed to create chat');
-        }
-      }
+      // Call the FlutterFlow action and get the response
+      final response = await widget.onMessageSent(message);
 
-      // Get response from Gemma using chat API
-      final response = await _gemmaManager.sendChatMessage(message);
-
-      if (response != null && response.isNotEmpty) {
+      if (response != null && response.toString().isNotEmpty) {
+        final responseText = response.toString();
         setState(() {
-          _messages.add(ChatMessage(text: response, isUser: false));
+          _messages.add(ChatMessage(text: responseText, isUser: false));
         });
 
         // Call the FlutterFlow callback if provided
         if (widget.onResponseReceived != null) {
-          await widget.onResponseReceived!(response);
+          await widget.onResponseReceived!(responseText);
         }
       } else {
         setState(() {

@@ -12,8 +12,8 @@
     "new_identifier_name": "sendGemmaMessage",
     "type": "A",
     "is_deleted": false,
-    "current_checksum": "0ab86c1dfbc0b4639b8487a24dc6b3578f51615b999f3ddb344a5d7e80c5f34f",
-    "original_checksum": "0ab86c1dfbc0b4639b8487a24dc6b3578f51615b999f3ddb344a5d7e80c5f34f"
+    "current_checksum": "2e025c91675e492ffbbe698b1938853de5625a9045c458f7912b7e2b8743f4e0",
+    "original_checksum": "2e025c91675e492ffbbe698b1938853de5625a9045c458f7912b7e2b8743f4e0"
   },
   "download_authenticated_model.dart": {
     "old_identifier_name": "downloadAuthenticatedModel",
@@ -52,8 +52,8 @@
     "new_identifier_name": "GemmaChatWidget",
     "type": "W",
     "is_deleted": false,
-    "current_checksum": "d2f5da9fd7f25b5c60fe24232ca1a6668d4984e70030c4f9e313a85d9bb0c3bb",
-    "original_checksum": "d2f5da9fd7f25b5c60fe24232ca1a6668d4984e70030c4f9e313a85d9bb0c3bb"
+    "current_checksum": "5a5dcfae4e31fc8a8aab3b954f353a710fe52074ad88ddd6a228b50a8b445280",
+    "original_checksum": "5a5dcfae4e31fc8a8aab3b954f353a710fe52074ad88ddd6a228b50a8b445280"
   },
   "gemma_authenticated_setup_widget.dart": {
     "old_identifier_name": "GemmaAuthenticatedSetupWidget",
@@ -78,5 +78,13 @@
     "is_deleted": false,
     "current_checksum": "edd22a06f808279bbd4497671004c36099f8ea774493cb286d8d648ddeadc0a9",
     "original_checksum": "edd22a06f808279bbd4497671004c36099f8ea774493cb286d8d648ddeadc0a9"
+  },
+  "create_gemma_chat.dart": {
+    "old_identifier_name": "createGemmaChat",
+    "new_identifier_name": "createGemmaChat",
+    "type": "A",
+    "is_deleted": false,
+    "current_checksum": "086f7e7a503b7feb3bafe24b70e577d32647ce697535e92077a2cf9102413ed4",
+    "original_checksum": "086f7e7a503b7feb3bafe24b70e577d32647ce697535e92077a2cf9102413ed4"
   }
 }
