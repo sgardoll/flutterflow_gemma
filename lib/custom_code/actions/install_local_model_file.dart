@@ -67,24 +67,50 @@ Future<bool> installLocalModelFile(
       print('Could not clear old model files: $e');
     }
 
-    // Step 3: Copy the model file to the documents root directory
+    // Step 3: Copy the model file to the documents root directory with integrity verification
     final targetModelPath = path.join(appDocDir.path, modelFileName);
     print('Copying model to: $targetModelPath');
 
-    await modelFile.copy(targetModelPath);
+    // Delete target file if it exists to ensure clean copy
+    final targetFile = File(targetModelPath);
+    if (await targetFile.exists()) {
+      await targetFile.delete();
+      print('Deleted existing target file');
+    }
+
+    // Copy with chunked verification to prevent corruption
+    await _copyFileWithVerification(modelFile, targetFile);
     print('Model file copied successfully');
 
     // Step 4: Verify the file was copied correctly
-    final copiedFile = File(targetModelPath);
-    if (!await copiedFile.exists()) {
+    if (!await targetFile.exists()) {
       print('Error: Failed to copy model file to target location');
       return false;
     }
 
-    final copiedSize = await copiedFile.length();
+    final copiedSize = await targetFile.length();
     if (copiedSize != fileSize) {
       print(
           'Error: Copied file size mismatch. Original: $fileSize, Copied: $copiedSize');
+      print('This indicates file corruption during copy operation');
+
+      // Delete corrupted file
+      await targetFile.delete();
+      return false;
+    }
+
+    // Additional integrity check - verify file can be read
+    try {
+      final testBytes = await targetFile.readAsBytes();
+      if (testBytes.length != copiedSize) {
+        print('Error: File corruption detected during read verification');
+        await targetFile.delete();
+        return false;
+      }
+      print('File integrity verification passed');
+    } catch (e) {
+      print('Error: Cannot read copied file - $e');
+      await targetFile.delete();
       return false;
     }
 
@@ -124,4 +150,24 @@ Future<bool> installLocalModelFile(
 
     return false;
   }
+}
+
+/// Copy file with verification to prevent corruption
+Future<void> _copyFileWithVerification(File source, File target) async {
+  const chunkSize = 1024 * 1024; // 1MB chunks
+
+  final sourceStream = source.openRead();
+  final targetSink = target.openWrite();
+
+  try {
+    await for (final chunk in sourceStream) {
+      targetSink.add(chunk);
+    }
+    await targetSink.flush();
+  } finally {
+    await targetSink.close();
+  }
+
+  // Wait for file system sync
+  await Future.delayed(Duration(milliseconds: 100));
 }

@@ -3,6 +3,9 @@ import 'package:flutter_gemma/core/model.dart';
 import 'package:flutter_gemma/pigeon.g.dart';
 import 'dart:typed_data';
 import 'dart:math' as math;
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
 
 // Custom class to manage Gemma model functionality for FlutterFlow
 class GemmaManager {
@@ -52,18 +55,52 @@ class GemmaManager {
       // Close existing model if any
       await closeModel();
 
-      // If a local model path is provided, set it first
+      // If a local model path is provided, ensure it's properly registered
       if (localModelPath != null && localModelPath.isNotEmpty) {
         try {
-          print('Setting model path in GemmaManager: $localModelPath');
-          await modelManager.setModelPath(localModelPath);
-          print('Model path set successfully in GemmaManager');
+          // Get just the filename for the plugin
+          final modelFileName = path.basename(localModelPath);
+          print('GemmaManager: Using model filename: $modelFileName');
 
-          // Add a small delay to ensure the path is registered
-          await Future.delayed(Duration(milliseconds: 500));
+          // Verify the model file exists in documents directory
+          final appDocDir = await getApplicationDocumentsDirectory();
+          final expectedPath = path.join(appDocDir.path, modelFileName);
+          final modelFile = File(expectedPath);
+
+          if (!await modelFile.exists()) {
+            print(
+                'GemmaManager: Model file not found at expected path: $expectedPath');
+
+            // Try to find and copy the model from its current location
+            if (localModelPath != expectedPath) {
+              final sourceFile = File(localModelPath);
+              if (await sourceFile.exists()) {
+                print(
+                    'GemmaManager: Copying model from $localModelPath to $expectedPath');
+                await sourceFile.copy(expectedPath);
+                print('GemmaManager: Model copied successfully');
+              } else {
+                print(
+                    'GemmaManager: Source model file not found at: $localModelPath');
+                return false;
+              }
+            } else {
+              return false;
+            }
+          }
+
+          // Register the model with the plugin's model manager
+          print('GemmaManager: Registering model with plugin: $modelFileName');
+          try {
+            await modelManager.setModelPath(modelFileName);
+            print('GemmaManager: Model path registered successfully');
+          } catch (pathError) {
+            print('GemmaManager: Failed to register model path: $pathError');
+            // Continue anyway as the plugin might still find it
+          }
         } catch (e) {
-          print('Warning: Failed to set model path in GemmaManager: $e');
-          // Continue anyway as the path might have been set elsewhere
+          print('GemmaManager: Error preparing model file: $e');
+          return false;
         }
       }
 
@@ -73,10 +110,19 @@ class GemmaManager {
       print(
           'GemmaManager: Model=$modelType, RequestedVision=$supportImage, ActualVision=$actualSupportImage');
 
-      // Create the model - using dynamic to avoid enum issues
+      // Create the model with enhanced debugging
+      final enumModelType = _getModelType(modelType);
+      final enumBackend = _getBackend(backend);
+
+      print('GemmaManager: Creating model with:');
+      print('  ModelType enum: $enumModelType');
+      print('  Backend enum: $enumBackend');
+      print('  MaxTokens: $maxTokens');
+      print('  SupportImage: $actualSupportImage');
+
       _model = await FlutterGemmaPlugin.instance.createModel(
-        modelType: _getModelType(modelType),
-        preferredBackend: _getBackend(backend),
+        modelType: enumModelType,
+        preferredBackend: enumBackend,
         maxTokens: maxTokens,
         supportImage: actualSupportImage,
         maxNumImages: maxNumImages,
@@ -111,6 +157,41 @@ class GemmaManager {
           return true;
         } catch (fallbackError) {
           print('Fallback initialization also failed: $fallbackError');
+        }
+      }
+
+      // If TensorFlow Lite model building failed, try different model types
+      if (e.toString().contains('Error building tflite model') ||
+          e.toString().contains('RET_CHECK failure')) {
+        print(
+            'TensorFlow Lite model building failed, trying alternative model types...');
+
+        final alternativeTypes = [ModelType.gemmaIt, ModelType.general];
+        final currentType = _getModelType(modelType);
+
+        for (final altType in alternativeTypes) {
+          if (altType == currentType) continue; // Skip the one we already tried
+
+          try {
+            print('Trying ModelType: $altType');
+            _model = await FlutterGemmaPlugin.instance.createModel(
+              modelType: altType,
+              preferredBackend: _getBackend(backend),
+              maxTokens: maxTokens,
+              supportImage: false, // Disable image support for fallback
+              maxNumImages: 1,
+            );
+
+            _isInitialized = true;
+            _currentModelType = modelType;
+            _currentBackend = backend;
+
+            print(
+                'Model initialized successfully with alternative type: $altType');
+            return true;
+          } catch (altError) {
+            print('Alternative type $altType also failed: $altError');
+          }
         }
       }
 
@@ -387,7 +468,21 @@ class GemmaManager {
   ModelType _getModelType(String modelType) {
     // Using the actual ModelType enum from flutter_gemma package
     // Available types: general, gemmaIt, deepSeek
-    switch (modelType.toLowerCase()) {
+    final lowerType = modelType.toLowerCase();
+
+    // For Gemma 3 models and newer, use 'general' type
+    if (lowerType.contains('gemma 3') ||
+        lowerType.contains('gemma3') ||
+        lowerType.contains('gemma-3') ||
+        lowerType.contains('1b') ||
+        lowerType.contains('4b') ||
+        lowerType.contains('8b') ||
+        lowerType.contains('27b')) {
+      print('GemmaManager: Using ModelType.general for: $modelType');
+      return ModelType.general;
+    }
+
+    switch (lowerType) {
       case 'gemma':
       case 'gemmait':
       case 'gemma-it':
@@ -406,8 +501,10 @@ class GemmaManager {
       case 'general':
         return ModelType.general;
       default:
-        // Default to gemmaIt if no match found
-        return ModelType.gemmaIt;
+        // For unknown models, try general first as it's more flexible
+        print(
+            'GemmaManager: Using ModelType.general as fallback for: $modelType');
+        return ModelType.general;
     }
   }
 
@@ -439,6 +536,140 @@ class GemmaManager {
       default:
         // Default to GPU if no match found
         return PreferredBackend.gpu;
+    }
+  }
+
+  // Helper method to resolve the actual model file path
+  Future<String?> _resolveModelFilePath(String inputPath) async {
+    try {
+      print('GemmaManager: Resolving model path for: $inputPath');
+
+      // Get the documents directory
+      final appDocDir = await getApplicationDocumentsDirectory();
+      final baseFileName = path.basename(inputPath);
+
+      // First, try the exact path if it's a full path
+      if (inputPath.contains('/')) {
+        final file = File(inputPath);
+        if (await file.exists()) {
+          print('GemmaManager: Found exact file at: $inputPath');
+          return inputPath; // Return the full path for the plugin
+        }
+      }
+
+      // Try the filename in the documents directory
+      final directPath = path.join(appDocDir.path, baseFileName);
+      final directFile = File(directPath);
+      if (await directFile.exists()) {
+        print('GemmaManager: Found file in documents: $directPath');
+        return directPath;
+      }
+
+      // If file is in subdirectory, copy it to the documents root
+      if (inputPath.contains('/') && inputPath.contains('models/')) {
+        final sourceFile = File(inputPath);
+        if (await sourceFile.exists()) {
+          final targetPath = path.join(appDocDir.path, baseFileName);
+          print(
+              'GemmaManager: Copying model from subdirectory to documents root: $targetPath');
+          await sourceFile.copy(targetPath);
+          print('GemmaManager: Model copied successfully to documents root');
+          return targetPath;
+        }
+      }
+
+      // Search for .task files in the documents directory
+      print(
+          'GemmaManager: Searching for .task files in documents directory...');
+      final files = await appDocDir.list().toList();
+      final taskFiles = files
+          .where((f) => f is File && f.path.endsWith('.task'))
+          .cast<File>();
+
+      if (taskFiles.isEmpty) {
+        print('GemmaManager: No .task files found in documents directory');
+        return null;
+      }
+
+      // List all found .task files
+      for (final taskFile in taskFiles) {
+        final taskFileName = path.basename(taskFile.path);
+        print('GemmaManager: Found .task file: $taskFileName');
+      }
+
+      // If there's only one .task file, use it
+      if (taskFiles.length == 1) {
+        final taskFile = taskFiles.first;
+        final taskFileName = path.basename(taskFile.path);
+        print('GemmaManager: Using single .task file found: $taskFileName');
+
+        // Ensure the file is in the documents root directory
+        final expectedPath = path.join(appDocDir.path, taskFileName);
+        if (taskFile.path != expectedPath) {
+          print(
+              'GemmaManager: Copying task file to documents root: $expectedPath');
+          await taskFile.copy(expectedPath);
+        }
+        return expectedPath;
+      }
+
+      // Try to find a file that contains similar name components
+      final searchTerms = baseFileName
+          .toLowerCase()
+          .replaceAll('.task', '')
+          .split(RegExp(r'[_\-\.]'))
+          .where((term) => term.length > 2)
+          .toList();
+
+      for (final taskFile in taskFiles) {
+        final taskFileName = path.basename(taskFile.path).toLowerCase();
+        bool isMatch = false;
+
+        // Check if the task file contains any of our search terms
+        for (final term in searchTerms) {
+          if (taskFileName.contains(term)) {
+            isMatch = true;
+            break;
+          }
+        }
+
+        if (isMatch) {
+          final actualFileName = path.basename(taskFile.path);
+          print('GemmaManager: Found matching file: $actualFileName');
+
+          // Ensure the file is in the documents root directory
+          final expectedPath = path.join(appDocDir.path, actualFileName);
+          if (taskFile.path != expectedPath) {
+            print(
+                'GemmaManager: Copying matching file to documents root: $expectedPath');
+            await taskFile.copy(expectedPath);
+          }
+          return expectedPath;
+        }
+      }
+
+      // If no specific match found, but we have .task files, use the first one
+      if (taskFiles.isNotEmpty) {
+        final firstFile = taskFiles.first;
+        final firstName = path.basename(firstFile.path);
+        print(
+            'GemmaManager: No specific match found, using first .task file: $firstName');
+
+        // Ensure the file is in the documents root directory
+        final expectedPath = path.join(appDocDir.path, firstName);
+        if (firstFile.path != expectedPath) {
+          print(
+              'GemmaManager: Copying first file to documents root: $expectedPath');
+          await firstFile.copy(expectedPath);
+        }
+        return expectedPath;
+      }
+
+      print('GemmaManager: No suitable model file found');
+      return null;
+    } catch (e) {
+      print('GemmaManager: Error resolving model path: $e');
+      return null;
     }
   }
 

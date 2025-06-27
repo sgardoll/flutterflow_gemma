@@ -132,7 +132,7 @@ Future<bool> initializeLocalGemmaModel(
 
     print('Step 3: Using backend: $preferredBackend');
 
-    // Step 4: Initialize using GemmaManager
+    // Step 4: Initialize using GemmaManager (primary approach)
     print('Step 4: Initializing through GemmaManager...');
     try {
       final success = await GemmaManager().initializeModel(
@@ -140,8 +140,8 @@ Future<bool> initializeLocalGemmaModel(
         backend: preferredBackend,
         maxTokens: maxTokens,
         supportImage: supportImage,
-        maxNumImages: 1, // Default value
-        localModelPath: actualModelFileName, // Use the actual filename found
+        maxNumImages: 1,
+        localModelPath: modelFile.path, // Use the full path
       );
 
       if (success) {
@@ -168,125 +168,35 @@ Future<bool> initializeLocalGemmaModel(
       print('Error initializing Gemma model through GemmaManager: $e');
     }
 
-    // Step 5: If GemmaManager fails, try direct plugin initialization
-    print('Step 5: Attempting direct plugin initialization...');
-    try {
-      final plugin = FlutterGemmaPlugin.instance;
-
-      // Verify the model path is set
-      final modelManager = plugin.modelManager;
-      try {
-        await modelManager.setModelPath(actualModelFileName);
-        print('Model path confirmed: $actualModelFileName');
-      } catch (e) {
-        print('Failed to set model path: $e');
-
-        // Try to find the model in documents directory again
-        final appDocDir = await getApplicationDocumentsDirectory();
-        final fullModelPath = path.join(appDocDir.path, actualModelFileName);
-
-        if (await File(fullModelPath).exists()) {
-          print('Model found at: $fullModelPath');
-          await modelManager.setModelPath(actualModelFileName);
-          print('Model path set using found file');
-        } else {
-          print('Model file not found at expected location: $fullModelPath');
-          return false;
-        }
-      }
-
-      // Create the model using the correct method from GemmaManager
-      PreferredBackend backend;
-      switch (preferredBackend.toLowerCase()) {
-        case 'gpu':
-          backend = PreferredBackend.gpu;
-          break;
-        case 'gpufloat16':
-        case 'gpu_float16':
-        case 'gpu-float16':
-          backend = PreferredBackend.gpuFloat16;
-          break;
-        case 'gpumixed':
-        case 'gpu_mixed':
-        case 'gpu-mixed':
-          backend = PreferredBackend.gpuMixed;
-          break;
-        case 'gpufull':
-        case 'gpu_full':
-        case 'gpu-full':
-          backend = PreferredBackend.gpuFull;
-          break;
-        case 'tpu':
-          backend = PreferredBackend.tpu;
-          break;
-        default:
-          backend = PreferredBackend.cpu;
-      }
-
-      ModelType modelTypeEnum;
-      switch (modelType.toLowerCase()) {
-        case 'gemma':
-        case 'gemmait':
-        case 'gemma-it':
-        case 'gemma_it':
-          modelTypeEnum = ModelType.gemmaIt;
-          break;
-        case 'deepseek':
-        case 'deep-seek':
-        case 'deep_seek':
-          modelTypeEnum = ModelType.deepSeek;
-          break;
-        case 'general':
-          modelTypeEnum = ModelType.general;
-          break;
-        default:
-          modelTypeEnum = ModelType.gemmaIt;
-      }
-
-      // Create the model directly
-      final model = await plugin.createModel(
-        modelType: modelTypeEnum,
-        preferredBackend: backend,
-        maxTokens: maxTokens,
-        supportImage: supportImage,
-        maxNumImages: 1,
-      );
-
-      print('Direct plugin initialization successful!');
-
-      // Create a session
-      final session = await model.createSession(
-        temperature: temperature.clamp(0.0, 2.0),
-        randomSeed: randomSeed,
-        topK: topK.clamp(1, 40).toInt(),
-      );
-
-      print('Session created via direct plugin!');
-
-      // Close the model and session since we created them locally
-      await session.close();
-      await model.close();
-
-      return true;
-    } catch (e) {
-      print('Direct plugin initialization failed: $e');
-    }
-
-    // Step 6: Try with CPU backend as final fallback
-    print('Step 6: Trying CPU backend as final fallback...');
+    // Step 5: Try with CPU backend as fallback
+    print('Step 5: Trying CPU backend as fallback...');
     try {
       final success = await GemmaManager().initializeModel(
         modelType: modelType,
         backend: 'cpu',
         maxTokens: maxTokens,
-        supportImage: supportImage,
+        supportImage: false, // Disable image support for CPU fallback
         maxNumImages: 1,
-        localModelPath: actualModelFileName,
+        localModelPath: modelFile.path,
       );
 
       if (success) {
         print('CPU fallback initialization successful!');
-        return true;
+
+        // Create a session with the provided parameters
+        final sessionSuccess = await GemmaManager().createSession(
+          temperature: temperature.clamp(0.0, 2.0),
+          randomSeed: randomSeed,
+          topK: topK.clamp(1, 40).toInt(),
+        );
+
+        if (sessionSuccess) {
+          print('CPU session created successfully!');
+          return true;
+        } else {
+          print('CPU model initialized but failed to create session');
+          return true;
+        }
       }
     } catch (e) {
       print('CPU backend initialization also failed: $e');

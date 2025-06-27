@@ -114,6 +114,8 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                       paddingVertical: 24.0,
                       placeholder: 'Enter chat text...',
                       sendButtonText: 'Send',
+                      enableMultimodal: true,
+                      imageButtonColor: FlutterFlowTheme.of(context).primary,
                       onMessageSent: (message) async {
                         _model.sendMessageOutput =
                             await actions.sendGemmaMessage(
@@ -122,9 +124,9 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                         );
 
                         safeSetState(() {});
-                        return _model.sendMessageOutput;
                       },
                       onResponseReceived: (response) async {},
+                      onImageMessageSent: (message, imageFile) async {},
                     ),
                   ),
                 ),

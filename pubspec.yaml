@@ -2,11 +2,11 @@ name: gemma
 description: >
   A complete FlutterFlow integration of Google's Gemma 3 AI models, providing 
   offline/local on-device AI capabilities with authenticated model downloads 
-  and real-time chat functionality.
+  and real-time chat functionality. 
 
 # The following line prevents the package from being accidentally published to
 # pub.dev using `pub publish`. This is preferred for private packages.
-publish_to: "none" # Remove this line if you wish to publish to pub.dev
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
 # The following defines the version and build number for your application.
 # A version number is three numbers separated by dots, like 1.2.43
@@ -34,7 +34,7 @@ dependencies:
   cached_network_image: 3.4.1
   cached_network_image_platform_interface: 4.1.1
   cached_network_image_web: 1.3.1
-  collection: ^1.19.1
+  collection: 1.19.1
   csv: 6.0.0
   flutter_animate: 4.5.0
   flutter_cache_manager: 3.4.1
@@ -48,10 +48,10 @@ dependencies:
   flutter_secure_storage_windows: ^4.0.0
   font_awesome_flutter: 10.7.0
   from_css_color: 2.0.0
-  go_router: 12.0.0
+  go_router: 12.1.3
   google_fonts: 6.1.0
   image_picker: ^1.0.7
-  intl: ^0.20.2
+  intl: 0.20.2
   json_path: 0.7.2
   page_transition: 2.1.0
   path: ^1.9.0
@@ -103,6 +103,7 @@ dev_dependencies:
 
 # The following section is specific to Flutter.
 flutter:
+
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
@@ -117,6 +118,8 @@ flutter:
     - assets/rive_animations/
     - assets/pdfs/
     - assets/jsons/
+
+
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware.
@@ -143,3 +146,4 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages
+

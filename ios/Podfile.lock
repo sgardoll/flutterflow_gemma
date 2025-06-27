@@ -9,6 +9,8 @@ PODS:
   - flutter_secure_storage_darwin (10.0.0):
     - Flutter
     - FlutterMacOS
+  - image_picker_ios (0.0.1):
+    - Flutter
   - large_file_handler (0.0.1):
     - Flutter
   - MediaPipeTasksGenAI (0.10.24):
@@ -31,6 +33,7 @@ DEPENDENCIES:
   - flutter_gemma (from `.symlinks/plugins/flutter_gemma/ios`)
   - flutter_native_splash (from `.symlinks/plugins/flutter_native_splash/ios`)
   - flutter_secure_storage_darwin (from `.symlinks/plugins/flutter_secure_storage_darwin/darwin`)
+  - image_picker_ios (from `.symlinks/plugins/image_picker_ios/ios`)
   - large_file_handler (from `.symlinks/plugins/large_file_handler/ios`)
   - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
   - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/darwin`)
@@ -51,6 +54,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/flutter_native_splash/ios"
   flutter_secure_storage_darwin:
     :path: ".symlinks/plugins/flutter_secure_storage_darwin/darwin"
+  image_picker_ios:
+    :path: ".symlinks/plugins/image_picker_ios/ios"
   large_file_handler:
     :path: ".symlinks/plugins/large_file_handler/ios"
   path_provider_foundation:
@@ -67,6 +72,7 @@ SPEC CHECKSUMS:
   flutter_gemma: c104e5c505eac327a0877a7cb21a593982703154
   flutter_native_splash: 35ddbc7228eafcb3969dcc5f1fbbe27c1145a4f0
   flutter_secure_storage_darwin: ce237a8775b39723566dc72571190a3769d70468
+  image_picker_ios: 7fe1ff8e34c1790d6fff70a32484959f563a928a
   large_file_handler: b37481e9b4972562ffcdc8f75700f47cd592bcec
   MediaPipeTasksGenAI: 076ba7032a6e9da16db9c7cf0c3b67c751c18bc1
   MediaPipeTasksGenAIC: ec35d9f431f6a6b651a0bc9f67a4ed149ffa575c
