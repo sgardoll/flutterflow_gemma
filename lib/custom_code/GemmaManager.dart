@@ -175,6 +175,12 @@ class GemmaManager {
 
     try {
       print('GemmaManager.createChat: Creating chat instance...');
+      print(
+          'GemmaManager.createChat: Parameters - temperature=$temperature, randomSeed=$randomSeed, topK=$topK');
+
+      // Add a small delay to see if timing is an issue
+      await Future.delayed(Duration(milliseconds: 100));
+
       _chat = await _model!.createChat(
         temperature: temperature,
         randomSeed: randomSeed,
@@ -184,6 +190,8 @@ class GemmaManager {
       return true;
     } catch (e) {
       print('Error creating chat: $e');
+      print('Error type: ${e.runtimeType}');
+      print('Stack trace: ${StackTrace.current}');
       return false;
     }
   }

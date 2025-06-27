@@ -22,20 +22,27 @@ Future<bool> createGemmaChat(
       return false;
     }
 
-    print(
-        'createGemmaChat: Creating chat with temperature=$temperature, randomSeed=$randomSeed, topK=$topK');
+    print('createGemmaChat: Model is initialized, checking session...');
 
-    // Create a chat instance instead of a session
-    final result = await gemmaManager.createChat(
+    // Check if we already have a session (which we do from initialization)
+    if (gemmaManager.hasSession) {
+      print('createGemmaChat: Session already exists, ready to use!');
+      return true;
+    }
+
+    print('createGemmaChat: No session found, creating new session...');
+
+    // Create a session instead of a chat (which already works)
+    final result = await gemmaManager.createSession(
       temperature: temperature,
       randomSeed: randomSeed,
       topK: topK,
     );
 
-    print('createGemmaChat: Chat created successfully = $result');
+    print('createGemmaChat: Session created successfully = $result');
     return result;
   } catch (e) {
-    print('Error creating Gemma chat: $e');
+    print('Error creating Gemma session: $e');
     print('Stack trace: ${e.toString()}');
     return false;
   }

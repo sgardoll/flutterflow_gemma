@@ -97,41 +97,76 @@ class _SetupWidgetState extends State<SetupWidget> {
                 backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
                 textColor: FlutterFlowTheme.of(context).primaryText,
                 onSetupComplete: () async {
-                  _model.createSessionOutput = await actions.createGemmaChat(
-                    0.8,
-                    1,
-                    1,
-                  );
-                  if (_model.createSessionOutput!) {
-                    context.pushNamed(HomePageWidget.routeName);
-                  } else {
+                  try {
+                    print(
+                        'SetupWidget: onSetupComplete called, creating chat session...');
+
+                    // Create chat session with timeout handling
+                    _model.createSessionOutput = await actions.createGemmaChat(
+                      0.8,
+                      1,
+                      1,
+                    );
+
+                    print(
+                        'SetupWidget: createGemmaChat returned: ${_model.createSessionOutput}');
+
+                    if (_model.createSessionOutput == true) {
+                      print(
+                          'SetupWidget: Chat session created successfully, navigating to home');
+                      context.pushNamed(HomePageWidget.routeName);
+                    } else {
+                      print(
+                          'SetupWidget: Chat session creation failed, showing error with continue option');
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Failed to create chat session, but model is ready. You can try again from the chat page.',
+                            style: FlutterFlowTheme.of(context)
+                                .labelLarge
+                                .override(
+                                  fontFamily: 'Inter',
+                                  color:
+                                      FlutterFlowTheme.of(context).primaryText,
+                                  letterSpacing: 0.0,
+                                ),
+                          ),
+                          duration: Duration(milliseconds: 6000),
+                          backgroundColor: FlutterFlowTheme.of(context).warning,
+                          action: SnackBarAction(
+                            label: 'Continue Anyway',
+                            textColor: Colors.white,
+                            onPressed: () {
+                              context.pushNamed(HomePageWidget.routeName);
+                            },
+                          ),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    print(
+                        'SetupWidget: Error or timeout in onSetupComplete: $e');
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
-                          'Failed to create chat session',
+                          'Setup completed but chat session timed out. Model is ready to use.',
                           style: FlutterFlowTheme.of(context)
                               .labelLarge
                               .override(
-                                font: GoogleFonts.inter(
-                                  fontWeight: FlutterFlowTheme.of(context)
-                                      .labelLarge
-                                      .fontWeight,
-                                  fontStyle: FlutterFlowTheme.of(context)
-                                      .labelLarge
-                                      .fontStyle,
-                                ),
+                                fontFamily: 'Inter',
                                 color: FlutterFlowTheme.of(context).primaryText,
                                 letterSpacing: 0.0,
-                                fontWeight: FlutterFlowTheme.of(context)
-                                    .labelLarge
-                                    .fontWeight,
-                                fontStyle: FlutterFlowTheme.of(context)
-                                    .labelLarge
-                                    .fontStyle,
                               ),
                         ),
-                        duration: Duration(milliseconds: 4000),
-                        backgroundColor: FlutterFlowTheme.of(context).error,
+                        duration: Duration(milliseconds: 6000),
+                        backgroundColor: FlutterFlowTheme.of(context).warning,
+                        action: SnackBarAction(
+                          label: 'Continue',
+                          textColor: Colors.white,
+                          onPressed: () {
+                            context.pushNamed(HomePageWidget.routeName);
+                          },
+                        ),
                       ),
                     );
                   }
