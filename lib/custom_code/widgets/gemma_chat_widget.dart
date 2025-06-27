@@ -120,12 +120,19 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
     try {
       String? response;
 
-      // If we have an image and the appropriate callback, use the image message callback
+      // Call the FlutterFlow action callback (for FlutterFlow state management)
       if (imageFile != null && widget.onImageMessageSent != null) {
-        response = await widget.onImageMessageSent!(messageText, imageFile);
+        await widget.onImageMessageSent!(messageText, imageFile);
       } else {
-        // Use regular message callback
-        response = await widget.onMessageSent(messageText);
+        await widget.onMessageSent(messageText);
+      }
+
+      // Directly call the Gemma actions to get the response
+      if (imageFile != null) {
+        response = await _gemmaManager.sendMessage(messageText,
+            imageBytes: imageFile.bytes);
+      } else {
+        response = await _gemmaManager.sendMessage(messageText);
       }
 
       if (response != null && response.toString().isNotEmpty) {

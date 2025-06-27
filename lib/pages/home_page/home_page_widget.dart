@@ -124,9 +124,15 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                         );
 
                         safeSetState(() {});
+                        return _model.sendMessageOutput; // Return the response
                       },
                       onResponseReceived: (response) async {},
-                      onImageMessageSent: (message, imageFile) async {},
+                      onImageMessageSent: (message, imageFile) async {
+                        return await actions.sendGemmaMessageWithImage(
+                          message,
+                          imageFile,
+                        );
+                      },
                     ),
                   ),
                 ),
