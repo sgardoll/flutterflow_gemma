@@ -1,6 +1,5 @@
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
-import '/flutter_flow/flutter_flow_widgets.dart';
 import '/custom_code/actions/index.dart' as actions;
 import '/custom_code/widgets/index.dart' as custom_widgets;
 import '/index.dart';
@@ -89,7 +88,7 @@ class _SetupWidgetState extends State<SetupWidget> {
                 height: MediaQuery.sizeOf(context).height * 1.0,
                 huggingFaceToken: FFAppState().hfToken,
                 preferredBackend: 'gpu',
-                maxTokens: 2048,
+                maxTokens: 1024,
                 supportImage: true,
                 maxNumImages: 1,
                 primaryColor: FlutterFlowTheme.of(context).primary,

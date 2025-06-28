@@ -6,8 +6,6 @@ import 'package:flutter/material.dart';
 // Begin custom action code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-import 'index.dart'; // Imports other custom actions
-
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
@@ -69,50 +67,24 @@ Future<bool> installLocalModelFile(
       print('Could not clear old model files: $e');
     }
 
-    // Step 3: Copy the model file to the documents root directory with integrity verification
+    // Step 3: Copy the model file to the documents root directory
     final targetModelPath = path.join(appDocDir.path, modelFileName);
     print('Copying model to: $targetModelPath');
 
-    // Delete target file if it exists to ensure clean copy
-    final targetFile = File(targetModelPath);
-    if (await targetFile.exists()) {
-      await targetFile.delete();
-      print('Deleted existing target file');
-    }
-
-    // Copy with chunked verification to prevent corruption
-    await _copyFileWithVerification(modelFile, targetFile);
+    await modelFile.copy(targetModelPath);
     print('Model file copied successfully');
 
     // Step 4: Verify the file was copied correctly
-    if (!await targetFile.exists()) {
+    final copiedFile = File(targetModelPath);
+    if (!await copiedFile.exists()) {
       print('Error: Failed to copy model file to target location');
       return false;
     }
 
-    final copiedSize = await targetFile.length();
+    final copiedSize = await copiedFile.length();
     if (copiedSize != fileSize) {
       print(
           'Error: Copied file size mismatch. Original: $fileSize, Copied: $copiedSize');
-      print('This indicates file corruption during copy operation');
-
-      // Delete corrupted file
-      await targetFile.delete();
-      return false;
-    }
-
-    // Additional integrity check - verify file can be read
-    try {
-      final testBytes = await targetFile.readAsBytes();
-      if (testBytes.length != copiedSize) {
-        print('Error: File corruption detected during read verification');
-        await targetFile.delete();
-        return false;
-      }
-      print('File integrity verification passed');
-    } catch (e) {
-      print('Error: Cannot read copied file - $e');
-      await targetFile.delete();
       return false;
     }
 
@@ -122,22 +94,10 @@ Future<bool> installLocalModelFile(
     // Step 5: Wait a moment for file system operations to complete
     await Future.delayed(Duration(milliseconds: 200));
 
-    // Step 6: Register the model with the plugin with platform-specific handling
+    // Step 6: Register the model with the plugin using just the filename
     print('Registering model with plugin: $modelFileName');
     try {
-      String pathToRegister;
-
-      if (Platform.isAndroid) {
-        // Android needs the full path
-        pathToRegister = targetModelPath;
-        print('Android: Registering full path: $pathToRegister');
-      } else {
-        // iOS uses just the filename
-        pathToRegister = modelFileName;
-        print('iOS: Registering filename: $pathToRegister');
-      }
-
-      await modelManager.setModelPath(pathToRegister);
+      await modelManager.setModelPath(modelFileName);
       print('Model path registered successfully!');
 
       // Small delay to let the registration complete
@@ -164,24 +124,4 @@ Future<bool> installLocalModelFile(
 
     return false;
   }
-}
-
-/// Copy file with verification to prevent corruption
-Future<void> _copyFileWithVerification(File source, File target) async {
-  const chunkSize = 1024 * 1024; // 1MB chunks
-
-  final sourceStream = source.openRead();
-  final targetSink = target.openWrite();
-
-  try {
-    await for (final chunk in sourceStream) {
-      targetSink.add(chunk);
-    }
-    await targetSink.flush();
-  } finally {
-    await targetSink.close();
-  }
-
-  // Wait for file system sync
-  await Future.delayed(Duration(milliseconds: 100));
 }

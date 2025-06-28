@@ -6,8 +6,6 @@ import 'package:flutter/material.dart';
 // Begin custom action code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-import 'index.dart'; // Imports other custom actions
-
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
@@ -115,21 +113,9 @@ Future<String?> downloadAuthenticatedModel(
       print('File size: ${fileSize} bytes');
 
       return filePath;
-    } else if (streamedResponse.statusCode == 401 ||
-        streamedResponse.statusCode == 403) {
-      // Read the response body to check for access restriction message
-      final responseBody = await streamedResponse.stream.bytesToString();
-      print('Authentication/Access error response: $responseBody');
-
-      // Check if it's a restricted access error
-      if (responseBody.contains('restricted') &&
-          responseBody.contains('authorized list')) {
-        print('Error: Model access is restricted. You need to request access.');
-        print('Visit the model page to request access.');
-      } else {
-        print('Error: Authentication failed. Check your Hugging Face token.');
-        print('Make sure you have access to the model repository.');
-      }
+    } else if (streamedResponse.statusCode == 401) {
+      print('Error: Authentication failed. Check your Hugging Face token.');
+      print('Make sure you have access to the model repository.');
       print('URL: $modelUrl');
       return null;
     } else if (streamedResponse.statusCode == 404) {

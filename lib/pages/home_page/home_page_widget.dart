@@ -1,14 +1,9 @@
-import '/flutter_flow/flutter_flow_icon_button.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
-import '/flutter_flow/flutter_flow_widgets.dart';
-import 'dart:ui';
 import '/custom_code/actions/index.dart' as actions;
 import '/custom_code/widgets/index.dart' as custom_widgets;
-import '/index.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
 import 'home_page_model.dart';
 export 'home_page_model.dart';
 
@@ -52,22 +47,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
         backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
         appBar: AppBar(
           backgroundColor: FlutterFlowTheme.of(context).primary,
-          automaticallyImplyLeading: false,
-          leading: FlutterFlowIconButton(
-            borderRadius: 8.0,
-            buttonSize: 40.0,
-            fillColor: FlutterFlowTheme.of(context).primary,
-            icon: Icon(
-              Icons.arrow_back,
-              color: FlutterFlowTheme.of(context).info,
-              size: 24.0,
-            ),
-            onPressed: () async {
-              await actions.closeGemmaModel();
-
-              context.goNamed(SetupWidget.routeName);
-            },
-          ),
+          automaticallyImplyLeading: true,
           title: Text(
             'Gemma Offline Chat',
             style: FlutterFlowTheme.of(context).headlineMedium.override(
@@ -112,10 +92,8 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                       borderRadius: 12.0,
                       paddingHorizontal: 24.0,
                       paddingVertical: 24.0,
-                      placeholder: 'Enter chat text...',
+                      placeholder: 'Placeholder Text',
                       sendButtonText: 'Send',
-                      imageButtonColor: FlutterFlowTheme.of(context).primary,
-                      maxImageSize: 1024,
                       onMessageSent: (message) async {
                         _model.sendMessageOutput =
                             await actions.sendGemmaMessage(
@@ -126,20 +104,6 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                         safeSetState(() {});
                       },
                       onResponseReceived: (response) async {},
-                      onImageMessageSent: (message, imageFile) async {
-                        _model.sendMessageWithImageOutput =
-                            await actions.sendGemmaMessageWithImage(
-                          message,
-                          _model.imageSelected!,
-                        );
-
-                        safeSetState(() {});
-                      },
-                      onModelCapabilitiesCheck: () async {},
-                      onImageSelected: (imageFile) async {
-                        _model.imageSelected = imageFile;
-                        safeSetState(() {});
-                      },
                     ),
                   ),
                 ),
