@@ -54,7 +54,7 @@ class GemmaChatWidget extends StatefulWidget {
   final Future Function(String message, FFUploadedFile imageFile)?
       onImageMessageSent;
   final Future Function()? onModelCapabilitiesCheck;
-  final Future Function(FFUploadedFile imageFile)? onImageSelected;
+  final Future Function(FFUploadedFile? imageFile)? onImageSelected;
 
   @override
   State<GemmaChatWidget> createState() => _GemmaChatWidgetState();
@@ -172,15 +172,14 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
     }
   }
 
-  void _clearSelectedImage() {
+  Future<void> _clearSelectedImage() async {
     setState(() {
       _selectedImage = null;
     });
 
-    // Clear the image from App State by calling with null
+    // Notify caller that the image has been cleared
     if (widget.onImageSelected != null) {
-      // Since we can't pass null to the callback, we'll rely on the action flow
-      // to handle clearing when no image is selected during send
+      await widget.onImageSelected!(null);
     }
   }
 
@@ -204,9 +203,9 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
       _selectedImage = null; // Clear selected image after sending
     });
 
-    // Clear the image from App State after sending by storing null
-    if (imageFile != null && widget.onImageSelected != null) {
-      // We'll handle this in the action flow by checking if image exists
+    // Clear the image from App State after sending
+    if (widget.onImageSelected != null) {
+      await widget.onImageSelected!(null);
     }
 
     _messageController.clear();

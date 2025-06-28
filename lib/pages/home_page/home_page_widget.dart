@@ -136,7 +136,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                         safeSetState(() {});
                       },
                       onModelCapabilitiesCheck: () async {},
-                      onImageSelected: (imageFile) async {
+                      onImageSelected: (FFUploadedFile? imageFile) async {
                         _model.imageSelected = imageFile;
                         safeSetState(() {});
                       },
