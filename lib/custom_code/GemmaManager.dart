@@ -27,30 +27,61 @@ class GemmaManager {
   ModelFileManager get modelManager => FlutterGemmaPlugin.instance.modelManager;
 
   // Helper function to determine if a model supports vision
-  bool _isMultimodalModel(String modelType) {
-    final multimodalModels = [
-      'gemma-3-4b-it',
-      'gemma-3-12b-it',
-      'gemma-3-27b-it',
-      'gemma-3-nano-e4b-it',
-      'gemma-3-nano-e2b-it',
+  bool _isMultimodalModel(String? modelType) {
+    if (modelType == null || modelType.isEmpty) {
+      return false;
+    }
+    final lowerModelType = modelType.toLowerCase();
+
+    // Keywords that indicate a multimodal model
+    const multimodalKeywords = [
+      'vision',
+      'multimodal',
+      'image',
+      // Specific model families known to be multimodal
+      'gemma-3', // Covers gemma-3-4b-it, gemma-3-12b-it, etc.
+      'nano', // Covers gemma-3-nano-e4b-it, gemma-3-nano-e2b-it
+      // Add other known multimodal model identifiers if necessary
+      // 'some-other-vision-model'
     ];
 
-    // Also check for display names used in the UI
-    final multimodalDisplayNames = [
-      'gemma 3 4b edge',
+    // Display names used in UI that might indicate multimodal
+    const multimodalDisplayNames = [
+      'gemma 3 4b edge', // Example, adjust if necessary
       'gemma 3 12b edge',
       'gemma 3 27b edge',
       'gemma 3 nano',
     ];
 
-    return multimodalModels.any(
-            (model) => modelType.toLowerCase().contains(model.toLowerCase())) ||
-        multimodalDisplayNames.any((displayName) =>
-            modelType.toLowerCase().contains(displayName.toLowerCase())) ||
-        modelType.toLowerCase().contains('nano') ||
-        modelType.toLowerCase().contains('vision') ||
-        modelType.toLowerCase().contains('multimodal');
+    bool hasKeyword = multimodalKeywords.any((keyword) => lowerModelType.contains(keyword));
+    bool hasDisplayName = multimodalDisplayNames.any((displayName) => lowerModelType.contains(displayName));
+
+    // Special check for "gemma 3" which is a strong indicator for newer multimodal models
+    // and "nano" which is also often multimodal.
+    // The plugin's `supportImage` flag during model creation is the most reliable source,
+    // but this provides a good heuristic based on model type string.
+    bool isGemma3Family = lowerModelType.contains('gemma-3') || lowerModelType.contains('gemma 3');
+    bool isNanoFamily = lowerModelType.contains('nano');
+
+    // Check if the model was initialized with supportImage = true by the plugin
+    // This information isn't directly stored in GemmaManager after initialization in this version of code,
+    // but if it were, it would be the primary check.
+    // For now, we rely on the modelType string.
+
+    return hasKeyword || hasDisplayName || isGemma3Family || isNanoFamily;
+  }
+
+  // Public getter for multimodal capability
+  bool get isCurrentModelMultimodal {
+    if (!_isInitialized || _currentModelType == null) {
+      return false;
+    }
+    // Additionally, we should ideally check if the model instance `_model`
+    // was successfully initialized with `supportImage: true`.
+    // The `flutter_gemma` plugin's `createModel` has a `supportImage` parameter.
+    // If `_model.isVisionModel` (or similar property) existed, it would be best.
+    // For now, relying on the name and initialization parameters.
+    return _isMultimodalModel(_currentModelType);
   }
 
   // Initialize the model
@@ -383,8 +414,9 @@ class GemmaManager {
       }
 
       Message msg;
-      if (imageBytes != null && _isMultimodalModel(_currentModelType ?? '')) {
-        print('GemmaManager.sendMessage: Creating message with image');
+      // Use the public getter isCurrentModelMultimodal here
+      if (imageBytes != null && isCurrentModelMultimodal) {
+        print('GemmaManager.sendMessage: Creating message with image (model type: $_currentModelType)');
         try {
           msg = Message.withImage(
               text: message, imageBytes: imageBytes, isUser: true);
@@ -807,6 +839,8 @@ class GemmaManager {
   bool get isInitialized => _isInitialized;
   String? get currentModelType => _currentModelType;
   String? get currentBackend => _currentBackend;
+  // Use the new public getter for multimodal capability check
+  // bool get isCurrentModelMultimodal => _isMultimodalModel(_currentModelType); // Replaced by the getter above
   bool get hasSession => _session != null;
   bool get hasChat => _chat != null;
 }

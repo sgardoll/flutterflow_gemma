@@ -82,67 +82,56 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
 
   Future<void> _checkModelCapabilities() async {
     try {
-      // Check if the GemmaManager has a multimodal-capable model loaded
-      bool modelSupportsMultimodal = false;
+      // Use the GemmaManager to determine multimodal capabilities
+      bool modelSupportsMultimodal = _gemmaManager.isCurrentModelMultimodal;
 
-      // Get the current model type from GemmaManager
-      if (_gemmaManager.isInitialized &&
-          _gemmaManager.currentModelType != null) {
-        // Use the same logic as GemmaManager to detect multimodal models
-        final modelType = _gemmaManager.currentModelType!;
-        final multimodalModels = [
-          'gemma-3-4b-it',
-          'gemma-3-12b-it',
-          'gemma-3-27b-it',
-          'gemma-3-nano-e4b-it',
-          'gemma-3-nano-e2b-it',
-        ];
+      print(
+          'GemmaChatWidget: Model type: "${_gemmaManager.currentModelType}", Supports multimodal: $modelSupportsMultimodal (checked via GemmaManager)');
 
-        // Also check for display names used in the UI
-        final multimodalDisplayNames = [
-          'gemma 3 4b edge',
-          'gemma 3 12b edge',
-          'gemma 3 27b edge',
-          'gemma 3 nano',
-        ];
-
-        modelSupportsMultimodal = multimodalModels.any((model) =>
-                modelType.toLowerCase().contains(model.toLowerCase())) ||
-            multimodalDisplayNames.any((displayName) =>
-                modelType.toLowerCase().contains(displayName.toLowerCase())) ||
-            modelType.toLowerCase().contains('nano') ||
-            modelType.toLowerCase().contains('vision') ||
-            modelType.toLowerCase().contains('multimodal');
-
-        print(
-            'GemmaChatWidget: Model type: "$modelType", Supports multimodal: $modelSupportsMultimodal');
-        print(
-            'GemmaChatWidget: Model type contains "gemma 3 4b edge": ${modelType.toLowerCase().contains('gemma 3 4b edge')}');
-      } else {
-        print('GemmaChatWidget: No model initialized or model type unknown');
-        modelSupportsMultimodal = false;
-      }
-
-      // Call FlutterFlow action to check/store capabilities
+      // Call FlutterFlow action to check/store capabilities if provided
+      // This action might be used by the app to store this state globally
       if (widget.onModelCapabilitiesCheck != null) {
+        // It's better if onModelCapabilitiesCheck could accept a boolean
+        // or if FF App State is updated directly by GemmaManager upon initialization.
+        // For now, we assume this FF action reads from GemmaManager or is updated elsewhere.
         await widget.onModelCapabilitiesCheck!();
-        // The FlutterFlow action should set an App State variable with the result
       }
 
-      setState(() {
-        _isMultimodalAvailable = modelSupportsMultimodal;
-      });
+      if (mounted) {
+        setState(() {
+          _isMultimodalAvailable = modelSupportsMultimodal;
+        });
+      }
 
-      print('Multimodal capabilities detected: $_isMultimodalAvailable');
+      print(
+          'GemmaChatWidget: Multimodal capabilities updated: $_isMultimodalAvailable');
     } catch (e) {
-      print('Error checking model capabilities: $e');
-      setState(() {
-        _isMultimodalAvailable = false;
-      });
+      print('GemmaChatWidget: Error checking model capabilities: $e');
+      if (mounted) {
+        setState(() {
+          _isMultimodalAvailable = false;
+        });
+      }
     }
   }
 
   Future<void> _pickImage() async {
+    // First, refresh model capabilities
+    await _checkModelCapabilities();
+
+    if (!_isMultimodalAvailable) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'The current model does not support images. Please select a multimodal model.'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+      return;
+    }
+
     try {
       final XFile? pickedFile = await _imagePicker.pickImage(
         source: ImageSource.gallery,
@@ -193,7 +182,11 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
     final messageText =
         message.isNotEmpty ? message : "Please analyze this image";
     final imageFile = _selectedImage;
+    bool imageWasIgnored = false;
 
+    // Add user message to UI
+    // If image is present but model is not multimodal, it will be shown in user's bubble,
+    // but we will add a note that it was ignored.
     setState(() {
       _messages.add(ChatMessage(
         text: messageText,
@@ -201,16 +194,45 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
         imageBytes: imageFile?.bytes,
       ));
       _isLoading = true;
-      _selectedImage = null; // Clear selected image after sending
     });
+    _scrollToBottom(); // Scroll after adding user message
 
-    // Clear the image from App State after sending by storing null
-    if (imageFile != null && widget.onImageSelected != null) {
-      // We'll handle this in the action flow by checking if image exists
+    // Check if image is being sent with a non-multimodal model
+    if (imageFile != null && !_isMultimodalAvailable) {
+      imageWasIgnored = true;
+      if (mounted) {
+        // Add a system message indicating the image was ignored
+        setState(() {
+          _messages.add(ChatMessage(
+            text:
+                "(System: The attached image was ignored as the current model doesn't support image input.)",
+            isUser: false, // Displayed as an AI/system message
+          ));
+        });
+        _scrollToBottom();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'Image ignored: The current model does not support images.'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
     }
 
+    // Clear input fields AFTER handling potential warnings
     _messageController.clear();
-    _scrollToBottom();
+    setState(() {
+      _selectedImage = null; // Clear selected image after processing it
+    });
+
+
+    // Clear the image from App State after sending by storing null
+    if (widget.onImageSelected != null && imageFile != null) {
+        // This relies on the FF action to handle null or an empty FFUploadedFile
+        // to signify clearing. Or, the parent page can clear AppState.selectedImage.
+    }
 
     try {
       String? response;
@@ -224,25 +246,29 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
             'GemmaChatWidget: Model supports multimodal: $_isMultimodalAvailable');
       }
 
-      // Use FlutterFlow actions for message processing to avoid duplication
-      if (imageFile != null && widget.onImageMessageSent != null) {
+      // Use FlutterFlow actions for message processing
+      // The actions will internally use GemmaManager, which now logs if an image is ignored.
+      if (imageFile != null &&
+          _isMultimodalAvailable && // Only send image if model supports it
+          widget.onImageMessageSent != null) {
         print(
             'GemmaChatWidget: Sending message with image via FlutterFlow action');
         response = await widget.onImageMessageSent!(messageText, imageFile);
       } else if (widget.onMessageSent != null) {
+        // This handles text-only, or image attached to non-multimodal model (image will be ignored by manager)
         print(
-            'GemmaChatWidget: Sending text-only message via FlutterFlow action');
+            'GemmaChatWidget: Sending text-only or image-ignored message via FlutterFlow action');
+        // Pass null for imageFile if it was ignored or not multimodal
+        // The sendGemmaMessage action internally handles imageFile?.bytes
         response = await widget.onMessageSent(messageText);
+
       } else {
         // Fallback to direct GemmaManager call if no FlutterFlow actions provided
         print(
             'GemmaChatWidget: No FlutterFlow actions provided, using direct GemmaManager');
-        if (imageFile != null && _isMultimodalAvailable) {
-          response = await _gemmaManager.sendMessage(messageText,
-              imageBytes: imageFile.bytes);
-        } else {
-          response = await _gemmaManager.sendMessage(messageText);
-        }
+        // Pass imageFile?.bytes to sendMessage; it will handle non-multimodal case with a warning
+        response = await _gemmaManager.sendMessage(messageText,
+            imageBytes: (imageFile != null && _isMultimodalAvailable) ? imageFile.bytes : null);
       }
 
       if (response != null && response.toString().isNotEmpty) {
