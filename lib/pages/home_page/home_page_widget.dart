@@ -2,7 +2,6 @@ import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/flutter_flow/flutter_flow_widgets.dart';
 import 'dart:ui';
-import '/custom_code/actions/index.dart' as actions;
 import '/custom_code/widgets/index.dart' as custom_widgets;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -51,26 +50,30 @@ class _HomePageWidgetState extends State<HomePageWidget> {
         appBar: AppBar(
           backgroundColor: FlutterFlowTheme.of(context).primary,
           automaticallyImplyLeading: true,
-          title: Text(
-            'Gemma Offline Chat',
-            style: FlutterFlowTheme.of(context).headlineMedium.override(
-                  font: GoogleFonts.interTight(
-                    fontWeight:
-                        FlutterFlowTheme.of(context).headlineMedium.fontWeight,
-                    fontStyle:
-                        FlutterFlowTheme.of(context).headlineMedium.fontStyle,
-                  ),
-                  color: Colors.white,
-                  fontSize: 22.0,
-                  letterSpacing: 0.0,
-                  fontWeight:
-                      FlutterFlowTheme.of(context).headlineMedium.fontWeight,
-                  fontStyle:
-                      FlutterFlowTheme.of(context).headlineMedium.fontStyle,
-                ),
-          ),
           actions: [],
-          centerTitle: true,
+          flexibleSpace: FlexibleSpaceBar(
+            title: Text(
+              'Gemma Offline Chat',
+              maxLines: 2,
+              style: FlutterFlowTheme.of(context).titleLarge.override(
+                    font: GoogleFonts.interTight(
+                      fontWeight:
+                          FlutterFlowTheme.of(context).titleLarge.fontWeight,
+                      fontStyle:
+                          FlutterFlowTheme.of(context).titleLarge.fontStyle,
+                    ),
+                    color: FlutterFlowTheme.of(context).info,
+                    letterSpacing: 0.0,
+                    fontWeight:
+                        FlutterFlowTheme.of(context).titleLarge.fontWeight,
+                    fontStyle:
+                        FlutterFlowTheme.of(context).titleLarge.fontStyle,
+                    lineHeight: 0.9,
+                  ),
+            ),
+            centerTitle: true,
+            expandedTitleScale: 1.0,
+          ),
           elevation: 0.0,
         ),
         body: SafeArea(
@@ -99,20 +102,8 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                       sendButtonText: 'Send',
                       uploadButtonText: 'Upload Image',
                       showImageUpload: true,
-                      maxImageSize: 1024,
+                      maxImageSize: 5100000,
                       imageQuality: 80,
-                      onMessageSent: (message, imageFile) async {
-                        _model.sendMessageOutput =
-                            await actions.sendGemmaMessage(
-                          message,
-                          imageFile,
-                        );
-
-                        safeSetState(() {});
-                      },
-                      onResponseReceived: (response) async {},
-                      onImageSelected: (image) async {},
-                      onImageError: (error) async {},
                     ),
                   ),
                 ),

@@ -7,10 +7,9 @@ import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-import 'index.dart'; // Imports other custom widgets
-
 import '../GemmaManager.dart';
 import 'package:image_picker/image_picker.dart';
+import 'dart:io' show Platform;
 
 class GemmaChatWidget extends StatefulWidget {
   const GemmaChatWidget({
@@ -28,10 +27,6 @@ class GemmaChatWidget extends StatefulWidget {
     this.showImageUpload = true,
     this.maxImageSize = 5242880, // 5MB default
     this.imageQuality = 85,
-    required this.onMessageSent,
-    this.onResponseReceived,
-    this.onImageSelected,
-    this.onImageError,
   });
 
   final double? width;
@@ -47,11 +42,6 @@ class GemmaChatWidget extends StatefulWidget {
   final bool showImageUpload;
   final int maxImageSize; // Maximum image size in bytes
   final int imageQuality; // Image quality (1-100)
-  final Future Function(String message, FFUploadedFile? imageFile)
-      onMessageSent;
-  final Future Function(String response)? onResponseReceived;
-  final Future Function(FFUploadedFile image)? onImageSelected;
-  final Future Function(String error)? onImageError;
 
   @override
   State<GemmaChatWidget> createState() => _GemmaChatWidgetState();
@@ -98,9 +88,9 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
       'gemma-3-nano-e4b-it',
       'gemma-3-nano-e2b-it',
       'gemma 3 4b edge',
+      'gemma-3-4b-edge',
       'gemma 3 nano',
-      'gemma-3',
-      'gemma3',
+      'gemma-3-nano',
     ];
     return multimodalModels.any((model) =>
         modelType.contains(model.toLowerCase()) ||
@@ -108,7 +98,8 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
         modelType.contains('vision') ||
         modelType.contains('multimodal') ||
         modelType.contains('edge') ||
-        modelType.contains('3'));
+        modelType.contains('gemma 3') ||
+        modelType.contains('gemma-3'));
   }
 
   Future _selectImage() async {
@@ -196,10 +187,6 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
           final errorMsg =
               'Could not resize image to fit size limit of ${(widget.maxImageSize / 1024).toStringAsFixed(1)}KB';
 
-          if (widget.onImageError != null) {
-            await widget.onImageError!(errorMsg);
-          }
-
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -215,11 +202,6 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
       setState(() {
         _selectedImage = finalFile;
       });
-
-      // Call callback if provided
-      if (widget.onImageSelected != null) {
-        await widget.onImageSelected!(finalFile!);
-      }
 
       if (mounted) {
         final sizeText = finalFile!.bytes!.length > 1024
@@ -237,10 +219,6 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
     } catch (e) {
       final errorMsg = 'Error selecting image: $e';
       print(errorMsg);
-
-      if (widget.onImageError != null) {
-        await widget.onImageError!(errorMsg);
-      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -266,11 +244,36 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
   }
 
   Future _sendMessage() async {
+    print('=== GemmaChatWidget._sendMessage Debug ===');
     final message = _messageController.text.trim();
-    if ((message.isEmpty && _selectedImage == null) || _isLoading) return;
+    print('Message text: "$message"');
+    print('Selected image: ${_selectedImage != null}');
+    print('Is loading: $_isLoading');
+
+    if ((message.isEmpty && _selectedImage == null) || _isLoading) {
+      print('Aborting send: empty message and no image, or already loading');
+      return;
+    }
 
     final messageText = message.isNotEmpty ? message : 'Analyze this image';
     final imageBytes = _selectedImage?.bytes;
+
+    print('Final message text: "$messageText"');
+    print('Image bytes available: ${imageBytes != null}');
+    print('Image bytes length: ${imageBytes?.length ?? 0}');
+
+    if (_selectedImage != null) {
+      print('Selected image name: ${_selectedImage!.name}');
+      print('Selected image bytes null: ${_selectedImage!.bytes == null}');
+      print(
+          'Selected image bytes length: ${_selectedImage!.bytes?.length ?? 0}');
+
+      // iOS-specific debugging
+      if (Platform.isIOS && _selectedImage!.bytes != null) {
+        print(
+            'iOS: Image bytes first 10: ${_selectedImage!.bytes!.take(10).toList()}');
+      }
+    }
 
     setState(() {
       _messages.add(ChatMessage(
@@ -285,50 +288,48 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
     _clearImage();
     _scrollToBottom();
 
-    // Call the FlutterFlow action
-    await widget.onMessageSent(messageText, _selectedImage);
-
     try {
-      // Get response from Gemma
+      // Send message through GemmaManager directly
+      print('Sending message through GemmaManager...');
       final response = await _gemmaManager.sendMessage(
         messageText,
         imageBytes: imageBytes,
       );
+      print(
+          'GemmaManager response: ${response != null ? "received (${response.length} chars)" : "null"}');
 
       if (response != null && response.isNotEmpty) {
         setState(() {
           _messages.add(ChatMessage(text: response, isUser: false));
         });
-
-        // Call the FlutterFlow callback if provided
-        if (widget.onResponseReceived != null) {
-          await widget.onResponseReceived!(response);
-        }
       } else {
+        final fallbackMsg = imageBytes != null
+            ? 'I can see you\'ve shared an image, but I\'m having trouble processing it. This might be due to model configuration or platform-specific issues. Please check the console logs for more details.'
+            : 'Sorry, I couldn\'t generate a response. Please try again.';
+
         setState(() {
           _messages.add(ChatMessage(
-            text: 'Sorry, I couldn\'t generate a response. Please try again.',
+            text: fallbackMsg,
             isUser: false,
           ));
         });
       }
     } catch (e) {
       final errorMsg = 'Error generating response: ${e.toString()}';
+      print('Error in _sendMessage: $errorMsg');
+
       setState(() {
         _messages.add(ChatMessage(
           text: errorMsg,
           isUser: false,
         ));
       });
-
-      if (widget.onImageError != null) {
-        await widget.onImageError!(errorMsg);
-      }
     } finally {
       setState(() {
         _isLoading = false;
       });
       _scrollToBottom();
+      print('=== End GemmaChatWidget._sendMessage Debug ===');
     }
   }
 

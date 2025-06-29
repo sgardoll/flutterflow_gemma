@@ -216,6 +216,15 @@ class _GemmaAuthenticatedSetupWidgetState
         _currentStep = 'Initializing existing model...';
       });
 
+      // Debug model paths before initialization
+      print('=== DEBUGGING MODEL PATHS BEFORE INITIALIZATION ===');
+      try {
+        await debugModelPaths();
+        print('Debug model paths completed');
+      } catch (e) {
+        print('Error running debug: $e');
+      }
+
       // Determine if this model supports vision
       final isMultimodal = _isMultimodalModel(modelType);
       final supportImage = isMultimodal && widget.supportImage;
@@ -417,29 +426,15 @@ class _GemmaAuthenticatedSetupWidgetState
                     items: _modelOptions.map((option) {
                       return DropdownMenuItem<String>(
                         value: option['value'],
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              option['label']!,
-                              style: FlutterFlowTheme.of(context)
-                                  .bodyMedium
-                                  .override(
+                        child: Text(
+                          option['label']!,
+                          style:
+                              FlutterFlowTheme.of(context).bodyMedium.override(
                                     fontFamily: 'Inter',
                                     fontWeight: FontWeight.w500,
                                   ),
-                            ),
-                            Text(
-                              option['description']!,
-                              style: FlutterFlowTheme.of(context)
-                                  .bodySmall
-                                  .override(
-                                    fontFamily: 'Inter',
-                                    color: Colors.grey[600],
-                                  ),
-                            ),
-                          ],
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       );
                     }).toList(),

@@ -23,18 +23,54 @@ class GemmaManager {
 
   // Helper function to determine if a model supports vision
   bool _isMultimodalModel(String modelType) {
+    // Normalize the model type for comparison
+    final normalizedType =
+        modelType.toLowerCase().replaceAll(' ', '-').replaceAll('_', '-');
+
+    print('GemmaManager._isMultimodalModel: Checking model type: "$modelType"');
+    print(
+        'GemmaManager._isMultimodalModel: Normalized type: "$normalizedType"');
+
+    // List of known multimodal models
     final multimodalModels = [
       'gemma-3-4b-it',
       'gemma-3-12b-it',
       'gemma-3-27b-it',
       'gemma-3-nano-e4b-it',
       'gemma-3-nano-e2b-it',
+      'gemma-3-4b-edge',
+      'gemma-3-nano',
     ];
-    return multimodalModels.any((model) =>
-        modelType.toLowerCase().contains(model.toLowerCase()) ||
-        modelType.toLowerCase().contains('nano') ||
-        modelType.toLowerCase().contains('vision') ||
-        modelType.toLowerCase().contains('multimodal'));
+
+    // Check exact matches first
+    for (final model in multimodalModels) {
+      if (normalizedType.contains(model)) {
+        print('GemmaManager._isMultimodalModel: Exact match found for $model');
+        return true;
+      }
+    }
+
+    // Check for common patterns that indicate multimodal support
+    final patterns = [
+      'gemma-3', // All Gemma 3 models support vision
+      'gemma3',
+      'nano',
+      'vision',
+      'multimodal',
+      'edge',
+      'paligemma', // Google's vision model
+    ];
+
+    for (final pattern in patterns) {
+      if (normalizedType.contains(pattern)) {
+        print(
+            'GemmaManager._isMultimodalModel: Pattern match found for $pattern');
+        return true;
+      }
+    }
+
+    print('GemmaManager._isMultimodalModel: No multimodal support detected');
+    return false;
   }
 
   // Initialize the model
@@ -45,16 +81,20 @@ class GemmaManager {
     bool supportImage = false,
     int maxNumImages = 1,
     String? localModelPath,
+    bool forceImageSupport = false, // Add force flag
   }) async {
     try {
       // Close existing model if any
       await closeModel();
 
       // Check if the model actually supports vision
-      final actualSupportImage = supportImage && _isMultimodalModel(modelType);
+      // Use force flag to bypass model type check if needed
+      final actualSupportImage = forceImageSupport
+          ? supportImage
+          : (supportImage && _isMultimodalModel(modelType));
 
       print(
-          'GemmaManager: Model=$modelType, RequestedVision=$supportImage, ActualVision=$actualSupportImage');
+          'GemmaManager: Model=$modelType, RequestedVision=$supportImage, ActualVision=$actualSupportImage, ForceImageSupport=$forceImageSupport');
 
       // Create the model - using dynamic to avoid enum issues
       _model = await FlutterGemmaPlugin.instance.createModel(
@@ -142,21 +182,145 @@ class GemmaManager {
 
   // Send message and get response
   Future<String?> sendMessage(String message, {Uint8List? imageBytes}) async {
-    if (_session == null) return null;
+    print('=== GemmaManager.sendMessage Debug ===');
+    print('Session exists: ${_session != null}');
+    print('Message: $message');
+    print('Image bytes provided: ${imageBytes != null}');
+
+    if (_session == null) {
+      print('ERROR: No session available');
+      return null;
+    }
+
+    if (imageBytes != null) {
+      print('Image bytes length: ${imageBytes.length}');
+      print('Image bytes first 10: ${imageBytes.take(10).toList()}');
+
+      // Check if model actually supports images
+      final modelType = _currentModelType?.toLowerCase() ?? '';
+      final supportsImages = _isMultimodalModel(modelType);
+      print('Model supports images: $supportsImages (model: $modelType)');
+
+      if (!supportsImages) {
+        print('WARNING: Model does not support images, sending text-only');
+        imageBytes = null;
+      }
+    }
 
     try {
       Message msg;
       if (imageBytes != null) {
+        print('Creating message with image...');
         msg = Message.withImage(
             text: message, imageBytes: imageBytes, isUser: true);
+        print('Message with image created successfully');
       } else {
+        print('Creating text-only message...');
         msg = Message.text(text: message, isUser: true);
+        print('Text message created successfully');
       }
 
+      print('Adding query chunk to session...');
       await _session!.addQueryChunk(msg);
-      return await _session!.getResponse();
+      print('Query chunk added, getting response...');
+
+      final response = await _session!.getResponse();
+      print(
+          'Response received: ${response != null ? "Yes (${response.length} chars)" : "No"}');
+      print('=== End GemmaManager.sendMessage Debug ===');
+
+      return response;
     } catch (e) {
       print('Error sending message: $e');
+      print('Error type: ${e.runtimeType}');
+
+      // Check if it's a session error and recreate session if needed
+      if ((e.toString().contains('Session not created') ||
+              e.toString().contains('Model is closed')) &&
+          imageBytes != null) {
+        print(
+            'Session/Model error detected with image. Attempting recovery...');
+
+        // Check if model is closed
+        if (e.toString().contains('Model is closed')) {
+          print('Model is closed. Reinitializing entire model...');
+
+          // Store current configuration
+          final modelType = _currentModelType ?? 'Gemma 3 4B Edge';
+          final backend = _currentBackend ?? 'gpu';
+
+          // Reinitialize the model
+          final modelInitialized = await initializeModel(
+            modelType: modelType,
+            backend: backend,
+            maxTokens: 1024,
+            supportImage: true,
+            maxNumImages: 1,
+          );
+
+          if (!modelInitialized) {
+            print('Failed to reinitialize model');
+            return null;
+          }
+
+          print('Model reinitialized successfully');
+        }
+
+        // Try to create/recreate the session
+        final sessionCreated = await createSession();
+        if (sessionCreated) {
+          print('Session created successfully. Retrying message...');
+
+          try {
+            Message msg;
+            if (imageBytes != null) {
+              print('Creating message with image (retry)...');
+              msg = Message.withImage(
+                  text: message, imageBytes: imageBytes, isUser: true);
+              print('Message with image created successfully (retry)');
+            } else {
+              print('Creating text-only message (retry)...');
+              msg = Message.text(text: message, isUser: true);
+              print('Text message created successfully (retry)');
+            }
+
+            print('Adding query chunk to session (retry)...');
+            await _session!.addQueryChunk(msg);
+            print('Query chunk added, getting response (retry)...');
+
+            final response = await _session!.getResponse();
+            print(
+                'Response received (retry): ${response != null ? "Yes (${response.length} chars)" : "No"}');
+
+            return response;
+          } catch (retryError) {
+            print('Retry also failed: $retryError');
+          }
+        }
+      }
+
+      print('Stack trace: ${StackTrace.current}');
+
+      // If image processing failed, try text-only as fallback
+      if (imageBytes != null) {
+        print('Attempting fallback to text-only message...');
+        try {
+          // Ensure we have a valid session
+          if (_session == null) {
+            await createSession();
+          }
+
+          final textMsg = Message.text(text: message, isUser: true);
+          await _session!.addQueryChunk(textMsg);
+          final fallbackResponse = await _session!.getResponse();
+          print(
+              'Fallback response received: ${fallbackResponse != null ? "Yes" : "No"}');
+          return fallbackResponse;
+        } catch (fallbackError) {
+          print('Fallback also failed: $fallbackError');
+        }
+      }
+
       return null;
     }
   }
