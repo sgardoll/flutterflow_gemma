@@ -254,7 +254,7 @@ class _GemmaAuthenticatedSetupWidgetState
         setState(() {
           _currentStep = 'Creating chat session...';
         });
-        
+
         // Create session after successful model initialization
         final gemmaManager = GemmaManager();
         final sessionSuccess = await gemmaManager.createSession(
@@ -262,7 +262,7 @@ class _GemmaAuthenticatedSetupWidgetState
           randomSeed: 1,
           topK: 1,
         );
-        
+
         if (sessionSuccess) {
           print('Session creation SUCCESS - setup complete');
           setState(() {

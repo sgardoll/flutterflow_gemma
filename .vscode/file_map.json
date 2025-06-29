@@ -15,21 +15,29 @@
     "current_checksum": "58a85e62274ce5b6b9cbe5a4f77e2c026252b86cf8eeb4666bebdb44dfcfaefd",
     "original_checksum": "58a85e62274ce5b6b9cbe5a4f77e2c026252b86cf8eeb4666bebdb44dfcfaefd"
   },
+  "initialize_local_gemma_model.dart": {
+    "old_identifier_name": "initializeLocalGemmaModel",
+    "new_identifier_name": "initializeLocalGemmaModel",
+    "type": "A",
+    "is_deleted": false,
+    "current_checksum": "c2ca17201fbe7bb5efae09f20e183709149d978ddbe7a2ada356517418e2c99d",
+    "original_checksum": "c2ca17201fbe7bb5efae09f20e183709149d978ddbe7a2ada356517418e2c99d"
+  },
   "gemma_chat_widget.dart": {
     "old_identifier_name": "GemmaChatWidget",
     "new_identifier_name": "GemmaChatWidget",
     "type": "W",
     "is_deleted": false,
-    "current_checksum": "eae4ab928c39eb313e77bae70290bce72ffa08a2e471ade65af65ac8a410de7f",
-    "original_checksum": "a32defdfa27db794c31b3de9b71d354772a1d3f1ec8517f2fbf6d0c467511f7c"
+    "current_checksum": "f5a5ab3297599f1d02d189057637ebf0307eef9134e420c9eea49d2cf55f8e76",
+    "original_checksum": "f5a5ab3297599f1d02d189057637ebf0307eef9134e420c9eea49d2cf55f8e76"
   },
   "gemma_authenticated_setup_widget.dart": {
     "old_identifier_name": "GemmaAuthenticatedSetupWidget",
     "new_identifier_name": "GemmaAuthenticatedSetupWidget",
     "type": "W",
     "is_deleted": false,
-    "current_checksum": "786091200d442efbca0f19e42dbfab7b29f42455ed1540123dda67a92f5f78cc",
-    "original_checksum": "b96a29bf791d7818bf9c7680aefe77cbef40a586a0451076f6104d21f776fbdd"
+    "current_checksum": "764ec32319c98b7f149254c8ff0d51dd0a670459645892142cc75f39d48b4ce9",
+    "original_checksum": "764ec32319c98b7f149254c8ff0d51dd0a670459645892142cc75f39d48b4ce9"
   },
   "custom_functions.dart": {
     "old_identifier_name": "CustomFunctions",
@@ -100,13 +108,6 @@
     "new_identifier_name": "manageDownloadedModels",
     "type": "A",
     "is_deleted": false
-  },
-  "initialize_local_gemma_model.dart": {
-    "old_identifier_name": "initializeLocalGemmaModel",
-    "new_identifier_name": "initializeLocalGemmaModel",
-    "type": "A",
-    "is_deleted": false,
-    "current_checksum": "817b18ff7c66746b4499f1e3fc823335bff60c316fea842a73abbd07111f1f6a"
   },
   "install_local_model_file.dart": {
     "old_identifier_name": "installLocalModelFile",

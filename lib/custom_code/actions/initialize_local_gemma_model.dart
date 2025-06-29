@@ -28,24 +28,27 @@ Future<bool> initializeLocalGemmaModel(
 ) async {
   try {
     print('=== ANDROID DEBUG: initializeLocalGemmaModel ===');
-    print('Platform: ${Platform.isAndroid ? "Android" : Platform.isIOS ? "iOS" : "Other"}');
+    print(
+        'Platform: ${Platform.isAndroid ? "Android" : Platform.isIOS ? "iOS" : "Other"}');
     print('Model path: $localModelPath');
     print('Model type: $modelType');
     print('Backend: $preferredBackend');
     print('Support image: $supportImage');
     print('Max tokens: $maxTokens');
-    
+
     // Validate the model file exists first
     final modelFile = File(localModelPath);
     print('Checking if model file exists...');
     if (!await modelFile.exists()) {
-      print('ANDROID DEBUG: Model file does not exist at path: $localModelPath');
+      print(
+          'ANDROID DEBUG: Model file does not exist at path: $localModelPath');
       // Check if file exists in common Android locations
       final appDocDir = await getApplicationDocumentsDirectory();
       final altPath = path.join(appDocDir.path, path.basename(localModelPath));
       print('ANDROID DEBUG: Checking alternative path: $altPath');
       if (await File(altPath).exists()) {
-        print('ANDROID DEBUG: Found model at alternative path, updating localModelPath');
+        print(
+            'ANDROID DEBUG: Found model at alternative path, updating localModelPath');
         localModelPath = altPath;
       } else {
         print('ANDROID DEBUG: Model file not found at either location');
@@ -89,11 +92,11 @@ Future<bool> initializeLocalGemmaModel(
     print('  - maxTokens: $maxTokens');
     print('  - supportImage: $supportImage');
     print('  - localModelPath: $modelFileName');
-    
+
     try {
       final gemmaManager = GemmaManager();
       print('ANDROID DEBUG: GemmaManager instance created');
-      
+
       final success = await gemmaManager.initializeModel(
         modelType: modelType,
         backend: preferredBackend,
@@ -106,18 +109,21 @@ Future<bool> initializeLocalGemmaModel(
       print('ANDROID DEBUG: GemmaManager.initializeModel returned: $success');
 
       if (success) {
-        print('ANDROID DEBUG: Gemma model initialized successfully through GemmaManager!');
+        print(
+            'ANDROID DEBUG: Gemma model initialized successfully through GemmaManager!');
         print('ANDROID DEBUG: Model manager state:');
         print('  - isInitialized: ${gemmaManager.isInitialized}');
         print('  - currentModelType: ${gemmaManager.currentModelType}');
         print('  - currentBackend: ${gemmaManager.currentBackend}');
 
         // Don't create session here - let the setup widget handle it
-        print('ANDROID DEBUG: Skipping session creation, letting setup widget handle it');
+        print(
+            'ANDROID DEBUG: Skipping session creation, letting setup widget handle it');
         return true;
       } else {
         print('ANDROID DEBUG: GemmaManager initialization returned false');
-        print('ANDROID DEBUG: This is likely the root cause of the Android issue');
+        print(
+            'ANDROID DEBUG: This is likely the root cause of the Android issue');
       }
     } catch (e, stackTrace) {
       print('ANDROID DEBUG: Exception in GemmaManager initialization: $e');
@@ -253,7 +259,8 @@ Future<bool> initializeLocalGemmaModel(
   } catch (e, stackTrace) {
     print('ANDROID DEBUG: Top-level error in initializeLocalGemmaModel: $e');
     print('ANDROID DEBUG: Stack trace: $stackTrace');
-    print('ANDROID DEBUG: Platform: ${Platform.isAndroid ? "Android" : Platform.isIOS ? "iOS" : "Other"}');
+    print(
+        'ANDROID DEBUG: Platform: ${Platform.isAndroid ? "Android" : Platform.isIOS ? "iOS" : "Other"}');
 
     if (e.toString().contains('Gemma Model is not installed')) {
       print('ANDROID DEBUG: Model not installed error');

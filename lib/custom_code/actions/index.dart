@@ -1,5 +1,6 @@
 export 'create_gemma_session.dart' show createGemmaSession;
 export 'set_chat_image.dart' show setChatImage;
+export 'initialize_local_gemma_model.dart' show initializeLocalGemmaModel;
 export 'send_gemma_message.dart' show sendGemmaMessage;
 export 'resize_image_to_constraints.dart' show resizeImageToConstraints;
 export 'initialize_gemma_model.dart' show initializeGemmaModel;
@@ -9,6 +10,5 @@ export 'install_gemma_from_asset.dart' show installGemmaFromAsset;
 export 'download_authenticated_model.dart' show downloadAuthenticatedModel;
 export 'get_huggingface_model_info.dart' show getHuggingfaceModelInfo;
 export 'manage_downloaded_models.dart' show manageDownloadedModels;
-export 'initialize_local_gemma_model.dart' show initializeLocalGemmaModel;
 export 'install_local_model_file.dart' show installLocalModelFile;
 export 'debug_model_paths.dart' show debugModelPaths;
