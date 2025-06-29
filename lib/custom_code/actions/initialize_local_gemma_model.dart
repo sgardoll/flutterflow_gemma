@@ -27,15 +27,34 @@ Future<bool> initializeLocalGemmaModel(
   int randomSeed,
 ) async {
   try {
+    print('=== ANDROID DEBUG: initializeLocalGemmaModel ===');
+    print('Platform: ${Platform.isAndroid ? "Android" : Platform.isIOS ? "iOS" : "Other"}');
+    print('Model path: $localModelPath');
+    print('Model type: $modelType');
+    print('Backend: $preferredBackend');
+    print('Support image: $supportImage');
+    print('Max tokens: $maxTokens');
+    
     // Validate the model file exists first
     final modelFile = File(localModelPath);
+    print('Checking if model file exists...');
     if (!await modelFile.exists()) {
-      print('Error: Model file does not exist at path: $localModelPath');
-      return false;
+      print('ANDROID DEBUG: Model file does not exist at path: $localModelPath');
+      // Check if file exists in common Android locations
+      final appDocDir = await getApplicationDocumentsDirectory();
+      final altPath = path.join(appDocDir.path, path.basename(localModelPath));
+      print('ANDROID DEBUG: Checking alternative path: $altPath');
+      if (await File(altPath).exists()) {
+        print('ANDROID DEBUG: Found model at alternative path, updating localModelPath');
+        localModelPath = altPath;
+      } else {
+        print('ANDROID DEBUG: Model file not found at either location');
+        return false;
+      }
     }
 
     final fileSize = await modelFile.length();
-    print('Initializing Gemma model from local file: $localModelPath');
+    print('ANDROID DEBUG: Model file validated successfully');
     print('Model file size: $fileSize bytes');
 
     // Model file validation
@@ -63,9 +82,19 @@ Future<bool> initializeLocalGemmaModel(
     print('Step 3: Using backend: $preferredBackend');
 
     // Step 4: Initialize using GemmaManager
-    print('Step 4: Initializing through GemmaManager...');
+    print('ANDROID DEBUG Step 4: Initializing through GemmaManager...');
+    print('ANDROID DEBUG: About to call GemmaManager().initializeModel with:');
+    print('  - modelType: $modelType');
+    print('  - backend: $preferredBackend');
+    print('  - maxTokens: $maxTokens');
+    print('  - supportImage: $supportImage');
+    print('  - localModelPath: $modelFileName');
+    
     try {
-      final success = await GemmaManager().initializeModel(
+      final gemmaManager = GemmaManager();
+      print('ANDROID DEBUG: GemmaManager instance created');
+      
+      final success = await gemmaManager.initializeModel(
         modelType: modelType,
         backend: preferredBackend,
         maxTokens: maxTokens,
@@ -74,28 +103,25 @@ Future<bool> initializeLocalGemmaModel(
         localModelPath: modelFileName, // Pass the filename
       );
 
+      print('ANDROID DEBUG: GemmaManager.initializeModel returned: $success');
+
       if (success) {
-        print('Gemma model initialized successfully through GemmaManager!');
+        print('ANDROID DEBUG: Gemma model initialized successfully through GemmaManager!');
+        print('ANDROID DEBUG: Model manager state:');
+        print('  - isInitialized: ${gemmaManager.isInitialized}');
+        print('  - currentModelType: ${gemmaManager.currentModelType}');
+        print('  - currentBackend: ${gemmaManager.currentBackend}');
 
-        // Create a session with the provided parameters
-        final sessionSuccess = await GemmaManager().createSession(
-          temperature: temperature.clamp(0.0, 2.0),
-          randomSeed: randomSeed,
-          topK: topK.clamp(1, 40).toInt(),
-        );
-
-        if (sessionSuccess) {
-          print('Session created successfully!');
-          return true;
-        } else {
-          print('Model initialized but failed to create session');
-          return true; // Still consider it successful
-        }
+        // Don't create session here - let the setup widget handle it
+        print('ANDROID DEBUG: Skipping session creation, letting setup widget handle it');
+        return true;
       } else {
-        print('GemmaManager initialization returned false');
+        print('ANDROID DEBUG: GemmaManager initialization returned false');
+        print('ANDROID DEBUG: This is likely the root cause of the Android issue');
       }
-    } catch (e) {
-      print('Error initializing Gemma model through GemmaManager: $e');
+    } catch (e, stackTrace) {
+      print('ANDROID DEBUG: Exception in GemmaManager initialization: $e');
+      print('ANDROID DEBUG: Stack trace: $stackTrace');
     }
 
     // Step 5: If GemmaManager fails, try direct plugin initialization
@@ -224,10 +250,13 @@ Future<bool> initializeLocalGemmaModel(
 
     print('All initialization attempts failed');
     return false;
-  } catch (e) {
-    print('Error in initializeLocalGemmaModel: $e');
+  } catch (e, stackTrace) {
+    print('ANDROID DEBUG: Top-level error in initializeLocalGemmaModel: $e');
+    print('ANDROID DEBUG: Stack trace: $stackTrace');
+    print('ANDROID DEBUG: Platform: ${Platform.isAndroid ? "Android" : Platform.isIOS ? "iOS" : "Other"}');
 
     if (e.toString().contains('Gemma Model is not installed')) {
+      print('ANDROID DEBUG: Model not installed error');
       print('The model needs to be properly installed first.');
       print(
           'This can happen if the model file is not in the expected location');
@@ -235,12 +264,17 @@ Future<bool> initializeLocalGemmaModel(
       print(
           'Try using installLocalModelFile action first, then retry initialization.');
     } else if (e.toString().contains('failedToInitializeEngine')) {
+      print('ANDROID DEBUG: Engine initialization failed');
       print('The model engine failed to initialize.');
       print('This usually indicates:');
       print('1. The model file is corrupted or incomplete');
       print('2. The model format is not compatible with this device');
       print('3. Insufficient memory or resources');
       print('4. The model file path is incorrect');
+      if (Platform.isAndroid) {
+        print('5. Android-specific: App permissions or security restrictions');
+        print('6. Android-specific: Native library loading issues');
+      }
     } else if (e.toString().contains('open() failed')) {
       print('Failed to open the model file.');
       print('Check that the model file exists and is readable.');

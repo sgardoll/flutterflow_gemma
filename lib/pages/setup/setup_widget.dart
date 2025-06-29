@@ -121,47 +121,9 @@ class _SetupWidgetState extends State<SetupWidget> {
                           FlutterFlowTheme.of(context).primaryBackground,
                       textColor: FlutterFlowTheme.of(context).primaryText,
                       onSetupComplete: () async {
-                        _model.createSessionOutput =
-                            await actions.createGemmaSession(
-                          0.8,
-                          1,
-                          1,
-                        );
-                        if (_model.createSessionOutput!) {
-                          context.pushNamed(HomePageWidget.routeName);
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Failed to create chat session',
-                                style: FlutterFlowTheme.of(context)
-                                    .labelLarge
-                                    .override(
-                                      font: GoogleFonts.inter(
-                                        fontWeight: FlutterFlowTheme.of(context)
-                                            .labelLarge
-                                            .fontWeight,
-                                        fontStyle: FlutterFlowTheme.of(context)
-                                            .labelLarge
-                                            .fontStyle,
-                                      ),
-                                      color: FlutterFlowTheme.of(context)
-                                          .primaryText,
-                                      letterSpacing: 0.0,
-                                      fontWeight: FlutterFlowTheme.of(context)
-                                          .labelLarge
-                                          .fontWeight,
-                                      fontStyle: FlutterFlowTheme.of(context)
-                                          .labelLarge
-                                          .fontStyle,
-                                    ),
-                              ),
-                              duration: Duration(milliseconds: 4000),
-                              backgroundColor:
-                                  FlutterFlowTheme.of(context).error,
-                            ),
-                          );
-                        }
+                        // Setup widget handles model initialization and session creation
+                        // When onSetupComplete is called, everything is ready
+                        context.pushNamed(HomePageWidget.routeName);
 
                         safeSetState(() {});
                       },

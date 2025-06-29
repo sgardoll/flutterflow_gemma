@@ -13,6 +13,7 @@ import '/custom_code/actions/download_authenticated_model.dart';
 import '/custom_code/actions/get_huggingface_model_info.dart';
 import '/custom_code/actions/manage_downloaded_models.dart';
 import '/custom_code/actions/initialize_local_gemma_model.dart';
+import '../GemmaManager.dart';
 
 import 'package:http/http.dart' as http;
 import 'dart:io';
@@ -249,26 +250,48 @@ class _GemmaAuthenticatedSetupWidgetState
       print('initializeLocalGemmaModel returned: $initSuccess');
 
       if (initSuccess) {
-        print('Model initialization SUCCESS - setting complete state');
+        print('Model initialization SUCCESS - now creating session');
         setState(() {
-          _isSetupInProgress = false;
-          _isSetupComplete = true;
-          _currentStep = 'Model ready for use!';
+          _currentStep = 'Creating chat session...';
         });
-        print('About to call onSetupComplete callback...');
-        await widget.onSetupComplete();
-        print('onSetupComplete callback completed!');
+        
+        // Create session after successful model initialization
+        final gemmaManager = GemmaManager();
+        final sessionSuccess = await gemmaManager.createSession(
+          temperature: 0.8,
+          randomSeed: 1,
+          topK: 1,
+        );
+        
+        if (sessionSuccess) {
+          print('Session creation SUCCESS - setup complete');
+          setState(() {
+            _isSetupInProgress = false;
+            _isSetupComplete = true;
+            _currentStep = 'Model and session ready for use!';
+          });
+          print('About to call onSetupComplete callback...');
+          await widget.onSetupComplete();
+          print('onSetupComplete callback completed!');
+        } else {
+          print('Session creation FAILED - showing error to user');
+          setState(() {
+            _isSetupInProgress = false;
+            _isSetupComplete = false;
+            _errorMessage = 'Failed to create chat session. Please try again.';
+            _currentStep = '';
+          });
+          await widget.onSetupFailed('Session creation failed');
+        }
       } else {
-        print(
-            'Model initialization FAILED - but calling onSetupComplete anyway for testing');
-        // TEMPORARY: Call onSetupComplete even if initialization failed (for debugging)
+        print('Model initialization FAILED - showing error to user');
         setState(() {
           _isSetupInProgress = false;
-          _isSetupComplete = true;
-          _currentStep = 'Model ready for use! (Debug mode)';
+          _isSetupComplete = false;
+          _errorMessage = 'Failed to initialize model. Please try again.';
+          _currentStep = '';
         });
-        await widget.onSetupComplete();
-        // throw Exception('Failed to initialize model');
+        await widget.onSetupFailed('Model initialization failed');
       }
     } catch (e) {
       print('ERROR in _useExistingModel: $e');

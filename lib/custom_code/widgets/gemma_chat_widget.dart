@@ -63,19 +63,33 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
   }
 
   Future _initializeGemma() async {
-    // Initialize with default settings - user should call initializeGemmaModel action first
-    if (!_gemmaManager.isInitialized) {
-      await _gemmaManager.initializeModel(
-        modelType: 'gemma-2b-it',
-        backend: 'gpu',
-        maxTokens: 1024,
-        supportImage: false,
-        maxNumImages: 1,
-      );
+    print('GemmaChatWidget: Checking model and session status...');
+    print('Model initialized: ${_gemmaManager.isInitialized}');
+    print('Has session: ${_gemmaManager.hasSession}');
+    
+    // Check if we have both model and session ready
+    if (_gemmaManager.isInitialized && _gemmaManager.hasSession) {
+      print('GemmaChatWidget: Model and session ready, no initialization needed');
+      return;
     }
-
+    
+    // If model isn't initialized, we can't proceed
+    // The user needs to complete setup first
+    if (!_gemmaManager.isInitialized) {
+      print('GemmaChatWidget: No model initialized - user needs to complete setup');
+      // Don't try to initialize here with defaults, let the user know they need setup
+      return;
+    }
+    
+    // If model is ready but no session, try to create one
     if (!_gemmaManager.hasSession) {
-      await _gemmaManager.createSession();
+      print('GemmaChatWidget: Model ready but no session, creating session...');
+      final sessionSuccess = await _gemmaManager.createSession();
+      if (!sessionSuccess) {
+        print('GemmaChatWidget: Failed to create session');
+      } else {
+        print('GemmaChatWidget: Session created successfully');
+      }
     }
   }
 
@@ -253,6 +267,32 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
     if ((message.isEmpty && _selectedImage == null) || _isLoading) {
       print('Aborting send: empty message and no image, or already loading');
       return;
+    }
+
+    // Defensive check: ensure model and session are ready
+    if (!_gemmaManager.isInitialized) {
+      print('Model not initialized - showing error message');
+      setState(() {
+        _messages.add(ChatMessage(
+          text: 'Please complete the model setup first before sending messages.',
+          isUser: false,
+        ));
+      });
+      return;
+    }
+
+    if (!_gemmaManager.hasSession) {
+      print('No session available - attempting to create one');
+      final sessionSuccess = await _gemmaManager.createSession();
+      if (!sessionSuccess) {
+        setState(() {
+          _messages.add(ChatMessage(
+            text: 'Unable to start chat session. Please restart the app and complete setup.',
+            isUser: false,
+          ));
+        });
+        return;
+      }
     }
 
     final messageText = message.isNotEmpty ? message : 'Analyze this image';
