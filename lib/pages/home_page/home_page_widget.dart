@@ -109,7 +109,6 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                         );
 
                         safeSetState(() {});
-                        return _model.sendMessageOutput;
                       },
                       onResponseReceived: (response) async {},
                       onImageSelected: (image) async {},
