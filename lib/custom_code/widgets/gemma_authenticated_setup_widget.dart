@@ -846,6 +846,7 @@ class _GemmaAuthenticatedSetupWidgetState
   }
 
   bool _canDownload() {
+    if (_isLoadingModelInfo) return false;
     final currentToken =
         _enteredToken.isNotEmpty ? _enteredToken : widget.huggingFaceToken;
     if (currentToken.isEmpty) return false;

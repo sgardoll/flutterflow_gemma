@@ -125,56 +125,16 @@ Future<String?> downloadAuthenticatedModel(
 }
 
 String _getModelDownloadUrl(String modelIdentifier) {
-  // Map of predefined models to their HuggingFace download URLs
-  // ONLY Gemma 3n models have official .task files available
-  final modelUrls = <String, String>{
-    // ✅ AVAILABLE: Gemma 3n models with official .task files
-    'gemma-3-nano-e4b-it':
-        'https://huggingface.co/google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-3n-E4B-it-int4.task',
-    'gemma-3-nano-e2b-it':
-        'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task',
-
-    // Alternative identifiers for the same models
-    'gemma-3n-e4b-it':
-        'https://huggingface.co/google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-3n-E4B-it-int4.task',
-    'gemma-3n-e2b-it':
-        'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task',
-
-    // ❌ NO OFFICIAL .TASK FILES: These models don't have .task format
-    // Using Gemma 3n E4B as fallback for models without .task files
-    'paligemma-3b-it':
-        'https://huggingface.co/google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-3n-E4B-it-int4.task',
-    'gemma-3-4b-it':
-        'https://huggingface.co/google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-3n-E4B-it-int4.task',
-    'gemma-3-2b-it':
-        'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task',
-    'gemma-1b-it':
-        'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task',
-  };
-
-  final url = modelUrls[modelIdentifier] ??
-      // Default fallback URL - Gemma 3n E4B (multimodal)
-      'https://huggingface.co/google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-3n-E4B-it-int4.task';
-
-  print('Mapped model $modelIdentifier to URL: $url');
+  // Dynamically construct the URL from the model identifier
+  final url =
+      'https://huggingface.co/$modelIdentifier/resolve/main/model.task';
+  print('Constructed URL for $modelIdentifier: $url');
   return url;
 }
 
 String _getModelFileName(String modelIdentifier) {
-  // Map of predefined models to their file names
-  final modelFileNames = <String, String>{
-    // Gemma 3n models (official .task files)
-    'gemma-3-nano-e4b-it': 'gemma-3n-E4B-it-int4.task',
-    'gemma-3-nano-e2b-it': 'gemma-3n-E2B-it-int4.task',
-    'gemma-3n-e4b-it': 'gemma-3n-E4B-it-int4.task',
-    'gemma-3n-e2b-it': 'gemma-3n-E2B-it-int4.task',
-
-    // Models without .task files (using Gemma 3n files as substitutes)
-    'paligemma-3b-it': 'gemma-3n-E4B-it-int4.task',
-    'gemma-3-4b-it': 'gemma-3n-E4B-it-int4.task',
-    'gemma-3-2b-it': 'gemma-3n-E2B-it-int4.task',
-    'gemma-1b-it': 'gemma-3n-E2B-it-int4.task',
-  };
-
-  return modelFileNames[modelIdentifier] ?? 'gemma-3n-E4B-it-int4.task';
+  // Dynamically construct the filename from the model identifier
+  final parts = modelIdentifier.split('/');
+  final fileName = parts.length > 1 ? parts.last : modelIdentifier;
+  return '$fileName.task';
 }
