@@ -96,61 +96,56 @@ class _SetupWidgetState extends State<SetupWidget> {
         ),
         body: SafeArea(
           top: true,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.max,
-              children: [
-                Container(
+          child: Column(
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              Expanded(
+                child: Container(
                   width: MediaQuery.sizeOf(context).width * 1.0,
-                  height: MediaQuery.sizeOf(context).height * 1.0,
                   decoration: BoxDecoration(),
-                  child: Container(
+                  child: custom_widgets.GemmaAuthenticatedSetupWidget(
                     width: MediaQuery.sizeOf(context).width * 1.0,
                     height: MediaQuery.sizeOf(context).height * 1.0,
-                    child: custom_widgets.GemmaAuthenticatedSetupWidget(
-                      width: MediaQuery.sizeOf(context).width * 1.0,
-                      height: MediaQuery.sizeOf(context).height * 1.0,
-                      huggingFaceToken: FFAppState().hfToken,
-                      preferredBackend: 'gpu',
-                      maxTokens: 1024,
-                      supportImage: true,
-                      maxNumImages: 1,
-                      primaryColor: FlutterFlowTheme.of(context).primary,
-                      backgroundColor:
-                          FlutterFlowTheme.of(context).primaryBackground,
-                      textColor: FlutterFlowTheme.of(context).primaryText,
-                      onSetupComplete: () async {
-                        context.pushNamed(HomePageWidget.routeName);
-                      },
-                      onSetupFailed: (error) async {
-                        onSetupFailed:
-                        (error) async {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Setup Failed',
-                                style: TextStyle(
-                                  color:
-                                      FlutterFlowTheme.of(context).primaryText,
-                                ),
+                    huggingFaceToken: FFAppState().hfToken,
+                    preferredBackend: 'gpu',
+                    maxTokens: 1024,
+                    supportImage: true,
+                    maxNumImages: 1,
+                    primaryColor: FlutterFlowTheme.of(context).primary,
+                    backgroundColor:
+                        FlutterFlowTheme.of(context).primaryBackground,
+                    textColor: FlutterFlowTheme.of(context).primaryText,
+                    onSetupComplete: () async {
+                      context.pushNamed(HomePageWidget.routeName);
+                    },
+                    onSetupFailed: (error) async {
+                      onSetupFailed:
+                      (error) async {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Setup Failed',
+                              style: TextStyle(
+                                color:
+                                    FlutterFlowTheme.of(context).primaryText,
                               ),
-                              duration: Duration(milliseconds: 4000),
-                              backgroundColor:
-                                  FlutterFlowTheme.of(context).secondary,
                             ),
-                          );
-                        };
-                      },
-                      onProgress: (progress) async {
-                        _model.progress =
-                            (((progress ?? 0) / 100.0).clamp(0.0, 1.0) * 100);
-                        safeSetState(() {});
-                      },
-                    ),
+                            duration: Duration(milliseconds: 4000),
+                            backgroundColor:
+                                FlutterFlowTheme.of(context).secondary,
+                          ),
+                        );
+                      };
+                    },
+                    onProgress: (progress) async {
+                      _model.progress =
+                          (((progress ?? 0) / 100.0).clamp(0.0, 1.0) * 100);
+                      safeSetState(() {});
+                    },
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

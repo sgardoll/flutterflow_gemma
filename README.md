@@ -124,6 +124,11 @@ Complete setup interface for model download and configuration.
 - `initialModel`: Default model selection
 - `showAdvancedOptions`: Toggle advanced configuration
 
+**Suggested Input Params:**
+- `loadingIndicatorColor`: Color of the loading indicator
+- `buttonTextStyle`: Text style for buttons
+- `errorTextStyle`: Text style for error messages
+
 ### GemmaChatWidget
 Full-featured chat interface for AI interactions.
 
@@ -133,6 +138,12 @@ Full-featured chat interface for AI interactions.
 - `enableImageInput`: Enable/disable image uploads
 - `maxMessages`: Maximum conversation history
 - `showTypingIndicator`: Show AI typing status
+
+**Suggested Input Params:**
+- `chatBackgroundColor`: Background color of the chat window
+- `sentMessageBubbleColor`: Bubble color for sent messages
+- `receivedMessageBubbleColor`: Bubble color for received messages
+- `inputFieldTextStyle`: Text style for the message input field
 
 ## ️ Architecture Overview
 
@@ -238,7 +249,7 @@ graph TB
 ### FlutterFlow Requirements
 - **FlutterFlow Pro**: Required for custom actions and widgets
 - **Flutter Version**: 3.0.0 or higher
-- **Platform Support**: iOS 11+, Android API 21+
+- **Platform Support**: iOS 11+, Android API 21+ (`minSdkVersion` 24 recommended)
 
 ### Dependencies
 The project includes all necessary dependencies:

@@ -7,12 +7,6 @@ import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-import 'index.dart'; // Imports other custom widgets
-
-import 'index.dart'; // Imports other custom widgets
-
-import '/custom_code/actions/index.dart' as actions; // Imports custom actions
-
 import '/custom_code/actions/download_authenticated_model.dart';
 import '/custom_code/actions/get_huggingface_model_info.dart';
 import '/custom_code/actions/manage_downloaded_models.dart';
@@ -62,6 +56,7 @@ class GemmaAuthenticatedSetupWidget extends StatefulWidget {
 
 class _GemmaAuthenticatedSetupWidgetState
     extends State<GemmaAuthenticatedSetupWidget> {
+  final ScrollController _scrollController = ScrollController();
   bool _isSetupInProgress = false;
   bool _isSetupComplete = false;
   String _currentStep = '';
@@ -72,7 +67,7 @@ class _GemmaAuthenticatedSetupWidgetState
   int _totalBytes = 0;
 
   // Enhanced model selection
-  String _selectedModel = 'gemma-3-4b-it';
+  String _selectedModel = 'google/gemma-3-4b-it';
   String? _customUrl;
   Map<String, dynamic>? _selectedModelInfo;
   List<Map<String, dynamic>> _existingModels = [];
@@ -86,32 +81,27 @@ class _GemmaAuthenticatedSetupWidgetState
   // Predefined model options - Focus on multimodal Gemma 3 models
   final List<Map<String, String>> _modelOptions = [
     {
-      'value': 'paligemma-3b-it',
-      'label': 'PaliGemma 3B Vision (Recommended)',
-      'description': 'Purpose-built for superior vision-language tasks'
-    },
-    {
-      'value': 'gemma-3-4b-it',
+      'value': 'google/gemma-3-4b-it',
       'label': 'Gemma 3 4B Instruct (Multimodal)',
       'description': 'Best performance with vision support'
     },
     {
-      'value': 'gemma-3-nano-e4b-it',
+      'value': 'google/gemma-3-nano-e4b-it',
       'label': 'Gemma 3 4B Edge (Multimodal)',
       'description': 'Optimized 4B model with vision support'
     },
     {
-      'value': 'gemma-3-nano-e2b-it',
+      'value': 'google/gemma-3-nano-e2b-it',
       'label': 'Gemma 3 2B Edge (Multimodal)',
       'description': 'Compact 2B model with vision support'
     },
     {
-      'value': 'gemma-3-2b-it',
+      'value': 'google/gemma-3-2b-it',
       'label': 'Gemma 3 2B Instruct (Text-only)',
       'description': 'Balanced performance, text-only'
     },
     {
-      'value': 'gemma-1b-it',
+      'value': 'google/gemma-1b-it',
       'label': 'Gemma 3 1B Instruct (Text-only)',
       'description': 'Most compact model, fastest inference, 555MB'
     },
@@ -344,6 +334,8 @@ class _GemmaAuthenticatedSetupWidgetState
         ],
       ),
       child: SingleChildScrollView(
+        controller: _scrollController,
+        primary: false,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
