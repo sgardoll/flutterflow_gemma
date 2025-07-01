@@ -120,30 +120,30 @@ class _SetupWidgetState extends State<SetupWidget> {
                           FlutterFlowTheme.of(context).primaryBackground,
                       textColor: FlutterFlowTheme.of(context).primaryText,
                       onSetupComplete: () async {
-                        // Setup widget handles model initialization and session creation
-                        // When onSetupComplete is called, everything is ready
                         context.pushNamed(HomePageWidget.routeName);
-
-                        safeSetState(() {});
                       },
                       onSetupFailed: (error) async {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Setup Failed',
-                              style: TextStyle(
-                                color: FlutterFlowTheme.of(context).primaryText,
+                        onSetupFailed:
+                        (error) async {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Setup Failed',
+                                style: TextStyle(
+                                  color:
+                                      FlutterFlowTheme.of(context).primaryText,
+                                ),
                               ),
+                              duration: Duration(milliseconds: 4000),
+                              backgroundColor:
+                                  FlutterFlowTheme.of(context).secondary,
                             ),
-                            duration: Duration(milliseconds: 4000),
-                            backgroundColor:
-                                FlutterFlowTheme.of(context).secondary,
-                          ),
-                        );
+                          );
+                        };
                       },
                       onProgress: (progress) async {
-                        _model.downloadProgress =
-                            ((progress ?? 0) / 100.0).clamp(0.0, 1.0);
+                        _model.progress =
+                            (((progress ?? 0) / 100.0).clamp(0.0, 1.0) * 100);
                         safeSetState(() {});
                       },
                     ),

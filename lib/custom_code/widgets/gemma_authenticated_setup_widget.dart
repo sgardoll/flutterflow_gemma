@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
+import 'index.dart'; // Imports other custom widgets
+
 import '/custom_code/actions/index.dart' as actions; // Imports custom actions
 
 import '/custom_code/actions/download_authenticated_model.dart';
@@ -33,7 +35,7 @@ class GemmaAuthenticatedSetupWidget extends StatefulWidget {
     this.backgroundColor,
     this.textColor,
     required this.onSetupComplete,
-    this.onSetupFailed,
+    this.onSetupFailed, // Optional - widget handles errors internally
     this.onProgress,
   });
 
@@ -81,6 +83,11 @@ class _GemmaAuthenticatedSetupWidgetState
 
   // Predefined model options - Focus on multimodal Gemma 3 models
   final List<Map<String, String>> _modelOptions = [
+    {
+      'value': 'paligemma-3b-it',
+      'label': 'PaliGemma 3B Vision (Recommended)',
+      'description': 'Purpose-built for superior vision-language tasks'
+    },
     {
       'value': 'gemma-3-4b-it',
       'label': 'Gemma 3 4B Instruct (Multimodal)',
@@ -188,22 +195,9 @@ class _GemmaAuthenticatedSetupWidgetState
   }
 
   // Helper function to determine if a model supports vision
+  // Uses the standardized detection logic from GemmaManager
   bool _isMultimodalModel(String modelType) {
-    final multimodalModels = [
-      'gemma-3-4b-it',
-      'gemma-3-12b-it',
-      'gemma-3-27b-it',
-      'gemma-3-nano-e4b-it',
-      'gemma-3-nano-e2b-it',
-      'gemma-3n-e4b-it', // Handle URL-extracted names
-      'gemma-3n-e2b-it', // Handle URL-extracted names
-    ];
-    return multimodalModels.any((model) =>
-        modelType.toLowerCase().contains(model.toLowerCase()) ||
-        modelType.toLowerCase().contains('nano') ||
-        modelType.toLowerCase().contains('vision') ||
-        modelType.toLowerCase().contains('multimodal') ||
-        modelType.toLowerCase().contains('3n-e')); // Handle Gemma 3 nano models
+    return GemmaManager.isMultimodalModel(modelType);
   }
 
   Future<void> _useExistingModel(String filePath, String modelType) async {
@@ -230,8 +224,12 @@ class _GemmaAuthenticatedSetupWidgetState
       final isMultimodal = _isMultimodalModel(modelType);
       final supportImage = isMultimodal && widget.supportImage;
 
-      print(
-          'Model: $modelType, Multimodal: $isMultimodal, Support Image: $supportImage');
+      print('=== MODEL CAPABILITY DETECTION ===');
+      print('Original model type: "$modelType"');
+      print('Detected as multimodal: $isMultimodal');
+      print('Widget supports image: ${widget.supportImage}');
+      print('Final image support: $supportImage');
+      print('=== END CAPABILITY DETECTION ===');
 
       print('About to call initializeLocalGemmaModel...');
       final initSuccess = await initializeLocalGemmaModel(
@@ -281,7 +279,14 @@ class _GemmaAuthenticatedSetupWidgetState
             _errorMessage = 'Failed to create chat session. Please try again.';
             _currentStep = '';
           });
-          await widget.onSetupFailed('Session creation failed');
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Session creation failed'),
+              backgroundColor: Colors.red,
+              duration: Duration(milliseconds: 4000),
+            ),
+          );
         }
       } else {
         print('Model initialization FAILED - showing error to user');
@@ -291,7 +296,14 @@ class _GemmaAuthenticatedSetupWidgetState
           _errorMessage = 'Failed to initialize model. Please try again.';
           _currentStep = '';
         });
-        await widget.onSetupFailed('Model initialization failed');
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Model initialization failed'),
+            backgroundColor: Colors.red,
+            duration: Duration(milliseconds: 4000),
+          ),
+        );
       }
     } catch (e) {
       print('ERROR in _useExistingModel: $e');
@@ -301,9 +313,13 @@ class _GemmaAuthenticatedSetupWidgetState
         _currentStep = '';
       });
 
-      if (widget.onSetupFailed != null) {
-        await widget.onSetupFailed!(e.toString());
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Setup failed: ${e.toString()}'),
+          backgroundColor: Colors.red,
+          duration: Duration(milliseconds: 4000),
+        ),
+      );
     }
   }
 
@@ -319,7 +335,7 @@ class _GemmaAuthenticatedSetupWidgetState
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: Colors.black.withOpacity(0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -438,7 +454,7 @@ class _GemmaAuthenticatedSetupWidgetState
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 decoration: BoxDecoration(
                   border: Border.all(
-                    color: Colors.grey.withValues(alpha: 0.3),
+                    color: Colors.grey.withOpacity(0.3),
                   ),
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -519,10 +535,9 @@ class _GemmaAuthenticatedSetupWidgetState
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.blue.withValues(alpha: 0.1),
+                    color: Colors.blue.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
-                    border:
-                        Border.all(color: Colors.blue.withValues(alpha: 0.3)),
+                    border: Border.all(color: Colors.blue.withOpacity(0.3)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -627,10 +642,9 @@ class _GemmaAuthenticatedSetupWidgetState
                     margin: const EdgeInsets.only(bottom: 8),
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.green.withValues(alpha: 0.1),
+                      color: Colors.green.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                          color: Colors.green.withValues(alpha: 0.3)),
+                      border: Border.all(color: Colors.green.withOpacity(0.3)),
                     ),
                     child: Row(
                       children: [
@@ -741,7 +755,7 @@ class _GemmaAuthenticatedSetupWidgetState
               // Progress bar
               LinearProgressIndicator(
                 value: _downloadProgress > 0 ? _downloadProgress / 100 : null,
-                backgroundColor: Colors.grey.withValues(alpha: 0.3),
+                backgroundColor: Colors.grey.withOpacity(0.3),
                 valueColor: AlwaysStoppedAnimation<Color>(
                   widget.primaryColor ?? FlutterFlowTheme.of(context).primary,
                 ),
@@ -781,9 +795,9 @@ class _GemmaAuthenticatedSetupWidgetState
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.red.withValues(alpha: 0.1),
+                  color: Colors.red.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                  border: Border.all(color: Colors.red.withOpacity(0.3)),
                 ),
                 child: Row(
                   children: [
@@ -809,10 +823,9 @@ class _GemmaAuthenticatedSetupWidgetState
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.green.withValues(alpha: 0.1),
+                  color: Colors.green.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border:
-                      Border.all(color: Colors.green.withValues(alpha: 0.3)),
+                  border: Border.all(color: Colors.green.withOpacity(0.3)),
                 ),
                 child: Row(
                   children: [
@@ -965,8 +978,12 @@ class _GemmaAuthenticatedSetupWidgetState
       final isMultimodal = _isMultimodalModel(modelName);
       final supportImage = isMultimodal && widget.supportImage;
 
-      print(
-          'Downloaded Model: $modelName, Multimodal: $isMultimodal, Support Image: $supportImage');
+      print('=== DOWNLOADED MODEL CAPABILITY DETECTION ===');
+      print('Downloaded model name: "$modelName"');
+      print('Detected as multimodal: $isMultimodal');
+      print('Widget supports image: ${widget.supportImage}');
+      print('Final image support: $supportImage');
+      print('=== END DOWNLOADED MODEL CAPABILITY DETECTION ===');
 
       final initSuccess = await initializeLocalGemmaModel(
         modelPath,
@@ -1000,9 +1017,13 @@ class _GemmaAuthenticatedSetupWidgetState
         _currentStep = '';
       });
 
-      if (widget.onSetupFailed != null) {
-        await widget.onSetupFailed!(e.toString());
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Setup failed: ${e.toString()}'),
+          backgroundColor: Colors.red,
+          duration: Duration(milliseconds: 4000),
+        ),
+      );
     }
   }
 }
