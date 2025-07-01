@@ -281,7 +281,7 @@ class _GemmaAuthenticatedSetupWidgetState
             _errorMessage = 'Failed to create chat session. Please try again.';
             _currentStep = '';
           });
-          await widget.onSetupFailed('Session creation failed');
+          await widget.onSetupFailed?.call('Session creation failed');
         }
       } else {
         print('Model initialization FAILED - showing error to user');
@@ -291,7 +291,7 @@ class _GemmaAuthenticatedSetupWidgetState
           _errorMessage = 'Failed to initialize model. Please try again.';
           _currentStep = '';
         });
-        await widget.onSetupFailed('Model initialization failed');
+        await widget.onSetupFailed?.call('Model initialization failed');
       }
     } catch (e) {
       print('ERROR in _useExistingModel: $e');

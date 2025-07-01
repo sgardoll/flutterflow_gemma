@@ -12,6 +12,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 class SetupModel extends FlutterFlowModel<SetupWidget> {
+  double downloadProgress = 0.0;
+
   @override
   void initState(BuildContext context) {}
 
