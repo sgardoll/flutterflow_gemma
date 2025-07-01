@@ -299,6 +299,10 @@ class GemmaManager {
         topK: topK,
       );
       print('GemmaManager.createSession: Session created successfully!');
+      
+      // Add a small delay to allow the system to stabilize after heavy model loading
+      await Future.delayed(const Duration(milliseconds: 500));
+      
       return true;
     } catch (e) {
       print('Error creating session: $e');
