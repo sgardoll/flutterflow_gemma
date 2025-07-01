@@ -21,15 +21,15 @@
     "type": "A",
     "is_deleted": false,
     "current_checksum": "73ffdaaeebbdbeed190edf2767a50b52827656d355dc13b7c9f072cc714780b9",
-    "original_checksum": "c2ca17201fbe7bb5efae09f20e183709149d978ddbe7a2ada356517418e2c99d"
+    "original_checksum": "73ffdaaeebbdbeed190edf2767a50b52827656d355dc13b7c9f072cc714780b9"
   },
   "download_authenticated_model.dart": {
     "old_identifier_name": "downloadAuthenticatedModel",
     "new_identifier_name": "downloadAuthenticatedModel",
     "type": "A",
     "is_deleted": false,
-    "current_checksum": "a6159ca89cd4921d51c9b3f993d777117f6017a44de73983a144d395382d1834",
-    "original_checksum": "d078d11ac0f2cfc511bd2e4354bec26c35f637c0dc4aa47c9eee74c28bab4caf"
+    "current_checksum": "d67805e33d7e7133d49e56fe577d640e78ad10b894c2257a2040bbdfc1890234",
+    "original_checksum": "d67805e33d7e7133d49e56fe577d640e78ad10b894c2257a2040bbdfc1890234"
   },
   "debug_model_paths.dart": {
     "old_identifier_name": "debugModelPaths",
@@ -69,7 +69,7 @@
     "type": "A",
     "is_deleted": false,
     "current_checksum": "7af3f2252e82aec57c0a0b369168df56d82eac01ebac7d75906855a8269d0db1",
-    "original_checksum": "5d531c02b538c90661293aa2927061bc512929e9fa709bb73c520181e5d7f121"
+    "original_checksum": "7af3f2252e82aec57c0a0b369168df56d82eac01ebac7d75906855a8269d0db1"
   },
   "gemma_chat_widget.dart": {
     "old_identifier_name": "GemmaChatWidget",
@@ -84,8 +84,8 @@
     "new_identifier_name": "GemmaAuthenticatedSetupWidget",
     "type": "W",
     "is_deleted": false,
-    "current_checksum": "45d6eea5b3ec2ba222cf3e8c1884429fb9a1784b77c1ebc652b9b38332a7ca11",
-    "original_checksum": "45d6eea5b3ec2ba222cf3e8c1884429fb9a1784b77c1ebc652b9b38332a7ca11"
+    "current_checksum": "a80c861dcf4434e2b5eac274b16640100688dd3d0c744163fe2ba6fc68f11e62",
+    "original_checksum": "a80c861dcf4434e2b5eac274b16640100688dd3d0c744163fe2ba6fc68f11e62"
   },
   "custom_functions.dart": {
     "old_identifier_name": "CustomFunctions",
@@ -100,8 +100,8 @@
     "new_identifier_name": "pubspec.yaml",
     "type": "D",
     "is_deleted": false,
-    "current_checksum": "89313a9cf57ceea9a395ebb3e574c35c3042e560809fa430604aa41058a55e60",
-    "original_checksum": "89313a9cf57ceea9a395ebb3e574c35c3042e560809fa430604aa41058a55e60"
+    "current_checksum": "c6f4e81bb30af3b95ebc913970404971dcec8744bd4c9abe7df58247e092c33c",
+    "original_checksum": "c6f4e81bb30af3b95ebc913970404971dcec8744bd4c9abe7df58247e092c33c"
   },
   "paligemma_research.dart": {
     "old_identifier_name": "paligemmaResearch",

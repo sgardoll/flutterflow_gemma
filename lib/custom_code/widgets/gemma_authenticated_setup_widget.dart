@@ -7,16 +7,13 @@ import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-import 'index.dart'; // Imports other custom widgets
-
-import '/custom_code/actions/index.dart' as actions; // Imports custom actions
-
 import '/custom_code/actions/download_authenticated_model.dart';
 import '/custom_code/actions/get_huggingface_model_info.dart';
 import '/custom_code/actions/manage_downloaded_models.dart';
 import '/custom_code/actions/initialize_local_gemma_model.dart';
 import '../GemmaManager.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
@@ -60,6 +57,7 @@ class GemmaAuthenticatedSetupWidget extends StatefulWidget {
 
 class _GemmaAuthenticatedSetupWidgetState
     extends State<GemmaAuthenticatedSetupWidget> {
+  final ScrollController _scrollController = ScrollController();
   bool _isSetupInProgress = false;
   bool _isSetupComplete = false;
   String _currentStep = '';
@@ -70,7 +68,8 @@ class _GemmaAuthenticatedSetupWidgetState
   int _totalBytes = 0;
 
   // Enhanced model selection
-  String _selectedModel = 'gemma-3-4b-it';
+  String _selectedModel =
+      'https://huggingface.co/google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-3n-E4B-it-int4.task';
   String? _customUrl;
   Map<String, dynamic>? _selectedModelInfo;
   List<Map<String, dynamic>> _existingModels = [];
@@ -84,34 +83,22 @@ class _GemmaAuthenticatedSetupWidgetState
   // Predefined model options - Focus on multimodal Gemma 3 models
   final List<Map<String, String>> _modelOptions = [
     {
-      'value': 'paligemma-3b-it',
-      'label': 'PaliGemma 3B Vision (Recommended)',
-      'description': 'Purpose-built for superior vision-language tasks'
-    },
-    {
-      'value': 'gemma-3-4b-it',
-      'label': 'Gemma 3 4B Instruct (Multimodal)',
-      'description': 'Best performance with vision support'
-    },
-    {
-      'value': 'gemma-3-nano-e4b-it',
-      'label': 'Gemma 3 4B Edge (Multimodal)',
+      'value':
+          'https://huggingface.co/google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-3n-E4B-it-int4.task',
+      'label': 'Gemma 3n E4B (4B parameters) - Recommended',
       'description': 'Optimized 4B model with vision support'
     },
     {
-      'value': 'gemma-3-nano-e2b-it',
-      'label': 'Gemma 3 2B Edge (Multimodal)',
+      'value':
+          'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task',
+      'label': 'Gemma 3n E2B (2B parameters) - Smaller, faster',
       'description': 'Compact 2B model with vision support'
     },
     {
-      'value': 'gemma-3-2b-it',
-      'label': 'Gemma 3 2B Instruct (Text-only)',
-      'description': 'Balanced performance, text-only'
-    },
-    {
-      'value': 'gemma-1b-it',
-      'label': 'Gemma 3 1B Instruct (Text-only)',
-      'description': 'Most compact model, fastest inference, 555MB'
+      'value':
+          'https://huggingface.co/litert-community/Gemma3-1B-IT/resolve/main/gemma3-1b-it-int4.task',
+      'label': 'Gemma 3 1B (Text-only, most compact)',
+      'description': 'Most compact model, fastest inference'
     },
     {
       'value': 'other',
@@ -123,10 +110,23 @@ class _GemmaAuthenticatedSetupWidgetState
   @override
   void initState() {
     super.initState();
-    _enteredToken = widget.huggingFaceToken;
-    _tokenController.text = widget.huggingFaceToken;
+    _loadToken();
     _loadExistingModels();
     _loadModelInfo();
+  }
+
+  Future<void> _loadToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('huggingFaceToken') ?? widget.huggingFaceToken;
+    setState(() {
+      _enteredToken = token;
+      _tokenController.text = token;
+    });
+  }
+
+  Future<void> _saveToken(String token) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('huggingFaceToken', token);
   }
 
   @override
@@ -150,15 +150,24 @@ class _GemmaAuthenticatedSetupWidgetState
   Future<void> _loadModelInfo() async {
     if (_isLoadingModelInfo) return;
 
+    final modelIdentifier = _showCustomUrl ? _customUrl : _selectedModel;
+    if (modelIdentifier == null ||
+        modelIdentifier.isEmpty ||
+        modelIdentifier.startsWith('http')) {
+      setState(() {
+        _selectedModelInfo = null;
+      });
+      return;
+    }
+
     setState(() {
       _isLoadingModelInfo = true;
     });
 
     try {
-      final modelIdentifier = _showCustomUrl ? _customUrl : _selectedModel;
       final currentToken =
           _enteredToken.isNotEmpty ? _enteredToken : widget.huggingFaceToken;
-      if (modelIdentifier != null && modelIdentifier.isNotEmpty) {
+      if (modelIdentifier.isNotEmpty) {
         final info =
             await getHuggingfaceModelInfo(modelIdentifier, currentToken);
         setState(() {
@@ -204,28 +213,23 @@ class _GemmaAuthenticatedSetupWidgetState
     try {
       print('=== STARTING _useExistingModel ===');
       print('FilePath: $filePath');
-      print('ModelType: $modelType');
+      print('ModelType from DB: $modelType');
+
+      // DERIVE modelType from filePath to ensure correctness
+      final derivedModelType = GemmaManager.getModelTypeFromPath(filePath);
+      print('Derived ModelType from Path: $derivedModelType');
 
       setState(() {
         _isSetupInProgress = true;
         _currentStep = 'Initializing existing model...';
       });
 
-      // Debug model paths before initialization
-      print('=== DEBUGGING MODEL PATHS BEFORE INITIALIZATION ===');
-      try {
-        await debugModelPaths();
-        print('Debug model paths completed');
-      } catch (e) {
-        print('Error running debug: $e');
-      }
-
       // Determine if this model supports vision
-      final isMultimodal = _isMultimodalModel(modelType);
+      final isMultimodal = _isMultimodalModel(derivedModelType);
       final supportImage = isMultimodal && widget.supportImage;
 
       print('=== MODEL CAPABILITY DETECTION ===');
-      print('Original model type: "$modelType"');
+      print('Original model type: "$derivedModelType"');
       print('Detected as multimodal: $isMultimodal');
       print('Widget supports image: ${widget.supportImage}');
       print('Final image support: $supportImage');
@@ -234,7 +238,7 @@ class _GemmaAuthenticatedSetupWidgetState
       print('About to call initializeLocalGemmaModel...');
       final initSuccess = await initializeLocalGemmaModel(
         filePath,
-        modelType,
+        derivedModelType, // Use the derived model type
         widget.preferredBackend,
         widget.maxTokens,
         supportImage,
@@ -342,6 +346,8 @@ class _GemmaAuthenticatedSetupWidgetState
         ],
       ),
       child: SingleChildScrollView(
+        controller: _scrollController,
+        primary: false,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -419,6 +425,7 @@ class _GemmaAuthenticatedSetupWidgetState
                   setState(() {
                     _enteredToken = value;
                   });
+                  _saveToken(value);
                   // Save token to app state for future use
                   if (value.isNotEmpty) {
                     FFAppState().update(() {
@@ -910,8 +917,10 @@ class _GemmaAuthenticatedSetupWidgetState
     });
 
     try {
-      final modelUrl =
-          _showCustomUrl ? _customUrl! : _selectedModelInfo?['url'];
+      final isDirectUrl = _selectedModel.startsWith('http');
+      final modelUrl = isDirectUrl
+          ? _selectedModel
+          : (_showCustomUrl ? _customUrl! : _selectedModelInfo?['url']);
 
       if (modelUrl == null || modelUrl.isEmpty) {
         throw Exception('No download URL available for selected model');
@@ -928,8 +937,7 @@ class _GemmaAuthenticatedSetupWidgetState
           _enteredToken.isNotEmpty ? _enteredToken : widget.huggingFaceToken;
 
       // Determine what to download - either a predefined model or custom URL
-      final String downloadTarget =
-          _showCustomUrl ? _customUrl! : _selectedModel;
+      final String downloadTarget = modelUrl;
 
       final String? modelPath = await downloadAuthenticatedModel(
         downloadTarget,
@@ -961,7 +969,9 @@ class _GemmaAuthenticatedSetupWidgetState
 
       // Extract model name for initialization
       String modelName;
-      if (_showCustomUrl) {
+      if (_selectedModel.startsWith('http')) {
+        modelName = GemmaManager.getModelTypeFromPath(_selectedModel);
+      } else if (_showCustomUrl) {
         // For custom URLs, try to extract a meaningful model name from the filename
         final fileName =
             _selectedModelInfo?['fileName'] ?? _customUrl!.split('/').last;

@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 // Begin custom action code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
+import 'index.dart'; // Imports other custom actions
+
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
@@ -34,7 +36,14 @@ Future<String?> downloadAuthenticatedModel(
     if (modelIdentifier.startsWith('http')) {
       // Custom URL provided
       downloadUrl = modelIdentifier;
-      fileName = modelIdentifier.split('/').last;
+      // HARDCODED FIX: Intercept the incorrect URL and replace it
+      if (downloadUrl ==
+          'https://huggingface.co/litert-community/Gemma3-1B-IT/resolve/main/gemma3-1b-it-cpu-int4.task') {
+        downloadUrl =
+            'https://huggingface.co/litert-community/Gemma3-1B-IT/resolve/main/gemma3-1b-it-int4.task';
+        print('Applied hardcoded fix for incorrect URL');
+      }
+      fileName = downloadUrl.split('/').last;
       if (!fileName.contains('.')) {
         fileName += '.task'; // Default extension
       }
@@ -116,6 +125,14 @@ Future<String?> downloadAuthenticatedModel(
     print('Final size: ${await file.length()} bytes');
 
     return filePath;
+  } on SocketException catch (e) {
+    String errorMsg =
+        'Network Error: Failed to connect to HuggingFace. Please check your internet connection and try again.';
+    errorMsg +=
+        '\n\nThis can happen on emulators if DNS is not configured correctly.';
+    errorMsg += '\nDetails: $e';
+    print('ERROR: $errorMsg');
+    return null;
   } catch (e) {
     print('Error in downloadAuthenticatedModel: $e');
     return null;
@@ -123,35 +140,17 @@ Future<String?> downloadAuthenticatedModel(
 }
 
 String _getModelDownloadUrl(String modelIdentifier) {
-  // Map of predefined models to their HuggingFace download URLs
-  // ONLY Gemma 3n models have official .task files available
   final modelUrls = <String, String>{
-    // ✅ AVAILABLE: Gemma 3n models with official .task files
-    'gemma-3-nano-e4b-it':
-        'https://huggingface.co/google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-3n-E4B-it-int4.task',
-    'gemma-3-nano-e2b-it':
-        'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task',
-
-    // Alternative identifiers for the same models
     'gemma-3n-e4b-it':
         'https://huggingface.co/google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-3n-E4B-it-int4.task',
     'gemma-3n-e2b-it':
         'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task',
-
-    // ❌ NO OFFICIAL .TASK FILES: These models don't have .task format
-    // Using Gemma 3n E4B as fallback for models without .task files
-    'paligemma-3b-it':
-        'https://huggingface.co/google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-3n-E4B-it-int4.task',
-    'gemma-3-4b-it':
-        'https://huggingface.co/google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-3n-E4B-it-int4.task',
-    'gemma-3-2b-it':
-        'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task',
-    'gemma-1b-it':
-        'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task',
+    'gemma3-1b-it':
+        'https://huggingface.co/litert-community/Gemma3-1B-IT/resolve/main/gemma3-1b-it-int4.task',
   };
 
   final url = modelUrls[modelIdentifier] ??
-      // Default fallback URL - Gemma 3n E4B (multimodal)
+      // Default fallback URL
       'https://huggingface.co/google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-3n-E4B-it-int4.task';
 
   print('Mapped model $modelIdentifier to URL: $url');
@@ -159,19 +158,10 @@ String _getModelDownloadUrl(String modelIdentifier) {
 }
 
 String _getModelFileName(String modelIdentifier) {
-  // Map of predefined models to their file names
   final modelFileNames = <String, String>{
-    // Gemma 3n models (official .task files)
-    'gemma-3-nano-e4b-it': 'gemma-3n-E4B-it-int4.task',
-    'gemma-3-nano-e2b-it': 'gemma-3n-E2B-it-int4.task',
     'gemma-3n-e4b-it': 'gemma-3n-E4B-it-int4.task',
     'gemma-3n-e2b-it': 'gemma-3n-E2B-it-int4.task',
-
-    // Models without .task files (using Gemma 3n files as substitutes)
-    'paligemma-3b-it': 'gemma-3n-E4B-it-int4.task',
-    'gemma-3-4b-it': 'gemma-3n-E4B-it-int4.task',
-    'gemma-3-2b-it': 'gemma-3n-E2B-it-int4.task',
-    'gemma-1b-it': 'gemma-3n-E2B-it-int4.task',
+    'gemma3-1b-it': 'gemma3-1b-it-int4.task',
   };
 
   return modelFileNames[modelIdentifier] ?? 'gemma-3n-E4B-it-int4.task';

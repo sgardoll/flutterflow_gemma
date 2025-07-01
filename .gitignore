@@ -48,4 +48,5 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+lib/custom_code/widgets/gemma_authenticated_setup_widget.dart
 .env

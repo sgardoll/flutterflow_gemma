@@ -42,8 +42,6 @@ class _SetupWidgetState extends State<SetupWidget> {
 
   @override
   Widget build(BuildContext context) {
-    context.watch<FFAppState>();
-
     return GestureDetector(
       onTap: () {
         FocusScope.of(context).unfocus();
@@ -110,7 +108,7 @@ class _SetupWidgetState extends State<SetupWidget> {
                     child: custom_widgets.GemmaAuthenticatedSetupWidget(
                       width: MediaQuery.sizeOf(context).width * 1.0,
                       height: MediaQuery.sizeOf(context).height * 1.0,
-                      huggingFaceToken: FFAppState().hfToken,
+                      huggingFaceToken: FFLibraryValues().huggingFaceToken!,
                       preferredBackend: 'gpu',
                       maxTokens: 1024,
                       supportImage: true,

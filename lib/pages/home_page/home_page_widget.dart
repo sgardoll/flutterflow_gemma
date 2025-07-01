@@ -1,7 +1,6 @@
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/flutter_flow/flutter_flow_widgets.dart';
-import 'dart:ui';
 import '/custom_code/widgets/index.dart' as custom_widgets;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -81,33 +80,20 @@ class _HomePageWidgetState extends State<HomePageWidget> {
           child: Container(
             width: MediaQuery.sizeOf(context).width * 1.0,
             height: MediaQuery.sizeOf(context).height * 1.0,
-            decoration: BoxDecoration(),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Flexible(
-                  child: Container(
-                    width: MediaQuery.sizeOf(context).width * 1.0,
-                    height: MediaQuery.sizeOf(context).height * 1.0,
-                    child: custom_widgets.GemmaChatWidget(
-                      width: MediaQuery.sizeOf(context).width * 1.0,
-                      height: MediaQuery.sizeOf(context).height * 1.0,
-                      backgroundColor:
-                          FlutterFlowTheme.of(context).primaryBackground,
-                      textColor: FlutterFlowTheme.of(context).primaryText,
-                      borderRadius: 12.0,
-                      paddingHorizontal: 24.0,
-                      paddingVertical: 24.0,
-                      placeholder: 'Placeholder Text',
-                      sendButtonText: 'Send',
-                      uploadButtonText: 'Upload Image',
-                      showImageUpload: true,
-                      maxImageSize: 5100000,
-                      imageQuality: 80,
-                    ),
-                  ),
-                ),
-              ],
+            child: custom_widgets.GemmaChatWidget(
+              width: MediaQuery.sizeOf(context).width * 1.0,
+              height: MediaQuery.sizeOf(context).height * 1.0,
+              backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
+              textColor: FlutterFlowTheme.of(context).primaryText,
+              borderRadius: 12.0,
+              paddingHorizontal: 24.0,
+              paddingVertical: 24.0,
+              placeholder: 'Type a message...',
+              sendButtonText: 'Send',
+              uploadButtonText: '📷',
+              showImageUpload: true,
+              maxImageSize: 5100000,
+              imageQuality: 80,
             ),
           ),
         ),

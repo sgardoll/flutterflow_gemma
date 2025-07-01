@@ -21,7 +21,7 @@ class GemmaManager {
   bool _isInitialized = false;
   String? _currentModelType;
   String? _currentBackend;
-  
+
   // Retry tracking to prevent infinite loops
   int _initializationRetries = 0;
   static const int _maxRetries = 3;
@@ -48,27 +48,9 @@ class GemmaManager {
 
     // List of known multimodal models with all naming variations
     final multimodalModels = [
-      // Standard Gemma 3 models
-      'gemma-3-4b-it',
-      'gemma-3-12b-it',
-      'gemma-3-27b-it',
-
-      // Nano/Edge variants
-      'gemma-3-nano-e4b-it',
-      'gemma-3-nano-e2b-it',
-      'gemma-3-4b-edge',
-      'gemma-3-nano',
-
-      // Handle downloaded model naming patterns
       'gemma-3n-e4b-it', // From URL extraction
       'gemma-3n-e2b-it', // From URL extraction
-      'gemma-3-4b-instruct',
-      'gemma-3-12b-instruct',
-      'gemma-3-27b-instruct',
-
-      // Vision-specific models
-      'paligemma',
-      'paligemma-3b-it',
+      'gemma3-1b-it',
     ];
 
     // Check exact matches first
@@ -119,6 +101,25 @@ class GemmaManager {
     return GemmaManager.isMultimodalModel(modelType);
   }
 
+  // Helper function to derive model type from a file path
+  static String getModelTypeFromPath(String filePath) {
+    try {
+      // Get the base filename without extension
+      final fileName = path.basenameWithoutExtension(filePath);
+
+      // Normalize by removing common suffixes like "-int4", "-int8", etc.
+      final normalizedName = fileName.replaceAll(RegExp(r'-int\d+$'), '');
+
+      print(
+          'GemmaManager.getModelTypeFromPath: Derived "$normalizedName" from "$filePath"');
+      return normalizedName;
+    } catch (e) {
+      print('GemmaManager.getModelTypeFromPath: Error deriving model type: $e');
+      // Fallback to a generic but safe default
+      return 'google/gemma-1b-it';
+    }
+  }
+
   // Helper method to check if model file exists in platform-specific plugin directory
   Future<bool> _checkModelFileExists(String filename) async {
     try {
@@ -131,18 +132,21 @@ class GemmaManager {
         // Android plugin expects models in app support directory
         pluginDirectory = await getApplicationSupportDirectory();
       }
-      
+
       final modelPath = path.join(pluginDirectory.path, filename);
       final exists = await File(modelPath).exists();
-      
+
       if (exists) {
         final size = await File(modelPath).length();
-        print('GemmaManager: Model file exists in ${Platform.isIOS ? "iOS Documents" : "Android Support"} directory: $filename');
-        print('GemmaManager: Size: ${(size / (1024 * 1024)).toStringAsFixed(1)} MB');
+        print(
+            'GemmaManager: Model file exists in ${Platform.isIOS ? "iOS Documents" : "Android Support"} directory: $filename');
+        print(
+            'GemmaManager: Size: ${(size / (1024 * 1024)).toStringAsFixed(1)} MB');
       } else {
-        print('GemmaManager: Model file NOT found in ${Platform.isIOS ? "iOS Documents" : "Android Support"} directory: $filename');
+        print(
+            'GemmaManager: Model file NOT found in ${Platform.isIOS ? "iOS Documents" : "Android Support"} directory: $filename');
       }
-      
+
       return exists;
     } catch (e) {
       print('GemmaManager: Error checking model file: $e');
@@ -166,15 +170,16 @@ class GemmaManager {
       if (!isRetry) {
         _initializationRetries = 0;
       }
-      
+
       // Close existing model if any
       await closeModel();
-      
+
       // Check if model file exists in plugin's working directory
       if (localModelPath != null) {
         final fileExists = await _checkModelFileExists(localModelPath);
         if (!fileExists) {
-          print('GemmaManager: Model file not found in plugin directory: $localModelPath');
+          print(
+              'GemmaManager: Model file not found in plugin directory: $localModelPath');
           return false;
         }
       }
@@ -205,13 +210,15 @@ class GemmaManager {
       return true;
     } catch (e) {
       print('Error initializing Gemma model: $e');
-      
+
       // Handle model not found errors
-      if (e.toString().contains('Model not found at path') && localModelPath != null) {
+      if (e.toString().contains('Model not found at path') &&
+          localModelPath != null) {
         print('🔍 Model initialization failed: Model not found');
         print('📁 Expected model: $localModelPath');
-        print('🔧 Ensure model is installed in plugin\'s working directory (app support)');
-        
+        print(
+            '🔧 Ensure model is installed in plugin\'s working directory (app support)');
+
         // Check if the model actually exists where we think it should (platform-specific)
         late Directory pluginDirectory;
         if (Platform.isIOS) {
@@ -219,15 +226,16 @@ class GemmaManager {
         } else {
           pluginDirectory = await getApplicationSupportDirectory();
         }
-        
+
         final expectedPath = path.join(pluginDirectory.path, localModelPath);
         final exists = await File(expectedPath).exists();
-        
+
         if (exists) {
           print('⚠️  Model file exists but plugin cannot find it');
           print('🐛 This may be a plugin working directory issue');
         } else {
-          print('❌ Model file is missing from expected location: $expectedPath');
+          print(
+              '❌ Model file is missing from expected location: $expectedPath');
           print('💡 Try re-downloading/re-installing the model');
         }
       }
@@ -236,8 +244,7 @@ class GemmaManager {
       if (e.toString().contains('failed to initialize') ||
           e.toString().contains('GPU') ||
           e.toString().contains('delegate')) {
-        print(
-            'GPU initialization failed. Attempting to fall back to CPU...');
+        print('GPU initialization failed. Attempting to fall back to CPU...');
         try {
           // Close the failed model explicitly before retrying
           await closeModel();
@@ -299,10 +306,10 @@ class GemmaManager {
         topK: topK,
       );
       print('GemmaManager.createSession: Session created successfully!');
-      
+
       // Add a small delay to allow the system to stabilize after heavy model loading
       await Future.delayed(const Duration(milliseconds: 500));
-      
+
       return true;
     } catch (e) {
       print('Error creating session: $e');
@@ -553,7 +560,7 @@ class GemmaManager {
   }
 
   // Close current session
-  Future closeSession() async {
+  Future<void> closeSession() async {
     if (_session != null) {
       await _session!.close();
       _session = null;
@@ -561,7 +568,7 @@ class GemmaManager {
   }
 
   // Close the model
-  Future closeModel() async {
+  Future<void> closeModel() async {
     await closeSession();
 
     if (_model != null) {
@@ -919,8 +926,7 @@ Focus on what is actually photographed in the real world.''';
       ]);
 
       print('Testing basic image processing...');
-      final response =
-          await sendMessage('What do you see?', imageBytes: testImageBytes);
+      final response = await sendMessage('What do you see?', imageBytes: testImageBytes);
 
       return {
         'responded': response != null && response.isNotEmpty,

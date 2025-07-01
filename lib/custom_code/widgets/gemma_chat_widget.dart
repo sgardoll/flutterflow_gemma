@@ -9,6 +9,8 @@ import 'package:flutter/material.dart';
 
 import 'index.dart'; // Imports other custom widgets
 
+import 'index.dart'; // Imports other custom widgets
+
 import '../GemmaManager.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io' show Platform;
@@ -50,7 +52,8 @@ class GemmaChatWidget extends StatefulWidget {
   State<GemmaChatWidget> createState() => _GemmaChatWidgetState();
 }
 
-class _GemmaChatWidgetState extends State<GemmaChatWidget> {
+class _GemmaChatWidgetState extends State<GemmaChatWidget>
+    with WidgetsBindingObserver {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final List<ChatMessage> _messages = [];
@@ -58,11 +61,24 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
   bool _isLoading = false;
   final GemmaManager _gemmaManager = GemmaManager();
   FFUploadedFile? _selectedImage;
+  bool _isPickingImage = false; // Track image picking state
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initializeGemma();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed && _isPickingImage) {
+      // Reset picking state when app is resumed
+      setState(() {
+        _isPickingImage = false;
+      });
+    }
   }
 
   Future _initializeGemma() async {
@@ -110,7 +126,18 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
   }
 
   Future _selectImage() async {
+    if (_isPickingImage) {
+      print('GemmaChatWidget: Image picking already in progress');
+      return;
+    }
+
     try {
+      setState(() {
+        _isPickingImage = true;
+      });
+
+      print('=== GemmaChatWidget._selectImage START ===');
+
       // Show image source selection dialog
       final source = await showDialog<ImageSource>(
         context: context,
@@ -145,20 +172,85 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
         },
       );
 
-      if (source == null) return;
+      if (source == null) {
+        print('GemmaChatWidget: User cancelled image source selection');
+        return;
+      }
 
-      // Pick image from selected source
-      final XFile? pickedFile = await _imagePicker.pickImage(
-        source: source,
-        maxWidth: 2048,
-        maxHeight: 2048,
-        imageQuality: widget.imageQuality,
-      );
+      print('GemmaChatWidget: Selected source: ${source.name}');
 
-      if (pickedFile == null) return;
+      // Pick image from selected source with enhanced error handling
+      XFile? pickedFile;
+      try {
+        // For camera, use more conservative settings to prevent crashes
+        if (source == ImageSource.camera) {
+          pickedFile = await _imagePicker.pickImage(
+            source: source,
+            maxWidth: 1280, // Even more conservative for camera
+            maxHeight: 1280,
+            imageQuality:
+                75, // Lower quality for camera to prevent memory issues
+            requestFullMetadata: false, // Disable metadata to save memory
+          );
+        } else {
+          // For gallery, can use higher settings since image already exists
+          pickedFile = await _imagePicker.pickImage(
+            source: source,
+            maxWidth: 1920,
+            maxHeight: 1920,
+            imageQuality: widget.imageQuality,
+          );
+        }
+        print(
+            'GemmaChatWidget: Image picker completed, file: ${pickedFile?.path}');
+      } catch (imagePickerError) {
+        print('GemmaChatWidget: Image picker error: $imagePickerError');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Camera error: $imagePickerError'),
+              backgroundColor: FlutterFlowTheme.of(context).error,
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
+        return;
+      }
 
-      // Convert to bytes
-      final Uint8List imageBytes = await pickedFile.readAsBytes();
+      if (pickedFile == null) {
+        print('GemmaChatWidget: No image selected');
+        return;
+      }
+
+      // Convert to bytes with size validation
+      Uint8List? imageBytes;
+      try {
+        final fileSize = await pickedFile.length();
+        print(
+            'GemmaChatWidget: Image file size: ${(fileSize / 1024).toStringAsFixed(1)} KB');
+
+        // Check file size before reading (max 50MB to prevent memory issues)
+        if (fileSize > 50 * 1024 * 1024) {
+          throw Exception(
+              'Image file too large: ${(fileSize / 1024 / 1024).toStringAsFixed(1)} MB. Maximum is 50MB.');
+        }
+
+        imageBytes = await pickedFile.readAsBytes();
+        print(
+            'GemmaChatWidget: Image bytes loaded successfully: ${imageBytes.length} bytes');
+      } catch (readError) {
+        print('GemmaChatWidget: Error reading image bytes: $readError');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error reading image: $readError'),
+              backgroundColor: FlutterFlowTheme.of(context).error,
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
+        return;
+      }
 
       // Create initial FFUploadedFile
       final originalFile = FFUploadedFile(
@@ -172,17 +264,20 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
 
       // Check if image needs processing (resizing OR format conversion)
       bool needsProcessing = imageBytes.length > widget.maxImageSize;
-      
+
       // Check if image is PNG - vision models need JPEG
       bool isPNG = imageBytes.length >= 8 &&
-          imageBytes[0] == 0x89 && imageBytes[1] == 0x50 &&
-          imageBytes[2] == 0x4E && imageBytes[3] == 0x47;
-      
+          imageBytes[0] == 0x89 &&
+          imageBytes[1] == 0x50 &&
+          imageBytes[2] == 0x4E &&
+          imageBytes[3] == 0x47;
+
       if (isPNG) {
-        print('Image is PNG format, converting to JPEG for vision model compatibility');
+        print(
+            'Image is PNG format, converting to JPEG for vision model compatibility');
         needsProcessing = true;
       }
-      
+
       if (needsProcessing) {
         // Show processing message
         String processingMsg = 'Processing image for vision model...';
@@ -191,7 +286,7 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
         } else if (isPNG) {
           processingMsg = 'Converting image to JPEG format...';
         }
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -242,17 +337,27 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
           ),
         );
       }
+
+      print('=== GemmaChatWidget._selectImage SUCCESS ===');
     } catch (e) {
       final errorMsg = 'Error selecting image: $e';
-      print(errorMsg);
+      print('=== GemmaChatWidget._selectImage ERROR: $errorMsg ===');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(errorMsg),
             backgroundColor: FlutterFlowTheme.of(context).error,
+            duration: const Duration(seconds: 5),
           ),
         );
+      }
+    } finally {
+      // Always reset the picking state
+      if (mounted) {
+        setState(() {
+          _isPickingImage = false;
+        });
       }
     }
   }
@@ -328,25 +433,28 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
         final bytes = _selectedImage!.bytes!;
         print('Image bytes first 20: ${bytes.take(20).toList()}');
         print('Image bytes last 10: ${bytes.skip(bytes.length - 10).toList()}');
-        
+
         // Check image format
         String format = 'unknown';
         if (bytes.length >= 8) {
           if (bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF) {
             format = 'JPEG';
-          } else if (bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47) {
+          } else if (bytes[0] == 0x89 &&
+              bytes[1] == 0x50 &&
+              bytes[2] == 0x4E &&
+              bytes[3] == 0x47) {
             format = 'PNG';
           }
         }
         print('Detected format: $format');
-        
+
         // Platform-specific debugging
         if (Platform.isIOS) {
           print('iOS: Processing image for vision model');
         } else if (Platform.isAndroid) {
           print('Android: Processing image for vision model');
         }
-        
+
         // Check for obvious corruption
         int nullCount = 0;
         for (int i = 0; i < Math.min(100, bytes.length); i++) {
@@ -384,11 +492,14 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
           'GemmaManager response: ${response != null ? "received (${response.length} chars)" : "null"}');
 
       // Check if we got a hallucinated or nonsensical response for vision
-      if (imageBytes != null && response != null && _isVisionResponseProblematic(response)) {
+      if (imageBytes != null &&
+          response != null &&
+          _isVisionResponseProblematic(response)) {
         print('Detected problematic vision response, attempting retry...');
-        
+
         // Retry with a more specific prompt
-        final retryPrompt = '''This is a real photograph. Look carefully and describe exactly what you see.
+        final retryPrompt =
+            '''This is a real photograph. Look carefully and describe exactly what you see.
 
 IMPORTANT: This is NOT a pattern, design, textile, fabric, or artwork. This is a real photograph of real objects in the real world.
 
@@ -401,16 +512,17 @@ What do you see?
 Do NOT describe this as a pattern, design, textile, fabric, artwork, or abstract composition.
 
 Original question: $messageText''';
-        
-        response = await _gemmaManager.sendMessage(retryPrompt, imageBytes: imageBytes);
+
+        response = await _gemmaManager.sendMessage(retryPrompt,
+            imageBytes: imageBytes);
         print('Retry response: ${response != null ? "received" : "null"}');
-        
+
         // If still problematic, try without the image
         if (response != null && _isVisionResponseProblematic(response)) {
-          print('Second attempt still problematic, trying text-only fallback...');
+          print(
+              'Second attempt still problematic, trying text-only fallback...');
           response = await _gemmaManager.sendMessage(
-            'I apologize, but I\'m having trouble analyzing the image you provided. Could you describe what you see in the image, and I can help you with questions about it?'
-          );
+              'I apologize, but I\'m having trouble analyzing the image you provided. Could you describe what you see in the image, and I can help you with questions about it?');
         }
       }
 
@@ -419,19 +531,19 @@ Original question: $messageText''';
         setState(() {
           _messages.add(ChatMessage(text: response!, isUser: false));
         });
-        
+
         // If the response is problematic, add a helpful note
         if (imageBytes != null && _isVisionResponseProblematic(response)) {
           setState(() {
             _messages.add(ChatMessage(
-              text: '''ℹ️ NOTE: The response above may not be accurate for real-world photos. On-device vision models work better with text, diagrams, or simple graphics.''',
-              isUser: false
-            ));
+                text:
+                    '''ℹ️ NOTE: The response above may not be accurate for real-world photos. On-device vision models work better with text, diagrams, or simple graphics.''',
+                isUser: false));
           });
         }
       } else {
         String fallbackMsg;
-        
+
         if (imageBytes != null) {
           // Vision-specific error handling
           if (_gemmaManager.supportsVision) {
@@ -449,10 +561,12 @@ Try:
 
 For complex natural photos, consider describing what you see and asking text-based questions instead.''';
           } else {
-            fallbackMsg = 'The current model doesn\'t support image analysis. Please use a multimodal model like Gemma 3 for vision capabilities.';
+            fallbackMsg =
+                'The current model doesn\'t support image analysis. Please use a multimodal model like Gemma 3 for vision capabilities.';
           }
         } else {
-          fallbackMsg = 'Sorry, I couldn\'t generate a response. Please try rephrasing your question.';
+          fallbackMsg =
+              'Sorry, I couldn\'t generate a response. Please try rephrasing your question.';
         }
 
         setState(() {
@@ -464,7 +578,7 @@ For complex natural photos, consider describing what you see and asking text-bas
       }
     } catch (e) {
       print('Error in _sendMessage: $e');
-      
+
       String errorMsg;
       if (imageBytes != null) {
         errorMsg = '''Image processing error: ${e.toString()}
@@ -510,26 +624,27 @@ Please try with a smaller or different format image, or ask a text-only question
   // Helper method to detect problematic vision responses (like the pattern hallucination issue)
   bool _isVisionResponseProblematic(String response) {
     final lowercaseResponse = response.toLowerCase();
-    
+
     // Check for the specific pattern hallucination issue (broader detection)
     if (lowercaseResponse.contains('repeating pattern') &&
         (lowercaseResponse.contains('letter') ||
-         lowercaseResponse.contains('symbol') ||
-         lowercaseResponse.contains('character'))) {
+            lowercaseResponse.contains('symbol') ||
+            lowercaseResponse.contains('character'))) {
       // It's describing a repeating pattern of a letter/symbol, which is a common hallucination
       return true;
     }
-    
+
     // Check for textile/fabric misidentification (new hallucination type)
     if (lowercaseResponse.contains('textile') ||
         lowercaseResponse.contains('fabric') ||
         lowercaseResponse.contains('woven') ||
         lowercaseResponse.contains('printed pattern') ||
-        (lowercaseResponse.contains('pattern') && lowercaseResponse.contains('abstract'))) {
+        (lowercaseResponse.contains('pattern') &&
+            lowercaseResponse.contains('abstract'))) {
       print('Detected textile/pattern hallucination');
       return true;
     }
-    
+
     // Check for other common hallucination patterns
     final problematicPatterns = [
       'this image appears to be a **repeating pattern',
@@ -547,39 +662,41 @@ Please try with a smaller or different format image, or ask a text-only question
       'somewhat abstract pattern',
       'vibrant, colorful, and somewhat abstract',
     ];
-    
+
     for (final pattern in problematicPatterns) {
       if (lowercaseResponse.contains(pattern.toLowerCase())) {
         return true;
       }
     }
-    
+
     // Check for responses that are mostly about patterns when user asked a simple question
-    if (lowercaseResponse.contains('pattern') && 
+    if (lowercaseResponse.contains('pattern') &&
         lowercaseResponse.contains('repetition') &&
         response.length > 150) {
       return true;
     }
-    
+
     // Check for evasive or unhelpful answers when an image is present
-    if (lowercaseResponse.contains('without more context') && 
+    if (lowercaseResponse.contains('without more context') &&
         lowercaseResponse.contains('hard to say definitively')) {
       return true;
     }
-    
+
     // Check for responses that mention Greek letters (common hallucination)
-    if (lowercaseResponse.contains('greek letter') || 
+    if (lowercaseResponse.contains('greek letter') ||
         lowercaseResponse.contains('greek character')) {
       return true;
     }
-    
+
     // Check for design/artwork misidentification when dealing with real photos
-    if ((lowercaseResponse.contains('design') || lowercaseResponse.contains('artwork')) &&
-        (lowercaseResponse.contains('possibly') || lowercaseResponse.contains('appears to be'))) {
+    if ((lowercaseResponse.contains('design') ||
+            lowercaseResponse.contains('artwork')) &&
+        (lowercaseResponse.contains('possibly') ||
+            lowercaseResponse.contains('appears to be'))) {
       print('Detected design/artwork hallucination');
       return true;
     }
-    
+
     return false;
   }
 
