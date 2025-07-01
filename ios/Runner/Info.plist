@@ -43,7 +43,10 @@
 	<true/>
 
 
-
+	<key>NSPhotoLibraryUsageDescription</key>
+    <string>In order to upload images for ai analysis this app requires access to your photo library</string>
+	<key>NSCameraUsageDescription</key>
+    <string>In order to upload images for ai analysis this app requires access to your camera</string>
 
 
 

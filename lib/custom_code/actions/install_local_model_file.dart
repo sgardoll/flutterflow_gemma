@@ -51,13 +51,21 @@ Future<bool> installLocalModelFile(
       print('No existing model to clear: $e');
     }
 
-    // Step 2: Clear the app documents directory of any old model files
-    final appDocDir = await getApplicationDocumentsDirectory();
-    print('App documents directory: ${appDocDir.path}');
+    // Step 2: Use platform-specific directories
+    late Directory targetDirectory;
+    if (Platform.isIOS) {
+      // iOS plugin expects models in Documents directory
+      targetDirectory = await getApplicationDocumentsDirectory();
+      print('iOS: Using documents directory: ${targetDirectory.path}');
+    } else {
+      // Android: Use documents directory as a more accessible location
+      targetDirectory = await getApplicationDocumentsDirectory();
+      print('Android: Using documents directory: ${targetDirectory.path}');
+    }
 
     try {
-      final documentsFiles = await appDocDir.list().toList();
-      for (final entity in documentsFiles) {
+      final targetFiles = await targetDirectory.list().toList();
+      for (final entity in targetFiles) {
         if (entity is File && entity.path.endsWith('.task')) {
           print('Removing old model file: ${entity.path}');
           await entity.delete();
@@ -67,9 +75,25 @@ Future<bool> installLocalModelFile(
       print('Could not clear old model files: $e');
     }
 
-    // Step 3: Copy the model file to the documents root directory
-    final targetModelPath = path.join(appDocDir.path, modelFileName);
-    print('Copying model to: $targetModelPath');
+    // Also clear the other directory for good measure
+    try {
+      final otherDirectory = Platform.isIOS
+          ? await getApplicationSupportDirectory()
+          : await getApplicationDocumentsDirectory();
+      final otherFiles = await otherDirectory.list().toList();
+      for (final entity in otherFiles) {
+        if (entity is File && entity.path.endsWith('.task')) {
+          print('Removing old model file from other directory: ${entity.path}');
+          await entity.delete();
+        }
+      }
+    } catch (e) {
+      print('Could not clear other directory: $e');
+    }
+
+    // Step 3: Copy the model file to the platform-specific directory
+    final targetModelPath = path.join(targetDirectory.path, modelFileName);
+    print('Copying model to platform directory: $targetModelPath');
 
     await modelFile.copy(targetModelPath);
     print('Model file copied successfully');
@@ -94,10 +118,16 @@ Future<bool> installLocalModelFile(
     // Step 5: Wait a moment for file system operations to complete
     await Future.delayed(Duration(milliseconds: 200));
 
-    // Step 6: Register the model with the plugin using just the filename
+    // Step 6: Register the model with the plugin
     print('Registering model with plugin: $modelFileName');
     try {
-      await modelManager.setModelPath(modelFileName);
+      // ANDROID FIX: Always use the absolute path for Android to avoid
+      // path resolution issues in the native plugin code.
+      final pathToRegister =
+          Platform.isAndroid ? targetModelPath : modelFileName;
+
+      print('Registering with path: "$pathToRegister"');
+      await modelManager.setModelPath(pathToRegister);
       print('Model path registered successfully!');
 
       // Small delay to let the registration complete
@@ -105,7 +135,7 @@ Future<bool> installLocalModelFile(
 
       return true;
     } catch (e) {
-      print('Error registering model: $e');
+      print('Error registering model path: $e');
       return false;
     }
   } catch (e) {

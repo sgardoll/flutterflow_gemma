@@ -6,159 +6,111 @@ import 'package:flutter/material.dart';
 // Begin custom action code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-import 'package:flutter_gemma/flutter_gemma.dart';
+import 'index.dart'; // Imports other custom actions
+
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as path;
 
-Future<String> debugModelPaths() async {
+Future<void> debugModelPaths() async {
   try {
-    final resultLines = <String>[];
+    print('=== DEBUG MODEL PATHS START ===');
 
-    // Get the application documents directory
-    final appDocDir = await getApplicationDocumentsDirectory();
-    resultLines.add('Documents Directory: ${appDocDir.path}');
-    resultLines.add('');
+    // Get app directories
+    final appDir = await getApplicationDocumentsDirectory();
+    final tempDir = await getTemporaryDirectory();
 
-    // List all files in documents directory
-    resultLines.add('=== Documents Directory Files ===');
-    try {
-      final files = await appDocDir.list().toList();
-      int fileCount = 0;
-      for (final entity in files) {
-        if (entity is File) {
-          final stat = await entity.stat();
-          final name = path.basename(entity.path);
-          final sizeFormatted =
-              '${(stat.size / (1024 * 1024)).toStringAsFixed(1)} MB';
-          final isTaskFile = entity.path.endsWith('.task');
-          resultLines.add('File: $name');
-          resultLines.add('  Path: ${entity.path}');
-          resultLines.add('  Size: $sizeFormatted');
-          resultLines.add('  Is Task File: $isTaskFile');
-          resultLines.add('');
-          fileCount++;
-        }
-      }
-      resultLines.add('Total files in documents: $fileCount');
-    } catch (e) {
-      resultLines.add('Error listing documents files: ${e.toString()}');
-    }
-    resultLines.add('');
+    print('App Documents Directory: ${appDir.path}');
+    print('Temp Directory: ${tempDir.path}');
 
-    // Check if there's a models subdirectory
-    final modelsSubdir = Directory(path.join(appDocDir.path, 'models'));
-    final modelsSubdirExists = await modelsSubdir.exists();
-    resultLines.add('=== Models Subdirectory ===');
-    resultLines.add('Models subdirectory exists: $modelsSubdirExists');
+    // Check models directory
+    final modelsDir = Directory('${appDir.path}/models');
+    print('Models Directory: ${modelsDir.path}');
+    print('Models Directory Exists: ${await modelsDir.exists()}');
 
-    if (modelsSubdirExists) {
+    if (await modelsDir.exists()) {
+      print('--- Models Directory Contents ---');
       try {
-        final files = await modelsSubdir.list().toList();
-        int fileCount = 0;
-        for (final entity in files) {
-          if (entity is File) {
-            final stat = await entity.stat();
-            final name = path.basename(entity.path);
-            final sizeFormatted =
-                '${(stat.size / (1024 * 1024)).toStringAsFixed(1)} MB';
-            final isTaskFile = entity.path.endsWith('.task');
-            resultLines.add('File: $name');
-            resultLines.add('  Path: ${entity.path}');
-            resultLines.add('  Size: $sizeFormatted');
-            resultLines.add('  Is Task File: $isTaskFile');
-            resultLines.add('');
-            fileCount++;
+        final files = await modelsDir.list().toList();
+        if (files.isEmpty) {
+          print('No files found in models directory');
+        } else {
+          for (final file in files) {
+            if (file is File) {
+              final stat = await file.stat();
+              final fileName = file.path.split('/').last;
+              final sizeFormatted = _formatFileSize(stat.size);
+              print('File: $fileName ($sizeFormatted)');
+              print('  Path: ${file.path}');
+              print('  Size: ${stat.size} bytes');
+              print('  Modified: ${stat.modified}');
+              print('  Type: ${stat.type}');
+            } else if (file is Directory) {
+              print('Directory: ${file.path}');
+            }
           }
         }
-        resultLines.add('Total files in models directory: $fileCount');
       } catch (e) {
-        resultLines.add('Error listing models files: ${e.toString()}');
+        print('Error listing models directory: $e');
       }
     }
-    resultLines.add('');
 
-    // Try to get the current model path from the model manager
-    resultLines.add('=== Model Manager Status ===');
-    try {
-      final modelManager = FlutterGemmaPlugin.instance.modelManager;
-      resultLines.add('Model manager accessible: true');
-    } catch (e) {
-      resultLines.add('Model manager accessible: false');
-      resultLines.add('Error: ${e.toString()}');
-    }
-    resultLines.add('');
+    // Check for common model locations
+    final commonPaths = [
+      '${appDir.path}/gemma',
+      '${appDir.path}/Downloads',
+      '${appDir.path}/cache',
+      '${tempDir.path}/models',
+    ];
 
-    // Find all .task files across the entire app directory structure
-    resultLines.add('=== All Task Files Found ===');
-    try {
-      final allTaskFiles = <Map<String, dynamic>>[];
-      await _findTaskFilesRecursively(appDocDir.parent, allTaskFiles);
+    print('--- Checking Common Model Locations ---');
+    for (final path in commonPaths) {
+      final dir = Directory(path);
+      final exists = await dir.exists();
+      print('$path: ${exists ? "EXISTS" : "NOT FOUND"}');
 
-      if (allTaskFiles.isEmpty) {
-        resultLines.add('No .task files found');
-      } else {
-        resultLines.add('Found ${allTaskFiles.length} .task files:');
-        for (final taskFile in allTaskFiles) {
-          resultLines.add('File: ${taskFile['name']}');
-          resultLines.add('  Path: ${taskFile['path']}');
-          if (taskFile.containsKey('sizeFormatted')) {
-            resultLines.add('  Size: ${taskFile['sizeFormatted']}');
-          }
-          if (taskFile.containsKey('error')) {
-            resultLines.add('  Error: ${taskFile['error']}');
-          }
-          resultLines.add('');
-        }
-      }
-    } catch (e) {
-      resultLines.add('Error searching for task files: ${e.toString()}');
-    }
-
-    return resultLines.join('\n');
-  } catch (e) {
-    return 'Error: ${e.toString()}\nFailed to debug model paths';
-  }
-}
-
-Future<void> _findTaskFilesRecursively(
-    Directory dir, List<Map<String, dynamic>> taskFiles) async {
-  try {
-    final entities = await dir.list().toList();
-    for (final entity in entities) {
-      if (entity is File && entity.path.endsWith('.task')) {
+      if (exists) {
         try {
-          final stat = await entity.stat();
-          taskFiles.add({
-            'name': path.basename(entity.path),
-            'path': entity.path,
-            'size': stat.size,
-            'sizeFormatted':
-                '${(stat.size / (1024 * 1024)).toStringAsFixed(1)} MB',
-          });
-        } catch (e) {
-          taskFiles.add({
-            'name': path.basename(entity.path),
-            'path': entity.path,
-            'error': e.toString(),
-          });
-        }
-      } else if (entity is Directory) {
-        // Recurse into subdirectories, but skip certain system directories
-        final dirName = path.basename(entity.path);
-        if (!dirName.startsWith('.') &&
-            dirName != 'Caches' &&
-            dirName != 'tmp' &&
-            dirName != 'Preferences') {
-          try {
-            await _findTaskFilesRecursively(entity, taskFiles);
-          } catch (e) {
-            // Ignore errors from directories we can't access
+          final files = await dir.list().toList();
+          print('  Files: ${files.length}');
+          for (final file in files.take(5)) {
+            // Limit to first 5 files
+            print('    ${file.path.split('/').last}');
           }
+          if (files.length > 5) {
+            print('    ... and ${files.length - 5} more files');
+          }
+        } catch (e) {
+          print('  Error accessing directory: $e');
         }
       }
     }
+
+    // Check available disk space
+    try {
+      final appDirStat = await appDir.stat();
+      print('--- Directory Permissions ---');
+      print('App Directory Type: ${appDirStat.type}');
+      print('App Directory Modified: ${appDirStat.modified}');
+    } catch (e) {
+      print('Error getting directory stats: $e');
+    }
+
+    print('=== DEBUG MODEL PATHS END ===');
   } catch (e) {
-    // Ignore errors from directories we can't access
+    print('Error in debugModelPaths: $e');
   }
 }
+
+String _formatFileSize(int bytes) {
+  if (bytes < 1024) {
+    return '$bytes B';
+  } else if (bytes < 1024 * 1024) {
+    return '${(bytes / 1024).toStringAsFixed(1)} KB';
+  } else if (bytes < 1024 * 1024 * 1024) {
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  } else {
+    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB';
+  }
+}
+// Set your action name, define your arguments and return parameter,
+// and then add the boilerplate code using the green button on the right!

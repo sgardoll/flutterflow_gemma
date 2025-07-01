@@ -27,15 +27,37 @@ Future<bool> initializeLocalGemmaModel(
   int randomSeed,
 ) async {
   try {
+    print('=== ANDROID DEBUG: initializeLocalGemmaModel ===');
+    print(
+        'Platform: ${Platform.isAndroid ? "Android" : Platform.isIOS ? "iOS" : "Other"}');
+    print('Model path: $localModelPath');
+    print('Model type: $modelType');
+    print('Backend: $preferredBackend');
+    print('Support image: $supportImage');
+    print('Max tokens: $maxTokens');
+
     // Validate the model file exists first
     final modelFile = File(localModelPath);
+    print('Checking if model file exists...');
     if (!await modelFile.exists()) {
-      print('Error: Model file does not exist at path: $localModelPath');
-      return false;
+      print(
+          'ANDROID DEBUG: Model file does not exist at path: $localModelPath');
+      // Check if file exists in common Android locations
+      final appDocDir = await getApplicationDocumentsDirectory();
+      final altPath = path.join(appDocDir.path, path.basename(localModelPath));
+      print('ANDROID DEBUG: Checking alternative path: $altPath');
+      if (await File(altPath).exists()) {
+        print(
+            'ANDROID DEBUG: Found model at alternative path, updating localModelPath');
+        localModelPath = altPath;
+      } else {
+        print('ANDROID DEBUG: Model file not found at either location');
+        return false;
+      }
     }
 
     final fileSize = await modelFile.length();
-    print('Initializing Gemma model from local file: $localModelPath');
+    print('ANDROID DEBUG: Model file validated successfully');
     print('Model file size: $fileSize bytes');
 
     // Model file validation
@@ -60,46 +82,155 @@ Future<bool> initializeLocalGemmaModel(
     final modelFileName = path.basename(localModelPath);
     print('Step 2: Preparing to initialize model: $modelFileName');
 
+    // Platform-specific debugging: Check where model files are actually located
+    print(
+        '🔍 ${Platform.isIOS ? "iOS" : "ANDROID"} DEBUG: Checking model file locations...');
+    try {
+      // Check platform-specific plugin directory
+      late Directory pluginDirectory;
+      String platformName;
+      if (Platform.isIOS) {
+        pluginDirectory = await getApplicationDocumentsDirectory();
+        platformName = "iOS Documents (plugin working dir)";
+      } else {
+        pluginDirectory = await getApplicationSupportDirectory();
+        platformName = "Android Support (plugin working dir)";
+      }
+
+      print('📁 $platformName: ${pluginDirectory.path}');
+
+      final pluginFiles = await pluginDirectory
+          .list()
+          .where((entity) => entity is File && entity.path.endsWith('.task'))
+          .toList();
+      print('📄 Found ${pluginFiles.length} .task files in plugin directory:');
+      for (final file in pluginFiles) {
+        final fileName = path.basename(file.path);
+        final fileSize = await (file as File).length();
+        print(
+            '   - $fileName (${(fileSize / (1024 * 1024)).toStringAsFixed(1)} MB)');
+      }
+
+      // Check the specific model file we're looking for
+      final targetModelPath = path.join(pluginDirectory.path, modelFileName);
+      final targetExists = await File(targetModelPath).exists();
+      print(
+          '🎯 Target model file ($modelFileName) exists in plugin dir: $targetExists');
+      if (targetExists) {
+        final size = await File(targetModelPath).length();
+        print('📏 File size: ${(size / (1024 * 1024)).toStringAsFixed(1)} MB');
+      }
+
+      // Also check the other directory for reference
+      try {
+        final otherDirectory = Platform.isIOS
+            ? await getApplicationSupportDirectory()
+            : await getApplicationDocumentsDirectory();
+        final otherName = Platform.isIOS ? "App Support" : "Documents";
+        print('📁 $otherName directory: ${otherDirectory.path}');
+
+        final otherFiles = await otherDirectory
+            .list()
+            .where((entity) => entity is File && entity.path.endsWith('.task'))
+            .toList();
+        print('📄 Found ${otherFiles.length} .task files in $otherName:');
+        for (final file in otherFiles) {
+          print('   - ${path.basename(file.path)}');
+        }
+      } catch (e) {
+        print('⚠️  Could not access other directory: $e');
+      }
+    } catch (e) {
+      print('⚠️  Error during platform debugging: $e');
+    }
+
     print('Step 3: Using backend: $preferredBackend');
 
-    // Step 4: Initialize using GemmaManager
-    print('Step 4: Initializing through GemmaManager...');
+    // Step 3: Initialize using GemmaManager
+    print(
+        '${Platform.isIOS ? "iOS" : "ANDROID"} DEBUG Step 3: Initializing through GemmaManager...');
+    print('DEBUG: About to call GemmaManager().initializeModel with:');
+    print('  - modelType: $modelType');
+    print('  - backend: $preferredBackend');
+    print('  - maxTokens: $maxTokens');
+    print('  - supportImage: $supportImage');
+    print('  - localModelPath: $modelFileName');
+
     try {
-      final success = await GemmaManager().initializeModel(
+      final gemmaManager = GemmaManager();
+      print('DEBUG: GemmaManager instance created');
+
+      print('DEBUG: Initializing with filename only: $modelFileName');
+      print(
+          'DEBUG: Plugin should find model in its ${Platform.isIOS ? "Documents" : "Support"} directory');
+
+      // ANDROID FIX: Pass the absolute path to the model on Android.
+      final path_for_initialization =
+          Platform.isAndroid ? localModelPath : modelFileName;
+
+      print(
+          'DEBUG: Initializing with path for platform: $path_for_initialization');
+
+      final success = await gemmaManager.initializeModel(
         modelType: modelType,
         backend: preferredBackend,
         maxTokens: maxTokens,
         supportImage: supportImage,
         maxNumImages: 1, // Default value
-        localModelPath: modelFileName, // Pass the filename
+        localModelPath: path_for_initialization, // Pass platform-specific path
       );
 
+      print('DEBUG: GemmaManager.initializeModel returned: $success');
+
       if (success) {
-        print('Gemma model initialized successfully through GemmaManager!');
+        print(
+            'DEBUG: Gemma model initialized successfully through GemmaManager!');
+        print('DEBUG: Model manager state:');
+        print('  - isInitialized: ${gemmaManager.isInitialized}');
+        print('  - currentModelType: ${gemmaManager.currentModelType}');
+        print('  - currentBackend: ${gemmaManager.currentBackend}');
 
-        // Create a session with the provided parameters
-        final sessionSuccess = await GemmaManager().createSession(
-          temperature: temperature.clamp(0.0, 2.0),
-          randomSeed: randomSeed,
-          topK: topK.clamp(1, 40).toInt(),
-        );
-
-        if (sessionSuccess) {
-          print('Session created successfully!');
-          return true;
-        } else {
-          print('Model initialized but failed to create session');
-          return true; // Still consider it successful
-        }
+        // Don't create session here - let the setup widget handle it
+        print(
+            'DEBUG: Skipping session creation, letting setup widget handle it');
+        return true;
       } else {
-        print('GemmaManager initialization returned false');
+        print('DEBUG: GemmaManager initialization returned false');
+        print(
+            'DEBUG: This is likely the root cause of the ${Platform.isIOS ? "iOS" : "Android"} issue');
       }
-    } catch (e) {
-      print('Error initializing Gemma model through GemmaManager: $e');
+    } catch (e, stackTrace) {
+      print('DEBUG: Exception in GemmaManager initialization: $e');
+      print('DEBUG: Stack trace: $stackTrace');
+
+      // Enhanced error detection for E4B/E2B filename transformation bug
+      if (e.toString().contains('Model not found at path') &&
+          (modelFileName.contains('E4B') || modelFileName.contains('E2B'))) {
+        print('🚨 FLUTTER_GEMMA PLUGIN BUG DETECTED 🚨');
+        print('═══════════════════════════════════════════════════════════');
+        print('ERROR: The flutter_gemma plugin v0.9.0 has a known bug where');
+        print('it transforms "E4B" to "E2B" in model filenames internally.');
+        print('');
+        print('Expected filename: $modelFileName');
+        if (e.toString().contains('E2B')) {
+          print(
+              'Plugin looking for: ${modelFileName.replaceAll('E4B', 'E2B')}');
+        } else {
+          print(
+              'Plugin looking for: ${modelFileName.replaceAll('E2B', 'E4B')}');
+        }
+        print('');
+        print('WORKAROUND: The GemmaManager should automatically handle this.');
+        print('If this error persists, try:');
+        print('1. Updating flutter_gemma plugin to a newer version');
+        print('2. Using a different model variant');
+        print('3. Manually renaming the model file');
+        print('═══════════════════════════════════════════════════════════');
+      }
     }
 
-    // Step 5: If GemmaManager fails, try direct plugin initialization
-    print('Step 5: Attempting direct plugin initialization...');
+    // Step 4: If GemmaManager fails, try direct plugin initialization
+    print('Step 4: Attempting direct plugin initialization...');
     try {
       final plugin = FlutterGemmaPlugin.instance;
 
@@ -200,10 +331,26 @@ Future<bool> initializeLocalGemmaModel(
       return true;
     } catch (e) {
       print('Direct plugin initialization failed: $e');
+
+      // Enhanced error detection for E4B/E2B filename transformation bug
+      if (e.toString().contains('Model not found at path') &&
+          (modelFileName.contains('E4B') || modelFileName.contains('E2B'))) {
+        print('🚨 DIRECT PLUGIN INITIALIZATION: E4B/E2B BUG DETECTED 🚨');
+        print(
+            'The direct plugin method also failed due to the filename transformation bug.');
+        print('Expected: $modelFileName');
+        if (e.toString().contains('E2B')) {
+          print(
+              'Plugin looking for: ${modelFileName.replaceAll('E4B', 'E2B')}');
+        } else {
+          print(
+              'Plugin looking for: ${modelFileName.replaceAll('E2B', 'E4B')}');
+        }
+      }
     }
 
-    // Step 6: Try with CPU backend as final fallback
-    print('Step 6: Trying CPU backend as final fallback...');
+    // Step 5: Try with CPU backend as final fallback
+    print('Step 5: Trying CPU backend as final fallback...');
     try {
       final success = await GemmaManager().initializeModel(
         modelType: modelType,
@@ -224,10 +371,14 @@ Future<bool> initializeLocalGemmaModel(
 
     print('All initialization attempts failed');
     return false;
-  } catch (e) {
-    print('Error in initializeLocalGemmaModel: $e');
+  } catch (e, stackTrace) {
+    print('ANDROID DEBUG: Top-level error in initializeLocalGemmaModel: $e');
+    print('ANDROID DEBUG: Stack trace: $stackTrace');
+    print(
+        'ANDROID DEBUG: Platform: ${Platform.isAndroid ? "Android" : Platform.isIOS ? "iOS" : "Other"}');
 
     if (e.toString().contains('Gemma Model is not installed')) {
+      print('ANDROID DEBUG: Model not installed error');
       print('The model needs to be properly installed first.');
       print(
           'This can happen if the model file is not in the expected location');
@@ -235,12 +386,17 @@ Future<bool> initializeLocalGemmaModel(
       print(
           'Try using installLocalModelFile action first, then retry initialization.');
     } else if (e.toString().contains('failedToInitializeEngine')) {
+      print('ANDROID DEBUG: Engine initialization failed');
       print('The model engine failed to initialize.');
       print('This usually indicates:');
       print('1. The model file is corrupted or incomplete');
       print('2. The model format is not compatible with this device');
       print('3. Insufficient memory or resources');
       print('4. The model file path is incorrect');
+      if (Platform.isAndroid) {
+        print('5. Android-specific: App permissions or security restrictions');
+        print('6. Android-specific: Native library loading issues');
+      }
     } else if (e.toString().contains('open() failed')) {
       print('Failed to open the model file.');
       print('Check that the model file exists and is readable.');

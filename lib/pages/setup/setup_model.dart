@@ -6,12 +6,7 @@ import 'package:flutter/material.dart';
 class SetupModel extends FlutterFlowModel<SetupWidget> {
   ///  Local state fields for this page.
 
-  double? downloadProgress = 0.0;
-
-  ///  State fields for stateful widgets in this page.
-
-  // Stores action output result for [Custom Action - createGemmaSession] action in GemmaAuthenticatedSetupWidget widget.
-  bool? createSessionOutput;
+  double? progress = 0.0;
 
   @override
   void initState(BuildContext context) {}
