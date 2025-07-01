@@ -28,7 +28,7 @@
     "new_identifier_name": "downloadAuthenticatedModel",
     "type": "A",
     "is_deleted": false,
-    "current_checksum": "d078d11ac0f2cfc511bd2e4354bec26c35f637c0dc4aa47c9eee74c28bab4caf",
+    "current_checksum": "a6159ca89cd4921d51c9b3f993d777117f6017a44de73983a144d395382d1834",
     "original_checksum": "a6159ca89cd4921d51c9b3f993d777117f6017a44de73983a144d395382d1834"
   },
   "debug_model_paths.dart": {
@@ -107,54 +107,63 @@
     "old_identifier_name": "closeGemmaModel",
     "new_identifier_name": "closeGemmaModel",
     "type": "A",
-    "is_deleted": true
+    "is_deleted": true,
+    "current_checksum": "25fc53bf8cc0599a11bedaa5a423f125afec9984617b5d32e2c1e13751aa4d02"
   },
   "initialize_gemma_model.dart": {
     "old_identifier_name": "initializeGemmaModel",
     "new_identifier_name": "initializeGemmaModel",
     "type": "A",
-    "is_deleted": true
+    "is_deleted": true,
+    "current_checksum": "397311407186eeff69e2afcebb83c94b2e72e0e7e9ef99d05a3e41cc30442a26"
   },
   "send_gemma_message.dart": {
     "old_identifier_name": "sendGemmaMessage",
     "new_identifier_name": "sendGemmaMessage",
     "type": "A",
-    "is_deleted": true
+    "is_deleted": true,
+    "current_checksum": "0ab86c1dfbc0b4639b8487a24dc6b3578f51615b999f3ddb344a5d7e80c5f34f"
   },
   "download_gemma_model.dart": {
     "old_identifier_name": "downloadGemmaModel",
     "new_identifier_name": "downloadGemmaModel",
     "type": "A",
-    "is_deleted": true
+    "is_deleted": true,
+    "current_checksum": "55b3237387335c3149d20597740798777db72527aca961d5d53e6b4005eac4b9"
   },
   "install_gemma_from_asset.dart": {
     "old_identifier_name": "installGemmaFromAsset",
     "new_identifier_name": "installGemmaFromAsset",
     "type": "A",
-    "is_deleted": true
+    "is_deleted": true,
+    "current_checksum": "c883932049c5b46e3ec29f2c5a413fabb147fb94e1deab06efeacb87896e13ac"
   },
   "paligemma_research.dart": {
     "old_identifier_name": "paligemmaResearch",
     "new_identifier_name": "paligemmaResearch",
     "type": "A",
-    "is_deleted": false
+    "is_deleted": false,
+    "current_checksum": "b99b7b9d3170918fb526f2cd1aa557e7446f7991a19d63575f1aa42cf6f3ec65"
   },
   "test_vision_capabilities.dart": {
     "old_identifier_name": "testVisionCapabilities",
     "new_identifier_name": "testVisionCapabilities",
     "type": "A",
-    "is_deleted": false
+    "is_deleted": false,
+    "current_checksum": "20a476fc065dd97259390142d2e1c85708253910b7311e5ee91e8be0ed4648d5"
   },
   "quick_vision_test.dart": {
     "old_identifier_name": "quickVisionTest",
     "new_identifier_name": "quickVisionTest",
     "type": "A",
-    "is_deleted": false
+    "is_deleted": false,
+    "current_checksum": "a50082af9cdc50bfb93b911aa6d92b92955483188d702ef1fb3503f4df6cab1d"
   },
   "vision_analysis_report.dart": {
     "old_identifier_name": "visionAnalysisReport",
     "new_identifier_name": "visionAnalysisReport",
     "type": "A",
-    "is_deleted": false
+    "is_deleted": false,
+    "current_checksum": "02283053e8a1e151980d6e5354dbe1b11f08ce78a94c7460b5a92bd993431ccb"
   }
 }
