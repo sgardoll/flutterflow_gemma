@@ -7,11 +7,13 @@ import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
+import 'index.dart'; // Imports other custom widgets
+
 import '/custom_code/actions/download_authenticated_model.dart';
 import '/custom_code/actions/get_huggingface_model_info.dart';
 import '/custom_code/actions/manage_downloaded_models.dart';
 import '/custom_code/actions/initialize_local_gemma_model.dart';
-import '../GemmaManager.dart';
+import './GemmaManager.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;

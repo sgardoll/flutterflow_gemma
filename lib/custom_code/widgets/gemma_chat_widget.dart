@@ -7,11 +7,7 @@ import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-import 'index.dart'; // Imports other custom widgets
-
-import 'index.dart'; // Imports other custom widgets
-
-import '../GemmaManager.dart';
+import './GemmaManager.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io' show Platform;
 import 'dart:math' as Math;

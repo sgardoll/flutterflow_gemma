@@ -6,7 +6,9 @@ import 'package:flutter/material.dart';
 // Begin custom action code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-import '../GemmaManager.dart';
+import 'index.dart'; // Imports other custom actions
+
+import './GemmaManager.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:flutter_gemma/core/model.dart';
 import 'package:flutter_gemma/pigeon.g.dart';

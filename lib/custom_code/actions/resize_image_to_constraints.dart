@@ -8,8 +8,6 @@ import 'package:flutter/material.dart';
 
 import 'index.dart'; // Imports other custom actions
 
-import 'index.dart'; // Imports other custom actions
-
 import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
 import 'dart:math' as math;

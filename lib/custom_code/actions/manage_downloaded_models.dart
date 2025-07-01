@@ -8,8 +8,6 @@ import 'package:flutter/material.dart';
 
 import 'index.dart'; // Imports other custom actions
 
-import 'index.dart'; // Imports other custom actions
-
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
