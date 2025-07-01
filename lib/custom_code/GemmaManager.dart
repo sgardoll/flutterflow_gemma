@@ -3,6 +3,9 @@ import 'package:flutter_gemma/core/model.dart';
 import 'package:flutter_gemma/pigeon.g.dart';
 import 'dart:typed_data';
 import 'dart:math' as Math;
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
 
 // Custom class to manage Gemma model functionality for FlutterFlow
 class GemmaManager {
@@ -112,6 +115,61 @@ class GemmaManager {
     return GemmaManager.isMultimodalModel(modelType);
   }
 
+  // Helper method to handle E4B/E2B filename correction due to flutter_gemma plugin bug
+  Future<String> _correctModelFilename(String originalFilename) async {
+    try {
+      // Get the app documents directory
+      final appDocDir = await getApplicationDocumentsDirectory();
+      
+      // Check if the original file exists
+      final originalPath = path.join(appDocDir.path, originalFilename);
+      if (await File(originalPath).exists()) {
+        print('GemmaManager: Original filename exists: $originalFilename');
+        return originalFilename;
+      }
+      
+      // Check for E4B -> E2B transformation (known plugin bug)
+      if (originalFilename.contains('E4B')) {
+        final correctedFilename = originalFilename.replaceAll('E4B', 'E2B');
+        final correctedPath = path.join(appDocDir.path, correctedFilename);
+        
+        if (await File(correctedPath).exists()) {
+          print('GemmaManager: Plugin bug detected - E4B->E2B transformation');
+          print('GemmaManager: Original: $originalFilename');
+          print('GemmaManager: Corrected: $correctedFilename');
+          
+          // Copy the file to the expected name to work around the plugin bug
+          await File(correctedPath).copy(originalPath);
+          print('GemmaManager: Created corrected filename copy');
+          return originalFilename;
+        }
+      }
+      
+      // Check for E2B -> E4B transformation (reverse case)
+      if (originalFilename.contains('E2B')) {
+        final correctedFilename = originalFilename.replaceAll('E2B', 'E4B');
+        final correctedPath = path.join(appDocDir.path, correctedFilename);
+        
+        if (await File(correctedPath).exists()) {
+          print('GemmaManager: Reverse transformation detected - E2B->E4B');
+          print('GemmaManager: Original: $originalFilename');
+          print('GemmaManager: Found: $correctedFilename');
+          
+          // Copy the file to the expected name
+          await File(correctedPath).copy(originalPath);
+          print('GemmaManager: Created corrected filename copy');
+          return originalFilename;
+        }
+      }
+      
+      print('GemmaManager: No filename correction needed or possible');
+      return originalFilename;
+    } catch (e) {
+      print('GemmaManager: Error in filename correction: $e');
+      return originalFilename;
+    }
+  }
+
   // Initialize the model
   Future<bool> initializeModel({
     required String modelType,
@@ -125,6 +183,15 @@ class GemmaManager {
     try {
       // Close existing model if any
       await closeModel();
+      
+      // Apply filename correction if localModelPath is provided
+      String? correctedModelPath = localModelPath;
+      if (localModelPath != null) {
+        correctedModelPath = await _correctModelFilename(localModelPath);
+        if (correctedModelPath != localModelPath) {
+          print('GemmaManager: Using corrected filename: $correctedModelPath');
+        }
+      }
 
       // Check if the model actually supports vision
       // Use force flag to bypass model type check if needed
@@ -151,6 +218,36 @@ class GemmaManager {
       return true;
     } catch (e) {
       print('Error initializing Gemma model: $e');
+      
+      // Enhanced error messaging for filename transformation issues
+      if (e.toString().contains('Model not found at path') && 
+          localModelPath != null && 
+          (localModelPath.contains('E4B') || localModelPath.contains('E2B'))) {
+        print('FLUTTER_GEMMA PLUGIN BUG DETECTED:');
+        print('The plugin is looking for a different filename than provided.');
+        print('This is a known issue with flutter_gemma v0.9.0');
+        print('Expected: $localModelPath');
+        print('Plugin looking for: ${e.toString().contains('E2B') ? localModelPath.replaceAll('E4B', 'E2B') : localModelPath.replaceAll('E2B', 'E4B')}');
+        
+        // Try to create a symlink or copy with the expected name
+        try {
+          final correctedPath = await _correctModelFilename(localModelPath);
+          if (correctedPath == localModelPath) {
+            print('Attempting retry with filename correction...');
+            return await initializeModel(
+              modelType: modelType,
+              backend: backend,
+              maxTokens: maxTokens,
+              supportImage: supportImage,
+              maxNumImages: maxNumImages,
+              localModelPath: correctedPath,
+              forceImageSupport: forceImageSupport,
+            );
+          }
+        } catch (correctionError) {
+          print('Filename correction failed: $correctionError');
+        }
+      }
 
       // If image support failed, try without it
       if (supportImage && e.toString().contains('Vision')) {

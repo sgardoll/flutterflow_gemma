@@ -128,6 +128,29 @@ Future<bool> initializeLocalGemmaModel(
     } catch (e, stackTrace) {
       print('ANDROID DEBUG: Exception in GemmaManager initialization: $e');
       print('ANDROID DEBUG: Stack trace: $stackTrace');
+      
+      // Enhanced error detection for E4B/E2B filename transformation bug
+      if (e.toString().contains('Model not found at path') && 
+          (modelFileName.contains('E4B') || modelFileName.contains('E2B'))) {
+        print('🚨 FLUTTER_GEMMA PLUGIN BUG DETECTED 🚨');
+        print('═══════════════════════════════════════════════════════════');
+        print('ERROR: The flutter_gemma plugin v0.9.0 has a known bug where');
+        print('it transforms "E4B" to "E2B" in model filenames internally.');
+        print('');
+        print('Expected filename: $modelFileName');
+        if (e.toString().contains('E2B')) {
+          print('Plugin looking for: ${modelFileName.replaceAll('E4B', 'E2B')}');
+        } else {
+          print('Plugin looking for: ${modelFileName.replaceAll('E2B', 'E4B')}');
+        }
+        print('');
+        print('WORKAROUND: The GemmaManager should automatically handle this.');
+        print('If this error persists, try:');
+        print('1. Updating flutter_gemma plugin to a newer version');
+        print('2. Using a different model variant');
+        print('3. Manually renaming the model file');
+        print('═══════════════════════════════════════════════════════════');
+      }
     }
 
     // Step 5: If GemmaManager fails, try direct plugin initialization
@@ -232,6 +255,19 @@ Future<bool> initializeLocalGemmaModel(
       return true;
     } catch (e) {
       print('Direct plugin initialization failed: $e');
+      
+      // Enhanced error detection for E4B/E2B filename transformation bug
+      if (e.toString().contains('Model not found at path') && 
+          (modelFileName.contains('E4B') || modelFileName.contains('E2B'))) {
+        print('🚨 DIRECT PLUGIN INITIALIZATION: E4B/E2B BUG DETECTED 🚨');
+        print('The direct plugin method also failed due to the filename transformation bug.');
+        print('Expected: $modelFileName');
+        if (e.toString().contains('E2B')) {
+          print('Plugin looking for: ${modelFileName.replaceAll('E4B', 'E2B')}');
+        } else {
+          print('Plugin looking for: ${modelFileName.replaceAll('E2B', 'E4B')}');
+        }
+      }
     }
 
     // Step 6: Try with CPU backend as final fallback
