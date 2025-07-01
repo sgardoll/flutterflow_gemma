@@ -3,6 +3,9 @@ import 'package:flutter_gemma/core/model.dart';
 import 'package:flutter_gemma/pigeon.g.dart';
 import 'dart:typed_data';
 import 'dart:math' as Math;
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
 
 // Custom class to manage Gemma model functionality for FlutterFlow
 class GemmaManager {
@@ -18,6 +21,10 @@ class GemmaManager {
   bool _isInitialized = false;
   String? _currentModelType;
   String? _currentBackend;
+  
+  // Retry tracking to prevent infinite loops
+  int _initializationRetries = 0;
+  static const int _maxRetries = 3;
 
   // Model file manager
   ModelFileManager get modelManager => FlutterGemmaPlugin.instance.modelManager;
@@ -112,6 +119,37 @@ class GemmaManager {
     return GemmaManager.isMultimodalModel(modelType);
   }
 
+  // Helper method to check if model file exists in platform-specific plugin directory
+  Future<bool> _checkModelFileExists(String filename) async {
+    try {
+      // Use platform-specific directory
+      late Directory pluginDirectory;
+      if (Platform.isIOS) {
+        // iOS plugin expects models in Documents directory
+        pluginDirectory = await getApplicationDocumentsDirectory();
+      } else {
+        // Android plugin expects models in app support directory
+        pluginDirectory = await getApplicationSupportDirectory();
+      }
+      
+      final modelPath = path.join(pluginDirectory.path, filename);
+      final exists = await File(modelPath).exists();
+      
+      if (exists) {
+        final size = await File(modelPath).length();
+        print('GemmaManager: Model file exists in ${Platform.isIOS ? "iOS Documents" : "Android Support"} directory: $filename');
+        print('GemmaManager: Size: ${(size / (1024 * 1024)).toStringAsFixed(1)} MB');
+      } else {
+        print('GemmaManager: Model file NOT found in ${Platform.isIOS ? "iOS Documents" : "Android Support"} directory: $filename');
+      }
+      
+      return exists;
+    } catch (e) {
+      print('GemmaManager: Error checking model file: $e');
+      return false;
+    }
+  }
+
   // Initialize the model
   Future<bool> initializeModel({
     required String modelType,
@@ -121,10 +159,25 @@ class GemmaManager {
     int maxNumImages = 1,
     String? localModelPath,
     bool forceImageSupport = false, // Add force flag
+    bool isRetry = false, // Internal flag to track retries
   }) async {
     try {
+      // Reset retry counter on new initialization (not retries)
+      if (!isRetry) {
+        _initializationRetries = 0;
+      }
+      
       // Close existing model if any
       await closeModel();
+      
+      // Check if model file exists in plugin's working directory
+      if (localModelPath != null) {
+        final fileExists = await _checkModelFileExists(localModelPath);
+        if (!fileExists) {
+          print('GemmaManager: Model file not found in plugin directory: $localModelPath');
+          return false;
+        }
+      }
 
       // Check if the model actually supports vision
       // Use force flag to bypass model type check if needed
@@ -147,32 +200,66 @@ class GemmaManager {
       _isInitialized = true;
       _currentModelType = modelType;
       _currentBackend = backend;
+      _initializationRetries = 0; // Reset on success
 
       return true;
     } catch (e) {
       print('Error initializing Gemma model: $e');
+      
+      // Handle model not found errors
+      if (e.toString().contains('Model not found at path') && localModelPath != null) {
+        print('🔍 Model initialization failed: Model not found');
+        print('📁 Expected model: $localModelPath');
+        print('🔧 Ensure model is installed in plugin\'s working directory (app support)');
+        
+        // Check if the model actually exists where we think it should (platform-specific)
+        late Directory pluginDirectory;
+        if (Platform.isIOS) {
+          pluginDirectory = await getApplicationDocumentsDirectory();
+        } else {
+          pluginDirectory = await getApplicationSupportDirectory();
+        }
+        
+        final expectedPath = path.join(pluginDirectory.path, localModelPath);
+        final exists = await File(expectedPath).exists();
+        
+        if (exists) {
+          print('⚠️  Model file exists but plugin cannot find it');
+          print('🐛 This may be a plugin working directory issue');
+        } else {
+          print('❌ Model file is missing from expected location: $expectedPath');
+          print('💡 Try re-downloading/re-installing the model');
+        }
+      }
 
-      // If image support failed, try without it
-      if (supportImage && e.toString().contains('Vision')) {
+      // If initialization fails, try to fallback gracefully
+      if (e.toString().contains('failed to initialize') ||
+          e.toString().contains('GPU') ||
+          e.toString().contains('delegate')) {
         print(
-            'Vision initialization failed, retrying without image support...');
+            'GPU initialization failed. Attempting to fall back to CPU...');
         try {
+          // Close the failed model explicitly before retrying
+          await closeModel();
+
           _model = await FlutterGemmaPlugin.instance.createModel(
             modelType: _getModelType(modelType),
-            preferredBackend: _getBackend(backend),
+            preferredBackend: PreferredBackend.cpu, // Force CPU
             maxTokens: maxTokens,
-            supportImage: false,
-            maxNumImages: 1,
+            supportImage: supportImage,
+            maxNumImages: maxNumImages,
           );
 
           _isInitialized = true;
           _currentModelType = modelType;
-          _currentBackend = backend;
+          _currentBackend = 'cpu'; // Update backend to CPU
+          _initializationRetries = 0; // Reset on success
 
-          print('Model initialized successfully without vision support');
+          print('Successfully initialized model with CPU fallback');
           return true;
-        } catch (fallbackError) {
-          print('Fallback initialization also failed: $fallbackError');
+        } catch (cpuError) {
+          print('CPU fallback also failed: $cpuError');
+          return false;
         }
       }
 
@@ -212,6 +299,10 @@ class GemmaManager {
         topK: topK,
       );
       print('GemmaManager.createSession: Session created successfully!');
+      
+      // Add a small delay to allow the system to stabilize after heavy model loading
+      await Future.delayed(const Duration(milliseconds: 500));
+      
       return true;
     } catch (e) {
       print('Error creating session: $e');
