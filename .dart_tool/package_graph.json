@@ -31,6 +31,7 @@
         "from_css_color",
         "go_router",
         "google_fonts",
+        "image",
         "image_picker",
         "intl",
         "json_path",
@@ -437,6 +438,15 @@
         "image_picker_macos",
         "image_picker_platform_interface",
         "image_picker_windows"
+      ]
+    },
+    {
+      "name": "image",
+      "version": "4.5.4",
+      "dependencies": [
+        "archive",
+        "meta",
+        "xml"
       ]
     },
     {
@@ -993,6 +1003,15 @@
       ]
     },
     {
+      "name": "archive",
+      "version": "4.0.7",
+      "dependencies": [
+        "crypto",
+        "path",
+        "posix"
+      ]
+    },
+    {
       "name": "logging",
       "version": "1.3.0",
       "dependencies": []
@@ -1024,15 +1043,6 @@
         "collection",
         "source_span",
         "string_scanner"
-      ]
-    },
-    {
-      "name": "image",
-      "version": "4.5.4",
-      "dependencies": [
-        "archive",
-        "meta",
-        "xml"
       ]
     },
     {
@@ -1140,12 +1150,12 @@
       ]
     },
     {
-      "name": "archive",
-      "version": "4.0.7",
+      "name": "posix",
+      "version": "6.0.2",
       "dependencies": [
-        "crypto",
-        "path",
-        "posix"
+        "ffi",
+        "meta",
+        "path"
       ]
     },
     {
@@ -1153,15 +1163,6 @@
       "version": "1.0.2",
       "dependencies": [
         "source_span"
-      ]
-    },
-    {
-      "name": "posix",
-      "version": "6.0.2",
-      "dependencies": [
-        "ffi",
-        "meta",
-        "path"
       ]
     }
   ],

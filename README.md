@@ -2,17 +2,17 @@
 
 A complete FlutterFlow integration of Google's Gemma 3 AI models, providing offline/local on-device AI capabilities with authenticated model downloads and real-time chat functionality.
 
-## 🚀 Features
+##  Features
 
-- **🔒 Offline AI**: Run Gemma 3 models completely offline on device
-- **🤖 Multiple Models**: Support for various Gemma model variants (nano, 2B, 4B)
-- **🔐 Authenticated Downloads**: Secure model downloads from Hugging Face
-- **💬 Real-time Chat**: Built-in chat interface with streaming responses
-- **🖼️ Multimodal**: Support for text and image inputs (model dependent)
+- ** Offline AI**: Run Gemma 3 models completely offline on device
+- ** Multiple Models**: Support for various Gemma model variants (nano, 2B, 4B)
+- ** Authenticated Downloads**: Secure model downloads from Hugging Face
+- ** Real-time Chat**: Built-in chat interface with streaming responses
+- **️ Multimodal**: Support for text and image inputs (model dependent)
 - **⚡ Performance**: Optimized for mobile with CPU/GPU backend support
-- **🎨 Ready-to-Use**: Pre-built FlutterFlow pages and custom widgets
+- ** Ready-to-Use**: Pre-built FlutterFlow pages and custom widgets
 
-## 📱 Pre-built Pages
+##  Pre-built Pages
 
 ### 1. Setup Page (`/setup`)
 Complete model setup and configuration page featuring:
@@ -30,7 +30,7 @@ Main chat interface featuring:
 - **Multimodal Input**: Text and image message support
 - **Model Status**: Live model and session status indicators
 
-## 🛠️ Custom Actions
+## ️ Custom Actions
 
 ### Model Management
 ```dart
@@ -113,7 +113,7 @@ initializeGemmaModel()
 downloadGemmaModel('model_url')
 ```
 
-## 🧩 Custom Widgets
+##  Custom Widgets
 
 ### GemmaAuthenticatedSetupWidget
 Complete setup interface for model download and configuration.
@@ -134,7 +134,7 @@ Full-featured chat interface for AI interactions.
 - `maxMessages`: Maximum conversation history
 - `showTypingIndicator`: Show AI typing status
 
-## 🏗️ Architecture Overview
+## ️ Architecture Overview
 
 ```mermaid
 graph TB
@@ -184,7 +184,7 @@ graph TB
     style J fill:#f3e5f5
 ```
 
-## 🔄 Typical Workflow
+##  Typical Workflow
 
 ### Option 1: Using Pre-built Pages
 
@@ -233,7 +233,7 @@ graph TB
    final response = await sendGemmaMessage('Hello AI!');
    ```
 
-## 📋 Prerequisites
+##  Prerequisites
 
 ### FlutterFlow Requirements
 - **FlutterFlow Pro**: Required for custom actions and widgets
@@ -248,6 +248,9 @@ dependencies:
   flutter_secure_storage: ^10.0.0-beta.4
   path_provider: 2.1.4
   http: 1.4.0
+  go_router: 12.1.3
+  intl: ^0.20.2
+  collection: ^1.19.1
   # ... other dependencies
 ```
 
@@ -257,7 +260,7 @@ dependencies:
 3. **Request access** to Gemma models (if required)
 4. **Store token securely** in your app
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### Method 1: Clone and Import
 ```bash
@@ -281,7 +284,7 @@ Select and copy only the actions you need:
 - **Chat functionality**: `createGemmaSession`, `sendGemmaMessage`
 - **Advanced features**: `sendGemmaMessageWithImage`, `manageDownloadedModels`
 
-## 🔧 Configuration
+##  Configuration
 
 ### Model Selection
 Available pre-configured models:
@@ -312,7 +315,7 @@ temperature: 0.9, // More creative
 - **Use `closeGemmaModel()`** when switching between models
 - **Implement proper lifecycle** management in your pages
 
-## 🐛 Troubleshooting
+##  Troubleshooting
 
 ### Common Issues
 
@@ -362,7 +365,7 @@ await debugModelPaths();
 await manageDownloadedModels();
 ```
 
-## 🏆 Best Practices
+##  Best Practices
 
 ### Security
 - **Store HF tokens securely** using `flutter_secure_storage`
@@ -381,7 +384,7 @@ await manageDownloadedModels();
 - **Provide fallback options** when models aren't available
 - **Handle errors with user-friendly messages**
 
-## 📚 API Reference
+##  API Reference
 
 ### GemmaManager Methods
 ```dart
@@ -396,7 +399,7 @@ class GemmaManager {
 ### Action Parameters
 Each custom action includes comprehensive parameter validation and error handling. Refer to individual action files for detailed parameter descriptions and usage examples.
 
-## 🤝 Contributing
+##  Contributing
 
 Contributions are welcome! Please:
 
@@ -406,18 +409,18 @@ Contributions are welcome! Please:
 4. **Push to the branch** (`git push origin feature/amazing-feature`)
 5. **Open a Pull Request**
 
-## 📄 License
+##  License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+##  Acknowledgments
 
 - **Google** for the Gemma model family
 - **Hugging Face** for model hosting and distribution
 - **FlutterFlow** for the visual development platform
 - **flutter_gemma** package contributors
 
-## 📞 Support
+##  Support
 
 - **Issues**: [GitHub Issues](https://github.com/sgardoll/flutterflow_gemma/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/sgardoll/flutterflow_gemma/discussions)
