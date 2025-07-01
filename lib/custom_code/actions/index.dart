@@ -7,8 +7,3 @@ export 'get_huggingface_model_info.dart' show getHuggingfaceModelInfo;
 export 'manage_downloaded_models.dart' show manageDownloadedModels;
 export 'resize_image_to_constraints.dart' show resizeImageToConstraints;
 export 'install_local_model_file.dart' show installLocalModelFile;
-export 'close_gemma_model.dart' show closeGemmaModel;
-export 'initialize_gemma_model.dart' show initializeGemmaModel;
-export 'send_gemma_message.dart' show sendGemmaMessage;
-export 'download_gemma_model.dart' show downloadGemmaModel;
-export 'install_gemma_from_asset.dart' show installGemmaFromAsset;
