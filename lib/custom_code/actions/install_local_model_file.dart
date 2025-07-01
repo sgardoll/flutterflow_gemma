@@ -60,9 +60,9 @@ Future<bool> installLocalModelFile(
       targetDirectory = await getApplicationDocumentsDirectory();
       print('iOS: Using documents directory: ${targetDirectory.path}');
     } else {
-      // Android plugin expects models in app support directory
-      targetDirectory = await getApplicationSupportDirectory();
-      print('Android: Using app support directory: ${targetDirectory.path}');
+      // Android: Use documents directory as a more accessible location
+      targetDirectory = await getApplicationDocumentsDirectory();
+      print('Android: Using documents directory: ${targetDirectory.path}');
     }
 
     try {

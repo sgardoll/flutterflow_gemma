@@ -232,28 +232,34 @@ class GemmaManager {
         }
       }
 
-      // If image support failed, try without it
-      if (supportImage && e.toString().contains('Vision')) {
+      // If initialization fails, try to fallback gracefully
+      if (e.toString().contains('failed to initialize') ||
+          e.toString().contains('GPU') ||
+          e.toString().contains('delegate')) {
         print(
-            'Vision initialization failed, retrying without image support...');
+            'GPU initialization failed. Attempting to fall back to CPU...');
         try {
+          // Close the failed model explicitly before retrying
+          await closeModel();
+
           _model = await FlutterGemmaPlugin.instance.createModel(
             modelType: _getModelType(modelType),
-            preferredBackend: _getBackend(backend),
+            preferredBackend: PreferredBackend.cpu, // Force CPU
             maxTokens: maxTokens,
-            supportImage: false,
-            maxNumImages: 1,
+            supportImage: supportImage,
+            maxNumImages: maxNumImages,
           );
 
           _isInitialized = true;
           _currentModelType = modelType;
-          _currentBackend = backend;
+          _currentBackend = 'cpu'; // Update backend to CPU
           _initializationRetries = 0; // Reset on success
 
-          print('Model initialized successfully without vision support');
+          print('Successfully initialized model with CPU fallback');
           return true;
-        } catch (fallbackError) {
-          print('Fallback initialization also failed: $fallbackError');
+        } catch (cpuError) {
+          print('CPU fallback also failed: $cpuError');
+          return false;
         }
       }
 

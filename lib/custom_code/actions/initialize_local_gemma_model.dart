@@ -165,7 +165,7 @@ Future<bool> initializeLocalGemmaModel(
 
       final success = await gemmaManager.initializeModel(
         modelType: modelType,
-        backend: 'cpu', // ANDROID FIX: Force CPU backend to avoid GPU delegate crash
+        backend: preferredBackend,
         maxTokens: maxTokens,
         supportImage: supportImage,
         maxNumImages: 1, // Default value
