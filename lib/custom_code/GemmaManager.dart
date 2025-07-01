@@ -2,6 +2,7 @@ import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:flutter_gemma/core/model.dart';
 import 'package:flutter_gemma/pigeon.g.dart';
 import 'dart:typed_data';
+import 'dart:math' as Math;
 
 // Custom class to manage Gemma model functionality for FlutterFlow
 class GemmaManager {
@@ -21,56 +22,94 @@ class GemmaManager {
   // Model file manager
   ModelFileManager get modelManager => FlutterGemmaPlugin.instance.modelManager;
 
+  // Standardized model type normalization function
+  static String _normalizeModelType(String modelType) {
+    return modelType
+        .toLowerCase()
+        .trim()
+        .replaceAll(' ', '-')
+        .replaceAll('_', '-')
+        .replaceAll(RegExp(r'-+'), '-'); // Remove multiple consecutive dashes
+  }
+
   // Helper function to determine if a model supports vision
-  bool _isMultimodalModel(String modelType) {
-    // Normalize the model type for comparison
-    final normalizedType =
-        modelType.toLowerCase().replaceAll(' ', '-').replaceAll('_', '-');
+  static bool isMultimodalModel(String modelType) {
+    final normalizedType = _normalizeModelType(modelType);
 
-    print('GemmaManager._isMultimodalModel: Checking model type: "$modelType"');
-    print(
-        'GemmaManager._isMultimodalModel: Normalized type: "$normalizedType"');
+    print('GemmaManager.isMultimodalModel: Checking model type: "$modelType"');
+    print('GemmaManager.isMultimodalModel: Normalized type: "$normalizedType"');
 
-    // List of known multimodal models
+    // List of known multimodal models with all naming variations
     final multimodalModels = [
+      // Standard Gemma 3 models
       'gemma-3-4b-it',
       'gemma-3-12b-it',
       'gemma-3-27b-it',
+
+      // Nano/Edge variants
       'gemma-3-nano-e4b-it',
       'gemma-3-nano-e2b-it',
       'gemma-3-4b-edge',
       'gemma-3-nano',
+
+      // Handle downloaded model naming patterns
+      'gemma-3n-e4b-it', // From URL extraction
+      'gemma-3n-e2b-it', // From URL extraction
+      'gemma-3-4b-instruct',
+      'gemma-3-12b-instruct',
+      'gemma-3-27b-instruct',
+
+      // Vision-specific models
+      'paligemma',
+      'paligemma-3b-it',
     ];
 
     // Check exact matches first
     for (final model in multimodalModels) {
       if (normalizedType.contains(model)) {
-        print('GemmaManager._isMultimodalModel: Exact match found for $model');
+        print('GemmaManager.isMultimodalModel: Exact match found for $model');
         return true;
       }
     }
 
-    // Check for common patterns that indicate multimodal support
-    final patterns = [
-      'gemma-3', // All Gemma 3 models support vision
+    // Check for patterns that strongly indicate multimodal support
+    final strongPatterns = [
+      'gemma-3', // All Gemma 3 models are multimodal
       'gemma3',
-      'nano',
+      'paligemma',
       'vision',
       'multimodal',
-      'edge',
-      'paligemma', // Google's vision model
+      '3n-e', // Gemma 3 nano edge patterns
     ];
 
-    for (final pattern in patterns) {
+    for (final pattern in strongPatterns) {
       if (normalizedType.contains(pattern)) {
         print(
-            'GemmaManager._isMultimodalModel: Pattern match found for $pattern');
+            'GemmaManager.isMultimodalModel: Strong pattern match found for $pattern');
         return true;
       }
     }
 
-    print('GemmaManager._isMultimodalModel: No multimodal support detected');
+    // Additional checks for edge/nano patterns (these are typically multimodal)
+    if (normalizedType.contains('nano') && normalizedType.contains('gemma')) {
+      print(
+          'GemmaManager.isMultimodalModel: Gemma nano model detected (multimodal)');
+      return true;
+    }
+
+    if (normalizedType.contains('edge') && normalizedType.contains('gemma')) {
+      print(
+          'GemmaManager.isMultimodalModel: Gemma edge model detected (multimodal)');
+      return true;
+    }
+
+    print('GemmaManager.isMultimodalModel: No multimodal support detected');
     return false;
+  }
+
+  // Instance method that uses the static version
+  bool _isMultimodalModel(String modelType) {
+    return GemmaManager.isMultimodalModel(modelType);
   }
 
   // Initialize the model
@@ -193,17 +232,43 @@ class GemmaManager {
     }
 
     if (imageBytes != null) {
+      print('=== VISION DEBUG: Image Analysis ===');
       print('Image bytes length: ${imageBytes.length}');
       print('Image bytes first 10: ${imageBytes.take(10).toList()}');
+      print(
+          'Image bytes last 10: ${imageBytes.skip(imageBytes.length - 10).toList()}');
+
+      // Analyze image header to detect format
+      final imageFormat = _detectImageFormat(imageBytes);
+      print('Detected image format: $imageFormat');
+
+      // Check for common image corruption patterns
+      final isCorrupted = _detectImageCorruption(imageBytes);
+      print('Image corruption detected: $isCorrupted');
+
+      // Check image size constraints
+      final sizeInfo = _analyzeImageSize(imageBytes);
+      print('Image size analysis: $sizeInfo');
 
       // Check if model actually supports images
-      final modelType = _currentModelType?.toLowerCase() ?? '';
+      final modelType = _currentModelType ?? '';
       final supportsImages = _isMultimodalModel(modelType);
       print('Model supports images: $supportsImages (model: $modelType)');
 
       if (!supportsImages) {
-        print('WARNING: Model does not support images, sending text-only');
+        print(
+            'WARNING: Model "$modelType" does not support images, sending text-only');
+        print(
+            'INFO: To enable image support, use a multimodal model like gemma-3-4b-it or gemma-3-nano-e4b-it');
         imageBytes = null;
+      } else {
+        // Enhanced vision prompt when image is provided
+        if (message.trim().isEmpty ||
+            message.trim().toLowerCase() == 'analyze this image') {
+          message =
+              'Please analyze this image and describe what you see in detail.';
+          print('Enhanced vision prompt: $message');
+        }
       }
     }
 
@@ -275,8 +340,9 @@ class GemmaManager {
             Message msg;
             if (imageBytes != null) {
               print('Creating message with image (retry)...');
+              final enhancedMessage = _enhanceVisionPrompt(message);
               msg = Message.withImage(
-                  text: message, imageBytes: imageBytes, isUser: true);
+                  text: enhancedMessage, imageBytes: imageBytes, isUser: true);
               print('Message with image created successfully (retry)');
             } else {
               print('Creating text-only message (retry)...');
@@ -476,9 +542,333 @@ class GemmaManager {
     }
   }
 
+  // Image analysis helper methods
+  String _detectImageFormat(Uint8List imageBytes) {
+    if (imageBytes.length < 8) return 'unknown';
+
+    // Check for JPEG header (FF D8 FF)
+    if (imageBytes[0] == 0xFF &&
+        imageBytes[1] == 0xD8 &&
+        imageBytes[2] == 0xFF) {
+      return 'JPEG';
+    }
+
+    // Check for PNG header (89 50 4E 47 0D 0A 1A 0A)
+    if (imageBytes.length >= 8 &&
+        imageBytes[0] == 0x89 &&
+        imageBytes[1] == 0x50 &&
+        imageBytes[2] == 0x4E &&
+        imageBytes[3] == 0x47 &&
+        imageBytes[4] == 0x0D &&
+        imageBytes[5] == 0x0A &&
+        imageBytes[6] == 0x1A &&
+        imageBytes[7] == 0x0A) {
+      return 'PNG';
+    }
+
+    // Check for WebP header (RIFF....WEBP)
+    if (imageBytes.length >= 12 &&
+        imageBytes[0] == 0x52 &&
+        imageBytes[1] == 0x49 &&
+        imageBytes[2] == 0x46 &&
+        imageBytes[3] == 0x46 &&
+        imageBytes[8] == 0x57 &&
+        imageBytes[9] == 0x45 &&
+        imageBytes[10] == 0x42 &&
+        imageBytes[11] == 0x50) {
+      return 'WebP';
+    }
+
+    return 'unknown';
+  }
+
+  bool _detectImageCorruption(Uint8List imageBytes) {
+    // Check for obviously corrupted data
+    if (imageBytes.length < 100) return true;
+
+    // Check for too many null bytes (indicates corruption)
+    int nullCount = 0;
+    for (int i = 0; i < Math.min(100, imageBytes.length); i++) {
+      if (imageBytes[i] == 0) nullCount++;
+    }
+
+    // If more than 50% null bytes in first 100 bytes, likely corrupted
+    if (nullCount > 50) return true;
+
+    // Check for invalid format headers
+    final format = _detectImageFormat(imageBytes);
+    if (format == 'unknown') return true;
+
+    return false;
+  }
+
+  String _analyzeImageSize(Uint8List imageBytes) {
+    final sizeKB = (imageBytes.length / 1024).toStringAsFixed(1);
+    final sizeMB = (imageBytes.length / (1024 * 1024)).toStringAsFixed(2);
+
+    if (imageBytes.length < 1024) {
+      return '${imageBytes.length} bytes (TOO SMALL - likely corrupted)';
+    } else if (imageBytes.length > 10 * 1024 * 1024) {
+      return '$sizeMB MB (TOO LARGE - may cause memory issues)';
+    } else {
+      return '$sizeKB KB (acceptable size)';
+    }
+  }
+
+  // Enhanced vision prompt generation
+  String _enhanceVisionPrompt(String originalMessage) {
+    final message = originalMessage.trim();
+
+    // If empty or generic, provide a structured vision prompt
+    if (message.isEmpty ||
+        message.toLowerCase() == 'analyze this image' ||
+        message.toLowerCase() == 'what is this image showing?' ||
+        message.toLowerCase() == 'describe this image') {
+      return '''Look at this photograph and describe exactly what you see. This is a real photograph, not a pattern, design, or artwork.
+
+Identify:
+- What real-world objects, people, animals, or plants are visible
+- The actual setting or location (indoor/outdoor, specific place)
+- Specific details about lighting, colors, and composition
+- Any text, signs, or writing visible in the image
+- The style of photography (close-up, wide shot, etc.)
+
+Do NOT describe this as:
+- A pattern, design, or artwork
+- A textile or fabric
+- An abstract composition
+- A computer-generated image
+
+Focus on what is actually photographed in the real world.''';
+    }
+
+    // If the message doesn't explicitly mention the image, make it clear
+    if (!message.toLowerCase().contains('image') &&
+        !message.toLowerCase().contains('picture') &&
+        !message.toLowerCase().contains('photo') &&
+        !message.toLowerCase().contains('see') &&
+        !message.toLowerCase().contains('look') &&
+        !message.toLowerCase().contains('show')) {
+      return 'Looking at this real photograph: $message';
+    }
+
+    // Otherwise, use the original message but emphasize it's a photograph
+    return 'Looking at this photograph: $message';
+  }
+
+  // Comprehensive vision model testing
+  Future<Map<String, dynamic>> testVisionCapabilities() async {
+    final results = <String, dynamic>{
+      'isReady': false,
+      'supportsVision': false,
+      'canProcessImages': false,
+      'respondsToImages': false,
+      'givesReasonableResponses': false,
+      'errors': <String>[],
+      'testResults': <String, dynamic>{},
+    };
+
+    if (!_isInitialized || _session == null) {
+      results['errors'].add('Model or session not ready');
+      return results;
+    }
+
+    results['isReady'] = true;
+
+    if (!_isMultimodalModel(_currentModelType ?? '')) {
+      results['errors'].add('Model does not claim vision support');
+      return results;
+    }
+
+    results['supportsVision'] = true;
+
+    try {
+      // Test 1: Simple geometric test image (solid color square)
+      final simpleTestResult = await _testWithSimpleImage();
+      results['testResults']['simpleImage'] = simpleTestResult;
+
+      // Test 2: Text-based test image
+      final textTestResult = await _testWithTextImage();
+      results['testResults']['textImage'] = textTestResult;
+
+      // Test 3: Basic shape recognition
+      final shapeTestResult = await _testWithShapeImage();
+      results['testResults']['shapeImage'] = shapeTestResult;
+
+      // Analyze overall performance
+      results['canProcessImages'] = simpleTestResult['responded'] == true;
+      results['respondsToImages'] = [
+        simpleTestResult,
+        textTestResult,
+        shapeTestResult
+      ].any((test) => test['responded'] == true);
+
+      // Check for reasonable responses (not hallucinations)
+      final responses = [
+        simpleTestResult['response'],
+        textTestResult['response'],
+        shapeTestResult['response']
+      ]
+          .where((r) => r != null && (r as String).isNotEmpty)
+          .cast<String>()
+          .toList();
+
+      results['givesReasonableResponses'] =
+          responses.any((response) => !_isResponseProblematic(response));
+    } catch (e) {
+      results['errors'].add('Testing error: $e');
+    }
+
+    return results;
+  }
+
+  // Test with a simple solid color image
+  Future<Map<String, dynamic>> _testWithSimpleImage() async {
+    try {
+      // Create a simple red square (2x2 pixels) in PNG format
+      final testImageBytes = Uint8List.fromList([
+        0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, // PNG signature
+        0x00, 0x00, 0x00, 0x0D, // IHDR length
+        0x49, 0x48, 0x44, 0x52, // IHDR
+        0x00, 0x00, 0x00, 0x02, // Width: 2
+        0x00, 0x00, 0x00, 0x02, // Height: 2
+        0x08, 0x02, 0x00, 0x00, 0x00, // Bit depth 8, RGB
+        0x9D, 0x19, 0x48, 0x2C, // CRC
+        0x00, 0x00, 0x00, 0x12, // IDAT length
+        0x49, 0x44, 0x41, 0x54, // IDAT
+        0x08, 0x1D, 0x01, 0x07, 0x00, 0xF8, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0x00,
+        0x00, 0xFF, 0x00, 0x00, 0x02, 0x07, 0x01, 0x02, // Red pixels
+        0x9A, 0x1C, 0x18, 0xE9, // CRC
+        0x00, 0x00, 0x00, 0x00, // IEND length
+        0x49, 0x45, 0x4E, 0x44, // IEND
+        0xAE, 0x42, 0x60, 0x82 // CRC
+      ]);
+
+      print('Testing with simple red square image...');
+      final response = await sendMessage(
+          'What color is this image? Describe what you see.',
+          imageBytes: testImageBytes);
+
+      return {
+        'responded': response != null && response.isNotEmpty,
+        'response': response,
+        'testType': 'simple_color',
+        'expectedKeywords': ['red', 'square', 'color'],
+      };
+    } catch (e) {
+      return {
+        'responded': false,
+        'error': e.toString(),
+        'testType': 'simple_color',
+      };
+    }
+  }
+
+  // Test with text-like content
+  Future<Map<String, dynamic>> _testWithTextImage() async {
+    try {
+      // Simple 1x1 white pixel (text images usually work better)
+      final testImageBytes = Uint8List.fromList([
+        0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, // PNG header
+        0x00, 0x00, 0x00, 0x0D, // IHDR chunk length
+        0x49, 0x48, 0x44, 0x52, // IHDR
+        0x00, 0x00, 0x00, 0x01, // Width: 1
+        0x00, 0x00, 0x00, 0x01, // Height: 1
+        0x08, 0x02, 0x00, 0x00, 0x00, // Bit depth, color type, etc.
+        0x90, 0x77, 0x53, 0xDE, // CRC
+        0x00, 0x00, 0x00, 0x0C, // IDAT chunk length
+        0x49, 0x44, 0x41, 0x54, // IDAT
+        0x08, 0x99, 0x01, 0x01, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0x00, 0x00,
+        0x02, 0x00, 0x01, // White pixel
+        0xE5, 0x27, 0xDE, 0xFC, // CRC
+        0x00, 0x00, 0x00, 0x00, // IEND chunk length
+        0x49, 0x45, 0x4E, 0x44, // IEND
+        0xAE, 0x42, 0x60, 0x82 // CRC
+      ]);
+
+      print('Testing with minimal white image...');
+      final response = await sendMessage('Describe this image in one word.',
+          imageBytes: testImageBytes);
+
+      return {
+        'responded': response != null && response.isNotEmpty,
+        'response': response,
+        'testType': 'minimal_image',
+        'expectedKeywords': ['white', 'small', 'pixel', 'blank'],
+      };
+    } catch (e) {
+      return {
+        'responded': false,
+        'error': e.toString(),
+        'testType': 'minimal_image',
+      };
+    }
+  }
+
+  // Test with basic shape
+  Future<Map<String, dynamic>> _testWithShapeImage() async {
+    try {
+      // Very basic test - just see if it responds at all
+      final testImageBytes = Uint8List.fromList([
+        0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, // PNG header
+        0x00, 0x00, 0x00, 0x0D,
+        0x49, 0x48, 0x44, 0x52,
+        0x00, 0x00, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x01,
+        0x08, 0x02, 0x00, 0x00, 0x00,
+        0x90, 0x77, 0x53, 0xDE,
+        0x00, 0x00, 0x00, 0x0C,
+        0x49, 0x44, 0x41, 0x54,
+        0x08, 0x99, 0x01, 0x01, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x00,
+        0x02, 0x00, 0x01,
+        0xE5, 0x27, 0xDE, 0xFC,
+        0x00, 0x00, 0x00, 0x00,
+        0x49, 0x45, 0x4E, 0x44,
+        0xAE, 0x42, 0x60, 0x82
+      ]);
+
+      print('Testing basic image processing...');
+      final response =
+          await sendMessage('What do you see?', imageBytes: testImageBytes);
+
+      return {
+        'responded': response != null && response.isNotEmpty,
+        'response': response,
+        'testType': 'basic_processing',
+      };
+    } catch (e) {
+      return {
+        'responded': false,
+        'error': e.toString(),
+        'testType': 'basic_processing',
+      };
+    }
+  }
+
+  // Check if a response shows problematic patterns
+  bool _isResponseProblematic(String response) {
+    final lower = response.toLowerCase();
+
+    final problematicPatterns = [
+      'repeating pattern',
+      'textile',
+      'fabric',
+      'woven',
+      'abstract pattern',
+      'appears to be a design',
+      'typographic exercise',
+      'artistic exploration',
+      'intricate detail',
+      'somewhat abstract',
+    ];
+
+    return problematicPatterns.any((pattern) => lower.contains(pattern));
+  }
+
   // Getters
   bool get isInitialized => _isInitialized;
   String? get currentModelType => _currentModelType;
   String? get currentBackend => _currentBackend;
   bool get hasSession => _session != null;
+  bool get supportsVision => _isMultimodalModel(_currentModelType ?? '');
 }

@@ -4,7 +4,6 @@ import '/flutter_flow/flutter_flow_util.dart';
 import '/flutter_flow/flutter_flow_widgets.dart';
 import 'dart:ui';
 import '/custom_code/actions/create_gemma_session.dart';
-import '/custom_code/actions/index.dart' as actions;
 import '/custom_code/widgets/index.dart' as custom_widgets;
 import '/index.dart';
 import 'setup_widget.dart' show SetupWidget;
@@ -15,12 +14,7 @@ import 'package:provider/provider.dart';
 class SetupModel extends FlutterFlowModel<SetupWidget> {
   ///  Local state fields for this page.
 
-  double? downloadProgress = 0.0;
-
-  ///  State fields for stateful widgets in this page.
-
-  // Stores action output result for [Custom Action - createGemmaSession] action in GemmaAuthenticatedSetupWidget widget.
-  bool? createSessionOutput;
+  double? progress = 0.0;
 
   @override
   void initState(BuildContext context) {}

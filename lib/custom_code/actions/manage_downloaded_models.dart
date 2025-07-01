@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 // Begin custom action code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
+import 'index.dart'; // Imports other custom actions
+
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
