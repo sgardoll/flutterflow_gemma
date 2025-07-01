@@ -6,6 +6,10 @@ import 'package:flutter/material.dart';
 // Begin custom action code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
+import 'index.dart'; // Imports other custom actions
+
+import 'index.dart'; // Imports other custom actions
+
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
@@ -51,13 +55,21 @@ Future<bool> installLocalModelFile(
       print('No existing model to clear: $e');
     }
 
-    // Step 2: Clear the app documents directory of any old model files
-    final appDocDir = await getApplicationDocumentsDirectory();
-    print('App documents directory: ${appDocDir.path}');
+    // Step 2: Use platform-specific directories
+    late Directory targetDirectory;
+    if (Platform.isIOS) {
+      // iOS plugin expects models in Documents directory
+      targetDirectory = await getApplicationDocumentsDirectory();
+      print('iOS: Using documents directory: ${targetDirectory.path}');
+    } else {
+      // Android: Use documents directory as a more accessible location
+      targetDirectory = await getApplicationDocumentsDirectory();
+      print('Android: Using documents directory: ${targetDirectory.path}');
+    }
 
     try {
-      final documentsFiles = await appDocDir.list().toList();
-      for (final entity in documentsFiles) {
+      final targetFiles = await targetDirectory.list().toList();
+      for (final entity in targetFiles) {
         if (entity is File && entity.path.endsWith('.task')) {
           print('Removing old model file: ${entity.path}');
           await entity.delete();
@@ -67,50 +79,40 @@ Future<bool> installLocalModelFile(
       print('Could not clear old model files: $e');
     }
 
-    // Step 3: Copy the model file to the documents root directory with integrity verification
-    final targetModelPath = path.join(appDocDir.path, modelFileName);
-    print('Copying model to: $targetModelPath');
-
-    // Delete target file if it exists to ensure clean copy
-    final targetFile = File(targetModelPath);
-    if (await targetFile.exists()) {
-      await targetFile.delete();
-      print('Deleted existing target file');
+    // Also clear the other directory for good measure
+    try {
+      final otherDirectory = Platform.isIOS
+          ? await getApplicationSupportDirectory()
+          : await getApplicationDocumentsDirectory();
+      final otherFiles = await otherDirectory.list().toList();
+      for (final entity in otherFiles) {
+        if (entity is File && entity.path.endsWith('.task')) {
+          print('Removing old model file from other directory: ${entity.path}');
+          await entity.delete();
+        }
+      }
+    } catch (e) {
+      print('Could not clear other directory: $e');
     }
 
-    // Copy with chunked verification to prevent corruption
-    await _copyFileWithVerification(modelFile, targetFile);
+    // Step 3: Copy the model file to the platform-specific directory
+    final targetModelPath = path.join(targetDirectory.path, modelFileName);
+    print('Copying model to platform directory: $targetModelPath');
+
+    await modelFile.copy(targetModelPath);
     print('Model file copied successfully');
 
     // Step 4: Verify the file was copied correctly
-    if (!await targetFile.exists()) {
+    final copiedFile = File(targetModelPath);
+    if (!await copiedFile.exists()) {
       print('Error: Failed to copy model file to target location');
       return false;
     }
 
-    final copiedSize = await targetFile.length();
+    final copiedSize = await copiedFile.length();
     if (copiedSize != fileSize) {
       print(
           'Error: Copied file size mismatch. Original: $fileSize, Copied: $copiedSize');
-      print('This indicates file corruption during copy operation');
-
-      // Delete corrupted file
-      await targetFile.delete();
-      return false;
-    }
-
-    // Additional integrity check - verify file can be read
-    try {
-      final testBytes = await targetFile.readAsBytes();
-      if (testBytes.length != copiedSize) {
-        print('Error: File corruption detected during read verification');
-        await targetFile.delete();
-        return false;
-      }
-      print('File integrity verification passed');
-    } catch (e) {
-      print('Error: Cannot read copied file - $e');
-      await targetFile.delete();
       return false;
     }
 
@@ -120,21 +122,15 @@ Future<bool> installLocalModelFile(
     // Step 5: Wait a moment for file system operations to complete
     await Future.delayed(Duration(milliseconds: 200));
 
-    // Step 6: Register the model with the plugin with platform-specific handling
+    // Step 6: Register the model with the plugin
     print('Registering model with plugin: $modelFileName');
     try {
-      String pathToRegister;
+      // ANDROID FIX: Always use the absolute path for Android to avoid
+      // path resolution issues in the native plugin code.
+      final pathToRegister =
+          Platform.isAndroid ? targetModelPath : modelFileName;
 
-      if (Platform.isAndroid) {
-        // Android needs the full path
-        pathToRegister = targetModelPath;
-        print('Android: Registering full path: $pathToRegister');
-      } else {
-        // iOS uses just the filename
-        pathToRegister = modelFileName;
-        print('iOS: Registering filename: $pathToRegister');
-      }
-
+      print('Registering with path: "$pathToRegister"');
       await modelManager.setModelPath(pathToRegister);
       print('Model path registered successfully!');
 
@@ -143,7 +139,7 @@ Future<bool> installLocalModelFile(
 
       return true;
     } catch (e) {
-      print('Error registering model: $e');
+      print('Error registering model path: $e');
       return false;
     }
   } catch (e) {
@@ -162,24 +158,4 @@ Future<bool> installLocalModelFile(
 
     return false;
   }
-}
-
-/// Copy file with verification to prevent corruption
-Future<void> _copyFileWithVerification(File source, File target) async {
-  const chunkSize = 1024 * 1024; // 1MB chunks
-
-  final sourceStream = source.openRead();
-  final targetSink = target.openWrite();
-
-  try {
-    await for (final chunk in sourceStream) {
-      targetSink.add(chunk);
-    }
-    await targetSink.flush();
-  } finally {
-    await targetSink.close();
-  }
-
-  // Wait for file system sync
-  await Future.delayed(Duration(milliseconds: 100));
 }

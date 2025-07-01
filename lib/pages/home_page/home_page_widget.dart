@@ -1,11 +1,8 @@
-import '/flutter_flow/flutter_flow_icon_button.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/flutter_flow/flutter_flow_widgets.dart';
 import 'dart:ui';
-import '/custom_code/actions/index.dart' as actions;
 import '/custom_code/widgets/index.dart' as custom_widgets;
-import '/index.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -52,42 +49,31 @@ class _HomePageWidgetState extends State<HomePageWidget> {
         backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
         appBar: AppBar(
           backgroundColor: FlutterFlowTheme.of(context).primary,
-          automaticallyImplyLeading: false,
-          leading: FlutterFlowIconButton(
-            borderRadius: 8.0,
-            buttonSize: 40.0,
-            fillColor: FlutterFlowTheme.of(context).primary,
-            icon: Icon(
-              Icons.arrow_back,
-              color: FlutterFlowTheme.of(context).info,
-              size: 24.0,
-            ),
-            onPressed: () async {
-              await actions.closeGemmaModel();
-
-              context.goNamed(SetupWidget.routeName);
-            },
-          ),
-          title: Text(
-            'Gemma Offline Chat',
-            style: FlutterFlowTheme.of(context).headlineMedium.override(
-                  font: GoogleFonts.interTight(
-                    fontWeight:
-                        FlutterFlowTheme.of(context).headlineMedium.fontWeight,
-                    fontStyle:
-                        FlutterFlowTheme.of(context).headlineMedium.fontStyle,
-                  ),
-                  color: Colors.white,
-                  fontSize: 22.0,
-                  letterSpacing: 0.0,
-                  fontWeight:
-                      FlutterFlowTheme.of(context).headlineMedium.fontWeight,
-                  fontStyle:
-                      FlutterFlowTheme.of(context).headlineMedium.fontStyle,
-                ),
-          ),
+          automaticallyImplyLeading: true,
           actions: [],
-          centerTitle: true,
+          flexibleSpace: FlexibleSpaceBar(
+            title: Text(
+              'Gemma Offline Chat',
+              maxLines: 2,
+              style: FlutterFlowTheme.of(context).titleLarge.override(
+                    font: GoogleFonts.interTight(
+                      fontWeight:
+                          FlutterFlowTheme.of(context).titleLarge.fontWeight,
+                      fontStyle:
+                          FlutterFlowTheme.of(context).titleLarge.fontStyle,
+                    ),
+                    color: FlutterFlowTheme.of(context).info,
+                    letterSpacing: 0.0,
+                    fontWeight:
+                        FlutterFlowTheme.of(context).titleLarge.fontWeight,
+                    fontStyle:
+                        FlutterFlowTheme.of(context).titleLarge.fontStyle,
+                    lineHeight: 0.9,
+                  ),
+            ),
+            centerTitle: true,
+            expandedTitleScale: 1.0,
+          ),
           elevation: 0.0,
         ),
         body: SafeArea(
@@ -112,31 +98,12 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                       borderRadius: 12.0,
                       paddingHorizontal: 24.0,
                       paddingVertical: 24.0,
-                      placeholder: 'Enter chat text...',
+                      placeholder: 'Type a message...',
                       sendButtonText: 'Send',
-                      imageButtonColor: FlutterFlowTheme.of(context).primary,
-                      onMessageSent: (message) async {
-                        _model.sendMessageOutput =
-                            await actions.sendGemmaMessage(
-                          message,
-                          null,
-                        );
-
-                        safeSetState(() {});
-                        return _model.sendMessageOutput; // Return the response
-                      },
-                      onResponseReceived: (response) async {},
-                      onImageMessageSent: (message, imageFile) async {
-                        return await actions.sendGemmaMessageWithImage(
-                          message,
-                          imageFile,
-                        );
-                      },
-                      onModelCapabilitiesCheck: () async {
-                        // This callback can be used to set App State variables
-                        // based on the detected model capabilities
-                        print('Model capabilities check triggered');
-                      },
+                      uploadButtonText: '📷',
+                      showImageUpload: true,
+                      maxImageSize: 5100000,
+                      imageQuality: 80,
                     ),
                   ),
                 ),

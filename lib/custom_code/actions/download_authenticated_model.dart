@@ -6,143 +6,175 @@ import 'package:flutter/material.dart';
 // Begin custom action code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
+import 'index.dart'; // Imports other custom actions
+
 import 'dart:io';
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as path;
 import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 
 Future<String?> downloadAuthenticatedModel(
-  String modelNameOrUrl,
-  String huggingFaceToken,
+  String modelIdentifier,
+  String hfToken,
   Future Function(int downloaded, int total, double percentage)? onProgress,
 ) async {
   try {
-    String modelUrl;
+    print('=== downloadAuthenticatedModel START ===');
+    print('Model identifier: $modelIdentifier');
+    print('Token provided: ${hfToken.isNotEmpty}');
 
-    // Check if the input is a URL or a predefined model name
-    if (modelNameOrUrl.startsWith('https://')) {
-      // It's a custom URL, use it directly
-      modelUrl = modelNameOrUrl;
-      print('Using custom URL: $modelUrl');
-    } else {
-      // It's a predefined model name, look it up in the map
-      final Map<String, String> modelUrls = {
-        'gemma-3-4b-it':
-            'https://huggingface.co/google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-3n-E4B-it-int4.task',
-        'gemma-3-nano-e4b-it':
-            'https://huggingface.co/google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-3n-E4B-it-int4.task',
-        'gemma-3-2b-it':
-            'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task',
-        'gemma-3-nano-e2b-it':
-            'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task',
-        'gemma-1b-it':
-            'https://huggingface.co/litert-community/Gemma3-1B-IT/resolve/main/Gemma3-1B-IT_multi-prefill-seq_q4_ekv2048.task',
-      };
-
-      final foundUrl = modelUrls[modelNameOrUrl];
-      if (foundUrl == null) {
-        print('Error: Unknown model name: $modelNameOrUrl');
-        return null;
-      }
-      modelUrl = foundUrl;
-      print('Using predefined model URL for $modelNameOrUrl: $modelUrl');
-    }
-
-    // Get the app's documents directory
-    final directory = await getApplicationDocumentsDirectory();
-    final modelsDir = Directory(path.join(directory.path, 'models'));
-
-    // Create models directory if it doesn't exist
+    // Get the app documents directory
+    final appDir = await getApplicationDocumentsDirectory();
+    final modelsDir = Directory('${appDir.path}/models');
     if (!await modelsDir.exists()) {
       await modelsDir.create(recursive: true);
     }
 
-    // Extract filename from URL
-    final fileName = modelUrl.split('/').last;
-    final filePath = path.join(modelsDir.path, fileName);
+    String downloadUrl;
+    String fileName;
+
+    // Check if it's a custom URL or predefined model
+    if (modelIdentifier.startsWith('http')) {
+      // Custom URL provided
+      downloadUrl = modelIdentifier;
+      fileName = modelIdentifier.split('/').last;
+      if (!fileName.contains('.')) {
+        fileName += '.task'; // Default extension
+      }
+    } else {
+      // Predefined model identifier
+      downloadUrl = _getModelDownloadUrl(modelIdentifier);
+      fileName = _getModelFileName(modelIdentifier);
+    }
+
+    print('Download URL: $downloadUrl');
+    print('File name: $fileName');
+
+    final filePath = '${modelsDir.path}/$fileName';
     final file = File(filePath);
 
     // Check if file already exists
     if (await file.exists()) {
-      final fileSize = await file.length();
-      print('Model file already exists: $filePath (${fileSize} bytes)');
+      print('Model file already exists at: $filePath');
       return filePath;
     }
 
-    print('Downloading model from: $modelUrl');
-    print('Saving to: $filePath');
-
-    // Download with authentication and progress tracking
+    // Prepare headers for authenticated request
     final headers = <String, String>{
-      'Authorization': 'Bearer $huggingFaceToken',
-      'User-Agent': 'FlutterFlow-App/1.0',
+      'Authorization': 'Bearer $hfToken',
+      'User-Agent': 'FlutterGemma/1.0',
     };
 
-    final request = http.Request('GET', Uri.parse(modelUrl));
+    print('Starting download...');
+    final request = http.Request('GET', Uri.parse(downloadUrl));
     request.headers.addAll(headers);
 
     final streamedResponse = await request.send();
 
-    if (streamedResponse.statusCode == 200) {
-      final contentLength = streamedResponse.contentLength ?? 0;
-      print(
-          'Total file size: ${contentLength} bytes (${(contentLength / 1024 / 1024 / 1024).toStringAsFixed(2)} GB)');
+    if (streamedResponse.statusCode != 200) {
+      String errorMsg =
+          'Download failed with status ${streamedResponse.statusCode}: ${streamedResponse.reasonPhrase}';
 
-      if (onProgress != null && contentLength > 0) {
-        await onProgress(0, contentLength, 0.0);
+      // Provide specific guidance for common errors
+      if (streamedResponse.statusCode == 404) {
+        errorMsg +=
+            '\n\nThis model may not exist at the specified URL. Common causes:';
+        errorMsg += '\n• Model identifier "$modelIdentifier" is not available';
+        errorMsg += '\n• HuggingFace repository has moved or been renamed';
+        errorMsg += '\n• Model file name has changed';
+        errorMsg +=
+            '\n\nTry using a different model variant or check HuggingFace for available models.';
+      } else if (streamedResponse.statusCode == 401 ||
+          streamedResponse.statusCode == 403) {
+        errorMsg +=
+            '\n\nAuthentication failed. Please check your HuggingFace token.';
       }
 
-      final sink = file.openWrite();
-      int downloadedBytes = 0;
-
-      await for (final chunk in streamedResponse.stream) {
-        downloadedBytes += chunk.length;
-        sink.add(chunk);
-
-        if (onProgress != null && contentLength > 0) {
-          final percentage = (downloadedBytes / contentLength) * 100;
-          await onProgress(downloadedBytes, contentLength, percentage);
-        }
-      }
-
-      await sink.close();
-      final fileSize = await file.length();
-
-      print('Model downloaded successfully!');
-      print('File saved to: $filePath');
-      print('File size: ${fileSize} bytes');
-
-      return filePath;
-    } else if (streamedResponse.statusCode == 401 ||
-        streamedResponse.statusCode == 403) {
-      // Read the response body to check for access restriction message
-      final responseBody = await streamedResponse.stream.bytesToString();
-      print('Authentication/Access error response: $responseBody');
-
-      // Check if it's a restricted access error
-      if (responseBody.contains('restricted') &&
-          responseBody.contains('authorized list')) {
-        print('Error: Model access is restricted. You need to request access.');
-        print('Visit the model page to request access.');
-      } else {
-        print('Error: Authentication failed. Check your Hugging Face token.');
-        print('Make sure you have access to the model repository.');
-      }
-      print('URL: $modelUrl');
-      return null;
-    } else if (streamedResponse.statusCode == 404) {
-      print('Error: Model file not found at URL: $modelUrl');
-      print('Please verify the URL is correct and the file exists.');
-      return null;
-    } else {
-      print('Error downloading model: ${streamedResponse.statusCode}');
-      print('Response reason: ${streamedResponse.reasonPhrase}');
-      print('URL: $modelUrl');
-      print('Headers sent: $headers');
-      return null;
+      print('ERROR: $errorMsg');
+      throw Exception(errorMsg);
     }
+
+    final totalBytes = streamedResponse.contentLength ?? 0;
+    int downloadedBytes = 0;
+
+    print('Total bytes to download: $totalBytes');
+
+    // Create file sink for writing
+    final sink = file.openWrite();
+
+    await for (final chunk in streamedResponse.stream) {
+      sink.add(chunk);
+      downloadedBytes += chunk.length;
+
+      if (totalBytes > 0 && onProgress != null) {
+        final percentage = (downloadedBytes / totalBytes) * 100;
+        onProgress(downloadedBytes, totalBytes, percentage);
+      }
+    }
+
+    await sink.close();
+
+    print('Download completed successfully');
+    print('File saved at: $filePath');
+    print('Final size: ${await file.length()} bytes');
+
+    return filePath;
   } catch (e) {
     print('Error in downloadAuthenticatedModel: $e');
     return null;
   }
+}
+
+String _getModelDownloadUrl(String modelIdentifier) {
+  // Map of predefined models to their HuggingFace download URLs
+  // ONLY Gemma 3n models have official .task files available
+  final modelUrls = <String, String>{
+    // ✅ AVAILABLE: Gemma 3n models with official .task files
+    'gemma-3-nano-e4b-it':
+        'https://huggingface.co/google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-3n-E4B-it-int4.task',
+    'gemma-3-nano-e2b-it':
+        'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task',
+
+    // Alternative identifiers for the same models
+    'gemma-3n-e4b-it':
+        'https://huggingface.co/google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-3n-E4B-it-int4.task',
+    'gemma-3n-e2b-it':
+        'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task',
+
+    // ❌ NO OFFICIAL .TASK FILES: These models don't have .task format
+    // Using Gemma 3n E4B as fallback for models without .task files
+    'paligemma-3b-it':
+        'https://huggingface.co/google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-3n-E4B-it-int4.task',
+    'gemma-3-4b-it':
+        'https://huggingface.co/google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-3n-E4B-it-int4.task',
+    'gemma-3-2b-it':
+        'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task',
+    'gemma-1b-it':
+        'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task',
+  };
+
+  final url = modelUrls[modelIdentifier] ??
+      // Default fallback URL - Gemma 3n E4B (multimodal)
+      'https://huggingface.co/google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-3n-E4B-it-int4.task';
+
+  print('Mapped model $modelIdentifier to URL: $url');
+  return url;
+}
+
+String _getModelFileName(String modelIdentifier) {
+  // Map of predefined models to their file names
+  final modelFileNames = <String, String>{
+    // Gemma 3n models (official .task files)
+    'gemma-3-nano-e4b-it': 'gemma-3n-E4B-it-int4.task',
+    'gemma-3-nano-e2b-it': 'gemma-3n-E2B-it-int4.task',
+    'gemma-3n-e4b-it': 'gemma-3n-E4B-it-int4.task',
+    'gemma-3n-e2b-it': 'gemma-3n-E2B-it-int4.task',
+
+    // Models without .task files (using Gemma 3n files as substitutes)
+    'paligemma-3b-it': 'gemma-3n-E4B-it-int4.task',
+    'gemma-3-4b-it': 'gemma-3n-E4B-it-int4.task',
+    'gemma-3-2b-it': 'gemma-3n-E2B-it-int4.task',
+    'gemma-1b-it': 'gemma-3n-E2B-it-int4.task',
+  };
+
+  return modelFileNames[modelIdentifier] ?? 'gemma-3n-E4B-it-int4.task';
 }

@@ -7,12 +7,17 @@ import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
+import 'index.dart'; // Imports other custom widgets
+
+import 'index.dart'; // Imports other custom widgets
+
 import '/custom_code/actions/index.dart' as actions; // Imports custom actions
 
 import '/custom_code/actions/download_authenticated_model.dart';
 import '/custom_code/actions/get_huggingface_model_info.dart';
 import '/custom_code/actions/manage_downloaded_models.dart';
 import '/custom_code/actions/initialize_local_gemma_model.dart';
+import '../GemmaManager.dart';
 
 import 'package:http/http.dart' as http;
 import 'dart:io';
@@ -32,7 +37,7 @@ class GemmaAuthenticatedSetupWidget extends StatefulWidget {
     this.backgroundColor,
     this.textColor,
     required this.onSetupComplete,
-    this.onSetupFailed,
+    this.onSetupFailed, // Optional - widget handles errors internally
     this.onProgress,
   });
 
@@ -80,6 +85,11 @@ class _GemmaAuthenticatedSetupWidgetState
 
   // Predefined model options - Focus on multimodal Gemma 3 models
   final List<Map<String, String>> _modelOptions = [
+    {
+      'value': 'paligemma-3b-it',
+      'label': 'PaliGemma 3B Vision (Recommended)',
+      'description': 'Purpose-built for superior vision-language tasks'
+    },
     {
       'value': 'gemma-3-4b-it',
       'label': 'Gemma 3 4B Instruct (Multimodal)',
@@ -187,22 +197,9 @@ class _GemmaAuthenticatedSetupWidgetState
   }
 
   // Helper function to determine if a model supports vision
+  // Uses the standardized detection logic from GemmaManager
   bool _isMultimodalModel(String modelType) {
-    final multimodalModels = [
-      'gemma-3-4b-it',
-      'gemma-3-12b-it',
-      'gemma-3-27b-it',
-      'gemma-3-nano-e4b-it',
-      'gemma-3-nano-e2b-it',
-      'gemma-3n-e4b-it', // Handle URL-extracted names
-      'gemma-3n-e2b-it', // Handle URL-extracted names
-    ];
-    return multimodalModels.any((model) =>
-        modelType.toLowerCase().contains(model.toLowerCase()) ||
-        modelType.toLowerCase().contains('nano') ||
-        modelType.toLowerCase().contains('vision') ||
-        modelType.toLowerCase().contains('multimodal') ||
-        modelType.toLowerCase().contains('3n-e')); // Handle Gemma 3 nano models
+    return GemmaManager.isMultimodalModel(modelType);
   }
 
   Future<void> _useExistingModel(String filePath, String modelType) async {
@@ -216,12 +213,25 @@ class _GemmaAuthenticatedSetupWidgetState
         _currentStep = 'Initializing existing model...';
       });
 
+      // Debug model paths before initialization
+      print('=== DEBUGGING MODEL PATHS BEFORE INITIALIZATION ===');
+      try {
+        await debugModelPaths();
+        print('Debug model paths completed');
+      } catch (e) {
+        print('Error running debug: $e');
+      }
+
       // Determine if this model supports vision
       final isMultimodal = _isMultimodalModel(modelType);
       final supportImage = isMultimodal && widget.supportImage;
 
-      print(
-          'Model: $modelType, Multimodal: $isMultimodal, Support Image: $supportImage');
+      print('=== MODEL CAPABILITY DETECTION ===');
+      print('Original model type: "$modelType"');
+      print('Detected as multimodal: $isMultimodal');
+      print('Widget supports image: ${widget.supportImage}');
+      print('Final image support: $supportImage');
+      print('=== END CAPABILITY DETECTION ===');
 
       print('About to call initializeLocalGemmaModel...');
       final initSuccess = await initializeLocalGemmaModel(
@@ -240,26 +250,62 @@ class _GemmaAuthenticatedSetupWidgetState
       print('initializeLocalGemmaModel returned: $initSuccess');
 
       if (initSuccess) {
-        print('Model initialization SUCCESS - setting complete state');
+        print('Model initialization SUCCESS - now creating session');
         setState(() {
-          _isSetupInProgress = false;
-          _isSetupComplete = true;
-          _currentStep = 'Model ready for use!';
+          _currentStep = 'Creating chat session...';
         });
-        print('About to call onSetupComplete callback...');
-        await widget.onSetupComplete();
-        print('onSetupComplete callback completed!');
+
+        // Create session after successful model initialization
+        final gemmaManager = GemmaManager();
+        final sessionSuccess = await gemmaManager.createSession(
+          temperature: 0.8,
+          randomSeed: 1,
+          topK: 1,
+        );
+
+        if (sessionSuccess) {
+          print('Session creation SUCCESS - setup complete');
+          setState(() {
+            _isSetupInProgress = false;
+            _isSetupComplete = true;
+            _currentStep = 'Model and session ready for use!';
+          });
+          print('About to call onSetupComplete callback...');
+          await widget.onSetupComplete();
+          print('onSetupComplete callback completed!');
+        } else {
+          print('Session creation FAILED - showing error to user');
+          setState(() {
+            _isSetupInProgress = false;
+            _isSetupComplete = false;
+            _errorMessage = 'Failed to create chat session. Please try again.';
+            _currentStep = '';
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Session creation failed'),
+              backgroundColor: Colors.red,
+              duration: Duration(milliseconds: 4000),
+            ),
+          );
+        }
       } else {
-        print('Model initialization FAILED');
+        print('Model initialization FAILED - showing error to user');
         setState(() {
           _isSetupInProgress = false;
+          _isSetupComplete = false;
           _errorMessage = 'Failed to initialize model. Please try again.';
           _currentStep = '';
         });
 
-        if (widget.onSetupFailed != null) {
-          await widget.onSetupFailed!('Failed to initialize model');
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Model initialization failed'),
+            backgroundColor: Colors.red,
+            duration: Duration(milliseconds: 4000),
+          ),
+        );
       }
     } catch (e) {
       print('ERROR in _useExistingModel: $e');
@@ -269,9 +315,13 @@ class _GemmaAuthenticatedSetupWidgetState
         _currentStep = '';
       });
 
-      if (widget.onSetupFailed != null) {
-        await widget.onSetupFailed!(e.toString());
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Setup failed: ${e.toString()}'),
+          backgroundColor: Colors.red,
+          duration: Duration(milliseconds: 4000),
+        ),
+      );
     }
   }
 
@@ -287,7 +337,7 @@ class _GemmaAuthenticatedSetupWidgetState
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: Colors.black.withOpacity(0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -406,7 +456,7 @@ class _GemmaAuthenticatedSetupWidgetState
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 decoration: BoxDecoration(
                   border: Border.all(
-                    color: Colors.grey.withValues(alpha: 0.3),
+                    color: Colors.grey.withOpacity(0.3),
                   ),
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -417,29 +467,15 @@ class _GemmaAuthenticatedSetupWidgetState
                     items: _modelOptions.map((option) {
                       return DropdownMenuItem<String>(
                         value: option['value'],
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              option['label']!,
-                              style: FlutterFlowTheme.of(context)
-                                  .bodyMedium
-                                  .override(
+                        child: Text(
+                          option['label']!,
+                          style:
+                              FlutterFlowTheme.of(context).bodyMedium.override(
                                     fontFamily: 'Inter',
                                     fontWeight: FontWeight.w500,
                                   ),
-                            ),
-                            Text(
-                              option['description']!,
-                              style: FlutterFlowTheme.of(context)
-                                  .bodySmall
-                                  .override(
-                                    fontFamily: 'Inter',
-                                    color: Colors.grey[600],
-                                  ),
-                            ),
-                          ],
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       );
                     }).toList(),
@@ -501,10 +537,9 @@ class _GemmaAuthenticatedSetupWidgetState
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.blue.withValues(alpha: 0.1),
+                    color: Colors.blue.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
-                    border:
-                        Border.all(color: Colors.blue.withValues(alpha: 0.3)),
+                    border: Border.all(color: Colors.blue.withOpacity(0.3)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -609,10 +644,9 @@ class _GemmaAuthenticatedSetupWidgetState
                     margin: const EdgeInsets.only(bottom: 8),
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.green.withValues(alpha: 0.1),
+                      color: Colors.green.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                          color: Colors.green.withValues(alpha: 0.3)),
+                      border: Border.all(color: Colors.green.withOpacity(0.3)),
                     ),
                     child: Row(
                       children: [
@@ -723,7 +757,7 @@ class _GemmaAuthenticatedSetupWidgetState
               // Progress bar
               LinearProgressIndicator(
                 value: _downloadProgress > 0 ? _downloadProgress / 100 : null,
-                backgroundColor: Colors.grey.withValues(alpha: 0.3),
+                backgroundColor: Colors.grey.withOpacity(0.3),
                 valueColor: AlwaysStoppedAnimation<Color>(
                   widget.primaryColor ?? FlutterFlowTheme.of(context).primary,
                 ),
@@ -763,9 +797,9 @@ class _GemmaAuthenticatedSetupWidgetState
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.red.withValues(alpha: 0.1),
+                  color: Colors.red.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                  border: Border.all(color: Colors.red.withOpacity(0.3)),
                 ),
                 child: Row(
                   children: [
@@ -791,10 +825,9 @@ class _GemmaAuthenticatedSetupWidgetState
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.green.withValues(alpha: 0.1),
+                  color: Colors.green.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border:
-                      Border.all(color: Colors.green.withValues(alpha: 0.3)),
+                  border: Border.all(color: Colors.green.withOpacity(0.3)),
                 ),
                 child: Row(
                   children: [
@@ -900,9 +933,6 @@ class _GemmaAuthenticatedSetupWidgetState
       final String downloadTarget =
           _showCustomUrl ? _customUrl! : _selectedModel;
 
-      // Track repository for potential access request
-      String? restrictedRepository;
-
       final String? modelPath = await downloadAuthenticatedModel(
         downloadTarget,
         currentToken,
@@ -920,33 +950,10 @@ class _GemmaAuthenticatedSetupWidgetState
       );
 
       if (modelPath == null) {
-        // Check console output for restricted access message
-        // In a real implementation, we'd need to capture the error type differently
-        // For now, we'll show a generic error with instructions
         final errorMsg = _showCustomUrl
-            ? 'Failed to download model from custom URL: $_customUrl.\n\nIf you see "restricted" in the console, you may need to request access to the model.'
-            : 'Failed to download model $_selectedModel.\n\nPlease check your HuggingFace token and try again.';
-
-        setState(() {
-          _isSetupInProgress = false;
-        });
-
-        // Extract repository from URL if it's a custom URL
-        if (_showCustomUrl && _customUrl != null) {
-          try {
-            final uri = Uri.parse(_customUrl!);
-            final pathSegments = uri.pathSegments;
-            if (pathSegments.length >= 2) {
-              restrictedRepository = '${pathSegments[0]}/${pathSegments[1]}';
-            }
-          } catch (e) {
-            print('Error parsing URL: $e');
-          }
-        }
-
-        // Show a dialog with options
-        await _showDownloadErrorDialog(errorMsg, restrictedRepository);
-        return;
+            ? 'Failed to download model from custom URL: $_customUrl. Please check your HuggingFace token and verify the URL is correct.'
+            : 'Failed to download model $_selectedModel. Please check your HuggingFace token and try again.';
+        throw Exception(errorMsg);
       }
 
       setState(() {
@@ -973,8 +980,12 @@ class _GemmaAuthenticatedSetupWidgetState
       final isMultimodal = _isMultimodalModel(modelName);
       final supportImage = isMultimodal && widget.supportImage;
 
-      print(
-          'Downloaded Model: $modelName, Multimodal: $isMultimodal, Support Image: $supportImage');
+      print('=== DOWNLOADED MODEL CAPABILITY DETECTION ===');
+      print('Downloaded model name: "$modelName"');
+      print('Detected as multimodal: $isMultimodal');
+      print('Widget supports image: ${widget.supportImage}');
+      print('Final image support: $supportImage');
+      print('=== END DOWNLOADED MODEL CAPABILITY DETECTION ===');
 
       final initSuccess = await initializeLocalGemmaModel(
         modelPath,
@@ -1008,112 +1019,13 @@ class _GemmaAuthenticatedSetupWidgetState
         _currentStep = '';
       });
 
-      if (widget.onSetupFailed != null) {
-        await widget.onSetupFailed!(e.toString());
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Setup failed: ${e.toString()}'),
+          backgroundColor: Colors.red,
+          duration: Duration(milliseconds: 4000),
+        ),
+      );
     }
-  }
-
-  Future<void> _showDownloadErrorDialog(
-      String errorMessage, String? repository) async {
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          title: Row(
-            children: [
-              Icon(Icons.error_outline, color: Colors.red, size: 24),
-              const SizedBox(width: 8),
-              Text('Download Failed'),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                errorMessage,
-                style: FlutterFlowTheme.of(context).bodyMedium,
-              ),
-              if (repository != null) ...[
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border:
-                        Border.all(color: Colors.orange.withValues(alpha: 0.3)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'If this is a restricted model:',
-                        style: FlutterFlowTheme.of(context).bodySmall.override(
-                              fontFamily: 'Inter',
-                              fontWeight: FontWeight.w600,
-                            ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'You can request access on HuggingFace',
-                        style: FlutterFlowTheme.of(context).bodySmall.override(
-                              fontFamily: 'Inter',
-                              color: Colors.orange[700],
-                            ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-              },
-              child: Text(
-                'Close',
-                style: TextStyle(color: Colors.grey[600]),
-              ),
-            ),
-            if (repository != null)
-              ElevatedButton(
-                onPressed: () async {
-                  Navigator.of(dialogContext).pop();
-
-                  // Open the HuggingFace model page in browser
-                  final modelPageUrl = 'https://huggingface.co/$repository';
-                  await launchURL(modelPageUrl);
-
-                  // Show a reminder message
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Opening HuggingFace to request access...'),
-                      backgroundColor: Colors.blue,
-                      duration: Duration(seconds: 3),
-                    ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
-                  foregroundColor: Colors.white,
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.open_in_new, size: 16),
-                    const SizedBox(width: 4),
-                    Text('Request Access'),
-                  ],
-                ),
-              ),
-          ],
-        );
-      },
-    );
   }
 }

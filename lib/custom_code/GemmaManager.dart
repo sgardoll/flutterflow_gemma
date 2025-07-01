@@ -2,7 +2,7 @@ import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:flutter_gemma/core/model.dart';
 import 'package:flutter_gemma/pigeon.g.dart';
 import 'dart:typed_data';
-import 'dart:math' as math;
+import 'dart:math' as Math;
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
@@ -16,30 +16,141 @@ class GemmaManager {
   // Model and session management
   InferenceModel? _model;
   InferenceModelSession? _session;
-  dynamic _chat; // Use dynamic type since InferenceChat is not exposed
 
   // Configuration
   bool _isInitialized = false;
   String? _currentModelType;
   String? _currentBackend;
 
+  // Retry tracking to prevent infinite loops
+  int _initializationRetries = 0;
+  static const int _maxRetries = 3;
+
   // Model file manager
   ModelFileManager get modelManager => FlutterGemmaPlugin.instance.modelManager;
 
+  // Standardized model type normalization function
+  static String _normalizeModelType(String modelType) {
+    return modelType
+        .toLowerCase()
+        .trim()
+        .replaceAll(' ', '-')
+        .replaceAll('_', '-')
+        .replaceAll(RegExp(r'-+'), '-'); // Remove multiple consecutive dashes
+  }
+
   // Helper function to determine if a model supports vision
-  bool _isMultimodalModel(String modelType) {
+  static bool isMultimodalModel(String modelType) {
+    final normalizedType = _normalizeModelType(modelType);
+
+    print('GemmaManager.isMultimodalModel: Checking model type: "$modelType"');
+    print('GemmaManager.isMultimodalModel: Normalized type: "$normalizedType"');
+
+    // List of known multimodal models with all naming variations
     final multimodalModels = [
+      // Standard Gemma 3 models
       'gemma-3-4b-it',
       'gemma-3-12b-it',
       'gemma-3-27b-it',
+
+      // Nano/Edge variants
       'gemma-3-nano-e4b-it',
       'gemma-3-nano-e2b-it',
+      'gemma-3-4b-edge',
+      'gemma-3-nano',
+
+      // Handle downloaded model naming patterns
+      'gemma-3n-e4b-it', // From URL extraction
+      'gemma-3n-e2b-it', // From URL extraction
+      'gemma-3-4b-instruct',
+      'gemma-3-12b-instruct',
+      'gemma-3-27b-instruct',
+
+      // Vision-specific models
+      'paligemma',
+      'paligemma-3b-it',
     ];
-    return multimodalModels.any((model) =>
-        modelType.toLowerCase().contains(model.toLowerCase()) ||
-        modelType.toLowerCase().contains('nano') ||
-        modelType.toLowerCase().contains('vision') ||
-        modelType.toLowerCase().contains('multimodal'));
+
+    // Check exact matches first
+    for (final model in multimodalModels) {
+      if (normalizedType.contains(model)) {
+        print('GemmaManager.isMultimodalModel: Exact match found for $model');
+        return true;
+      }
+    }
+
+    // Check for patterns that strongly indicate multimodal support
+    final strongPatterns = [
+      'gemma-3', // All Gemma 3 models are multimodal
+      'gemma3',
+      'paligemma',
+      'vision',
+      'multimodal',
+      '3n-e', // Gemma 3 nano edge patterns
+    ];
+
+    for (final pattern in strongPatterns) {
+      if (normalizedType.contains(pattern)) {
+        print(
+            'GemmaManager.isMultimodalModel: Strong pattern match found for $pattern');
+        return true;
+      }
+    }
+
+    // Additional checks for edge/nano patterns (these are typically multimodal)
+    if (normalizedType.contains('nano') && normalizedType.contains('gemma')) {
+      print(
+          'GemmaManager.isMultimodalModel: Gemma nano model detected (multimodal)');
+      return true;
+    }
+
+    if (normalizedType.contains('edge') && normalizedType.contains('gemma')) {
+      print(
+          'GemmaManager.isMultimodalModel: Gemma edge model detected (multimodal)');
+      return true;
+    }
+
+    print('GemmaManager.isMultimodalModel: No multimodal support detected');
+    return false;
+  }
+
+  // Instance method that uses the static version
+  bool _isMultimodalModel(String modelType) {
+    return GemmaManager.isMultimodalModel(modelType);
+  }
+
+  // Helper method to check if model file exists in platform-specific plugin directory
+  Future<bool> _checkModelFileExists(String filename) async {
+    try {
+      // Use platform-specific directory
+      late Directory pluginDirectory;
+      if (Platform.isIOS) {
+        // iOS plugin expects models in Documents directory
+        pluginDirectory = await getApplicationDocumentsDirectory();
+      } else {
+        // Android plugin expects models in app support directory
+        pluginDirectory = await getApplicationSupportDirectory();
+      }
+
+      final modelPath = path.join(pluginDirectory.path, filename);
+      final exists = await File(modelPath).exists();
+
+      if (exists) {
+        final size = await File(modelPath).length();
+        print(
+            'GemmaManager: Model file exists in ${Platform.isIOS ? "iOS Documents" : "Android Support"} directory: $filename');
+        print(
+            'GemmaManager: Size: ${(size / (1024 * 1024)).toStringAsFixed(1)} MB');
+      } else {
+        print(
+            'GemmaManager: Model file NOT found in ${Platform.isIOS ? "iOS Documents" : "Android Support"} directory: $filename');
+      }
+
+      return exists;
+    } catch (e) {
+      print('GemmaManager: Error checking model file: $e');
+      return false;
+    }
   }
 
   // Initialize the model
@@ -50,89 +161,41 @@ class GemmaManager {
     bool supportImage = false,
     int maxNumImages = 1,
     String? localModelPath,
+    bool forceImageSupport = false, // Add force flag
+    bool isRetry = false, // Internal flag to track retries
   }) async {
     try {
+      // Reset retry counter on new initialization (not retries)
+      if (!isRetry) {
+        _initializationRetries = 0;
+      }
+
       // Close existing model if any
       await closeModel();
 
-      // If a local model path is provided, ensure it's properly registered
-      if (localModelPath != null && localModelPath.isNotEmpty) {
-        try {
-          // Get just the filename for the plugin
-          final modelFileName = path.basename(localModelPath);
-          print('GemmaManager: Using model filename: $modelFileName');
-
-          // Verify the model file exists in documents directory
-          final appDocDir = await getApplicationDocumentsDirectory();
-          final expectedPath = path.join(appDocDir.path, modelFileName);
-          final modelFile = File(expectedPath);
-
-          if (!await modelFile.exists()) {
-            print(
-                'GemmaManager: Model file not found at expected path: $expectedPath');
-
-            // Try to find and copy the model from its current location
-            if (localModelPath != expectedPath) {
-              final sourceFile = File(localModelPath);
-              if (await sourceFile.exists()) {
-                print(
-                    'GemmaManager: Copying model from $localModelPath to $expectedPath');
-                await sourceFile.copy(expectedPath);
-                print('GemmaManager: Model copied successfully');
-              } else {
-                print(
-                    'GemmaManager: Source model file not found at: $localModelPath');
-                return false;
-              }
-            } else {
-              return false;
-            }
-          }
-
-          // Register the model with the plugin's model manager
-          print('GemmaManager: Registering model with plugin: $modelFileName');
-          try {
-            // Android needs the full path, iOS uses just the filename
-            String pathToRegister;
-            if (Platform.isAndroid) {
-              pathToRegister = expectedPath; // Full path for Android
-              print('GemmaManager: Android - Using full path: $pathToRegister');
-            } else {
-              pathToRegister = modelFileName; // Just filename for iOS
-              print('GemmaManager: iOS - Using filename: $pathToRegister');
-            }
-
-            await modelManager.setModelPath(pathToRegister);
-            print('GemmaManager: Model path registered successfully');
-          } catch (pathError) {
-            print('GemmaManager: Failed to register model path: $pathError');
-            // Continue anyway as the plugin might still find it
-          }
-        } catch (e) {
-          print('GemmaManager: Error preparing model file: $e');
+      // Check if model file exists in plugin's working directory
+      if (localModelPath != null) {
+        final fileExists = await _checkModelFileExists(localModelPath);
+        if (!fileExists) {
+          print(
+              'GemmaManager: Model file not found in plugin directory: $localModelPath');
           return false;
         }
       }
 
       // Check if the model actually supports vision
-      final actualSupportImage = supportImage && _isMultimodalModel(modelType);
+      // Use force flag to bypass model type check if needed
+      final actualSupportImage = forceImageSupport
+          ? supportImage
+          : (supportImage && _isMultimodalModel(modelType));
 
       print(
-          'GemmaManager: Model=$modelType, RequestedVision=$supportImage, ActualVision=$actualSupportImage');
+          'GemmaManager: Model=$modelType, RequestedVision=$supportImage, ActualVision=$actualSupportImage, ForceImageSupport=$forceImageSupport');
 
-      // Create the model with enhanced debugging
-      final enumModelType = _getModelType(modelType);
-      final enumBackend = _getBackend(backend);
-
-      print('GemmaManager: Creating model with:');
-      print('  ModelType enum: $enumModelType');
-      print('  Backend enum: $enumBackend');
-      print('  MaxTokens: $maxTokens');
-      print('  SupportImage: $actualSupportImage');
-
+      // Create the model - using dynamic to avoid enum issues
       _model = await FlutterGemmaPlugin.instance.createModel(
-        modelType: enumModelType,
-        preferredBackend: enumBackend,
+        modelType: _getModelType(modelType),
+        preferredBackend: _getBackend(backend),
         maxTokens: maxTokens,
         supportImage: actualSupportImage,
         maxNumImages: maxNumImages,
@@ -141,67 +204,68 @@ class GemmaManager {
       _isInitialized = true;
       _currentModelType = modelType;
       _currentBackend = backend;
+      _initializationRetries = 0; // Reset on success
 
       return true;
     } catch (e) {
       print('Error initializing Gemma model: $e');
 
-      // If image support failed, try without it
-      if (supportImage && e.toString().contains('Vision')) {
+      // Handle model not found errors
+      if (e.toString().contains('Model not found at path') &&
+          localModelPath != null) {
+        print('🔍 Model initialization failed: Model not found');
+        print('📁 Expected model: $localModelPath');
         print(
-            'Vision initialization failed, retrying without image support...');
+            '🔧 Ensure model is installed in plugin\'s working directory (app support)');
+
+        // Check if the model actually exists where we think it should (platform-specific)
+        late Directory pluginDirectory;
+        if (Platform.isIOS) {
+          pluginDirectory = await getApplicationDocumentsDirectory();
+        } else {
+          pluginDirectory = await getApplicationSupportDirectory();
+        }
+
+        final expectedPath = path.join(pluginDirectory.path, localModelPath);
+        final exists = await File(expectedPath).exists();
+
+        if (exists) {
+          print('⚠️  Model file exists but plugin cannot find it');
+          print('🐛 This may be a plugin working directory issue');
+        } else {
+          print(
+              '❌ Model file is missing from expected location: $expectedPath');
+          print('💡 Try re-downloading/re-installing the model');
+        }
+      }
+
+      // If initialization fails, try to fallback gracefully
+      if (e.toString().contains('failed to initialize') ||
+          e.toString().contains('GPU') ||
+          e.toString().contains('delegate')) {
+        print('GPU initialization failed. Attempting to fall back to CPU...');
         try {
+          // Close the failed model explicitly before retrying
+          await closeModel();
+
           _model = await FlutterGemmaPlugin.instance.createModel(
             modelType: _getModelType(modelType),
-            preferredBackend: _getBackend(backend),
+            preferredBackend: PreferredBackend.cpu, // Force CPU
             maxTokens: maxTokens,
-            supportImage: false,
-            maxNumImages: 1,
+            supportImage: supportImage,
+            maxNumImages: maxNumImages,
           );
 
           _isInitialized = true;
           _currentModelType = modelType;
-          _currentBackend = backend;
+          _currentBackend = 'cpu'; // Update backend to CPU
+          _initializationRetries = 0; // Reset on success
 
-          print('Model initialized successfully without vision support');
+          print('Successfully initialized model with CPU fallback');
           return true;
-        } catch (fallbackError) {
-          print('Fallback initialization also failed: $fallbackError');
-        }
-      }
-
-      // If TensorFlow Lite model building failed, try different model types
-      if (e.toString().contains('Error building tflite model') ||
-          e.toString().contains('RET_CHECK failure')) {
-        print(
-            'TensorFlow Lite model building failed, trying alternative model types...');
-
-        final alternativeTypes = [ModelType.gemmaIt, ModelType.general];
-        final currentType = _getModelType(modelType);
-
-        for (final altType in alternativeTypes) {
-          if (altType == currentType) continue; // Skip the one we already tried
-
-          try {
-            print('Trying ModelType: $altType');
-            _model = await FlutterGemmaPlugin.instance.createModel(
-              modelType: altType,
-              preferredBackend: _getBackend(backend),
-              maxTokens: maxTokens,
-              supportImage: false, // Disable image support for fallback
-              maxNumImages: 1,
-            );
-
-            _isInitialized = true;
-            _currentModelType = modelType;
-            _currentBackend = backend;
-
-            print(
-                'Model initialized successfully with alternative type: $altType');
-            return true;
-          } catch (altError) {
-            print('Alternative type $altType also failed: $altError');
-          }
+        } catch (cpuError) {
+          print('CPU fallback also failed: $cpuError');
+          return false;
         }
       }
 
@@ -241,6 +305,10 @@ class GemmaManager {
         topK: topK,
       );
       print('GemmaManager.createSession: Session created successfully!');
+
+      // Add a small delay to allow the system to stabilize after heavy model loading
+      await Future.delayed(const Duration(milliseconds: 500));
+
       return true;
     } catch (e) {
       print('Error creating session: $e');
@@ -248,126 +316,174 @@ class GemmaManager {
     }
   }
 
-  // Create a chat instance for conversation
-  Future<bool> createChat({
-    double temperature = 0.8,
-    int randomSeed = 1,
-    int topK = 1,
-  }) async {
-    print('GemmaManager.createChat: Starting...');
-    print(
-        'GemmaManager.createChat: _isInitialized=$_isInitialized, _model!=null=${_model != null}');
-
-    if (!_isInitialized || _model == null) {
-      print(
-          'GemmaManager.createChat: Model not initialized or null, returning false');
-      return false;
-    }
-
-    try {
-      print('GemmaManager.createChat: Creating chat instance...');
-      print(
-          'GemmaManager.createChat: Parameters - temperature=$temperature, randomSeed=$randomSeed, topK=$topK');
-
-      // Add a small delay to see if timing is an issue
-      await Future.delayed(Duration(milliseconds: 100));
-
-      _chat = await _model!.createChat(
-        temperature: temperature,
-        randomSeed: randomSeed,
-        topK: topK,
-      );
-      print('GemmaManager.createChat: Chat created successfully!');
-      return true;
-    } catch (e) {
-      print('Error creating chat: $e');
-      print('Error type: ${e.runtimeType}');
-      print('Stack trace: ${StackTrace.current}');
-      return false;
-    }
-  }
-
-  // Send message using chat (maintains conversation history)
-  Future<String?> sendChatMessage(String message,
-      {Uint8List? imageBytes}) async {
-    if (_chat == null) {
-      print('GemmaManager.sendChatMessage: No chat instance available');
-      return null;
-    }
-
-    try {
-      print('GemmaManager.sendChatMessage: Sending message: $message');
-
-      Message msg;
-      if (imageBytes != null) {
-        msg = Message.withImage(
-            text: message, imageBytes: imageBytes, isUser: true);
-      } else {
-        msg = Message.text(text: message, isUser: true);
-      }
-
-      // Add message to chat
-      await _chat.addQueryChunk(msg);
-
-      // Generate response
-      final response = await _chat.generateChatResponse();
-
-      if (response != null && response.length > 50) {
-        print(
-            'GemmaManager.sendChatMessage: Got response: ${response.substring(0, 50)}...');
-      } else {
-        print('GemmaManager.sendChatMessage: Got response: $response');
-      }
-
-      return response;
-    } catch (e) {
-      print('Error sending chat message: $e');
-      print('Error stack trace: ${e.toString()}');
-      return null;
-    }
-  }
-
-  // Send message and get response (for session-based approach)
+  // Send message and get response
   Future<String?> sendMessage(String message, {Uint8List? imageBytes}) async {
+    print('=== GemmaManager.sendMessage Debug ===');
+    print('Session exists: ${_session != null}');
+    print('Message: $message');
+    print('Image bytes provided: ${imageBytes != null}');
+
     if (_session == null) {
-      print('GemmaManager.sendMessage: No session available');
+      print('ERROR: No session available');
       return null;
     }
 
-    try {
-      print('GemmaManager.sendMessage: Sending message: $message');
+    if (imageBytes != null) {
+      print('=== VISION DEBUG: Image Analysis ===');
+      print('Image bytes length: ${imageBytes.length}');
+      print('Image bytes first 10: ${imageBytes.take(10).toList()}');
+      print(
+          'Image bytes last 10: ${imageBytes.skip(imageBytes.length - 10).toList()}');
 
+      // Analyze image header to detect format
+      final imageFormat = _detectImageFormat(imageBytes);
+      print('Detected image format: $imageFormat');
+
+      // Check for common image corruption patterns
+      final isCorrupted = _detectImageCorruption(imageBytes);
+      print('Image corruption detected: $isCorrupted');
+
+      // Check image size constraints
+      final sizeInfo = _analyzeImageSize(imageBytes);
+      print('Image size analysis: $sizeInfo');
+
+      // Check if model actually supports images
+      final modelType = _currentModelType ?? '';
+      final supportsImages = _isMultimodalModel(modelType);
+      print('Model supports images: $supportsImages (model: $modelType)');
+
+      if (!supportsImages) {
+        print(
+            'WARNING: Model "$modelType" does not support images, sending text-only');
+        print(
+            'INFO: To enable image support, use a multimodal model like gemma-3-4b-it or gemma-3-nano-e4b-it');
+        imageBytes = null;
+      } else {
+        // Enhanced vision prompt when image is provided
+        if (message.trim().isEmpty ||
+            message.trim().toLowerCase() == 'analyze this image') {
+          message =
+              'Please analyze this image and describe what you see in detail.';
+          print('Enhanced vision prompt: $message');
+        }
+      }
+    }
+
+    try {
       Message msg;
       if (imageBytes != null) {
+        print('Creating message with image...');
         msg = Message.withImage(
             text: message, imageBytes: imageBytes, isUser: true);
+        print('Message with image created successfully');
       } else {
+        print('Creating text-only message...');
         msg = Message.text(text: message, isUser: true);
+        print('Text message created successfully');
       }
 
-      // Add the user message to the session
+      print('Adding query chunk to session...');
       await _session!.addQueryChunk(msg);
+      print('Query chunk added, getting response...');
 
-      // Get the model's response
       final response = await _session!.getResponse();
-
-      if (response != null && response.length > 50) {
-        print(
-            'GemmaManager.sendMessage: Got response: ${response.substring(0, 50)}...');
-      } else {
-        print('GemmaManager.sendMessage: Got response: $response');
-      }
-
-      // IMPORTANT: Add the model's response back to the session to maintain conversation history
-      if (response != null && response.isNotEmpty) {
-        final responseMsg = Message.text(text: response, isUser: false);
-        await _session!.addQueryChunk(responseMsg);
-      }
+      print(
+          'Response received: ${response != null ? "Yes (${response.length} chars)" : "No"}');
+      print('=== End GemmaManager.sendMessage Debug ===');
 
       return response;
     } catch (e) {
       print('Error sending message: $e');
-      print('Error stack trace: ${e.toString()}');
+      print('Error type: ${e.runtimeType}');
+
+      // Check if it's a session error and recreate session if needed
+      if ((e.toString().contains('Session not created') ||
+              e.toString().contains('Model is closed')) &&
+          imageBytes != null) {
+        print(
+            'Session/Model error detected with image. Attempting recovery...');
+
+        // Check if model is closed
+        if (e.toString().contains('Model is closed')) {
+          print('Model is closed. Reinitializing entire model...');
+
+          // Store current configuration
+          final modelType = _currentModelType ?? 'Gemma 3 4B Edge';
+          final backend = _currentBackend ?? 'gpu';
+
+          // Reinitialize the model
+          final modelInitialized = await initializeModel(
+            modelType: modelType,
+            backend: backend,
+            maxTokens: 1024,
+            supportImage: true,
+            maxNumImages: 1,
+          );
+
+          if (!modelInitialized) {
+            print('Failed to reinitialize model');
+            return null;
+          }
+
+          print('Model reinitialized successfully');
+        }
+
+        // Try to create/recreate the session
+        final sessionCreated = await createSession();
+        if (sessionCreated) {
+          print('Session created successfully. Retrying message...');
+
+          try {
+            Message msg;
+            if (imageBytes != null) {
+              print('Creating message with image (retry)...');
+              final enhancedMessage = _enhanceVisionPrompt(message);
+              msg = Message.withImage(
+                  text: enhancedMessage, imageBytes: imageBytes, isUser: true);
+              print('Message with image created successfully (retry)');
+            } else {
+              print('Creating text-only message (retry)...');
+              msg = Message.text(text: message, isUser: true);
+              print('Text message created successfully (retry)');
+            }
+
+            print('Adding query chunk to session (retry)...');
+            await _session!.addQueryChunk(msg);
+            print('Query chunk added, getting response (retry)...');
+
+            final response = await _session!.getResponse();
+            print(
+                'Response received (retry): ${response != null ? "Yes (${response.length} chars)" : "No"}');
+
+            return response;
+          } catch (retryError) {
+            print('Retry also failed: $retryError');
+          }
+        }
+      }
+
+      print('Stack trace: ${StackTrace.current}');
+
+      // If image processing failed, try text-only as fallback
+      if (imageBytes != null) {
+        print('Attempting fallback to text-only message...');
+        try {
+          // Ensure we have a valid session
+          if (_session == null) {
+            await createSession();
+          }
+
+          final textMsg = Message.text(text: message, isUser: true);
+          await _session!.addQueryChunk(textMsg);
+          final fallbackResponse = await _session!.getResponse();
+          print(
+              'Fallback response received: ${fallbackResponse != null ? "Yes" : "No"}');
+          return fallbackResponse;
+        } catch (fallbackError) {
+          print('Fallback also failed: $fallbackError');
+        }
+      }
+
       return null;
     }
   }
@@ -454,16 +570,6 @@ class GemmaManager {
   Future closeModel() async {
     await closeSession();
 
-    // Close chat if exists
-    if (_chat != null) {
-      try {
-        await _chat.close();
-      } catch (e) {
-        print('Error closing chat: $e');
-      }
-      _chat = null;
-    }
-
     if (_model != null) {
       await _model!.close();
       _model = null;
@@ -478,21 +584,7 @@ class GemmaManager {
   ModelType _getModelType(String modelType) {
     // Using the actual ModelType enum from flutter_gemma package
     // Available types: general, gemmaIt, deepSeek
-    final lowerType = modelType.toLowerCase();
-
-    // For Gemma 3 models and newer, use 'general' type
-    if (lowerType.contains('gemma 3') ||
-        lowerType.contains('gemma3') ||
-        lowerType.contains('gemma-3') ||
-        lowerType.contains('1b') ||
-        lowerType.contains('4b') ||
-        lowerType.contains('8b') ||
-        lowerType.contains('27b')) {
-      print('GemmaManager: Using ModelType.general for: $modelType');
-      return ModelType.general;
-    }
-
-    switch (lowerType) {
+    switch (modelType.toLowerCase()) {
       case 'gemma':
       case 'gemmait':
       case 'gemma-it':
@@ -511,10 +603,8 @@ class GemmaManager {
       case 'general':
         return ModelType.general;
       default:
-        // For unknown models, try general first as it's more flexible
-        print(
-            'GemmaManager: Using ModelType.general as fallback for: $modelType');
-        return ModelType.general;
+        // Default to gemmaIt if no match found
+        return ModelType.gemmaIt;
     }
   }
 
@@ -549,138 +639,327 @@ class GemmaManager {
     }
   }
 
-  // Helper method to resolve the actual model file path
-  Future<String?> _resolveModelFilePath(String inputPath) async {
+  // Image analysis helper methods
+  String _detectImageFormat(Uint8List imageBytes) {
+    if (imageBytes.length < 8) return 'unknown';
+
+    // Check for JPEG header (FF D8 FF)
+    if (imageBytes[0] == 0xFF &&
+        imageBytes[1] == 0xD8 &&
+        imageBytes[2] == 0xFF) {
+      return 'JPEG';
+    }
+
+    // Check for PNG header (89 50 4E 47 0D 0A 1A 0A)
+    if (imageBytes.length >= 8 &&
+        imageBytes[0] == 0x89 &&
+        imageBytes[1] == 0x50 &&
+        imageBytes[2] == 0x4E &&
+        imageBytes[3] == 0x47 &&
+        imageBytes[4] == 0x0D &&
+        imageBytes[5] == 0x0A &&
+        imageBytes[6] == 0x1A &&
+        imageBytes[7] == 0x0A) {
+      return 'PNG';
+    }
+
+    // Check for WebP header (RIFF....WEBP)
+    if (imageBytes.length >= 12 &&
+        imageBytes[0] == 0x52 &&
+        imageBytes[1] == 0x49 &&
+        imageBytes[2] == 0x46 &&
+        imageBytes[3] == 0x46 &&
+        imageBytes[8] == 0x57 &&
+        imageBytes[9] == 0x45 &&
+        imageBytes[10] == 0x42 &&
+        imageBytes[11] == 0x50) {
+      return 'WebP';
+    }
+
+    return 'unknown';
+  }
+
+  bool _detectImageCorruption(Uint8List imageBytes) {
+    // Check for obviously corrupted data
+    if (imageBytes.length < 100) return true;
+
+    // Check for too many null bytes (indicates corruption)
+    int nullCount = 0;
+    for (int i = 0; i < Math.min(100, imageBytes.length); i++) {
+      if (imageBytes[i] == 0) nullCount++;
+    }
+
+    // If more than 50% null bytes in first 100 bytes, likely corrupted
+    if (nullCount > 50) return true;
+
+    // Check for invalid format headers
+    final format = _detectImageFormat(imageBytes);
+    if (format == 'unknown') return true;
+
+    return false;
+  }
+
+  String _analyzeImageSize(Uint8List imageBytes) {
+    final sizeKB = (imageBytes.length / 1024).toStringAsFixed(1);
+    final sizeMB = (imageBytes.length / (1024 * 1024)).toStringAsFixed(2);
+
+    if (imageBytes.length < 1024) {
+      return '${imageBytes.length} bytes (TOO SMALL - likely corrupted)';
+    } else if (imageBytes.length > 10 * 1024 * 1024) {
+      return '$sizeMB MB (TOO LARGE - may cause memory issues)';
+    } else {
+      return '$sizeKB KB (acceptable size)';
+    }
+  }
+
+  // Enhanced vision prompt generation
+  String _enhanceVisionPrompt(String originalMessage) {
+    final message = originalMessage.trim();
+
+    // If empty or generic, provide a structured vision prompt
+    if (message.isEmpty ||
+        message.toLowerCase() == 'analyze this image' ||
+        message.toLowerCase() == 'what is this image showing?' ||
+        message.toLowerCase() == 'describe this image') {
+      return '''Look at this photograph and describe exactly what you see. This is a real photograph, not a pattern, design, or artwork.
+
+Identify:
+- What real-world objects, people, animals, or plants are visible
+- The actual setting or location (indoor/outdoor, specific place)
+- Specific details about lighting, colors, and composition
+- Any text, signs, or writing visible in the image
+- The style of photography (close-up, wide shot, etc.)
+
+Do NOT describe this as:
+- A pattern, design, or artwork
+- A textile or fabric
+- An abstract composition
+- A computer-generated image
+
+Focus on what is actually photographed in the real world.''';
+    }
+
+    // If the message doesn't explicitly mention the image, make it clear
+    if (!message.toLowerCase().contains('image') &&
+        !message.toLowerCase().contains('picture') &&
+        !message.toLowerCase().contains('photo') &&
+        !message.toLowerCase().contains('see') &&
+        !message.toLowerCase().contains('look') &&
+        !message.toLowerCase().contains('show')) {
+      return 'Looking at this real photograph: $message';
+    }
+
+    // Otherwise, use the original message but emphasize it's a photograph
+    return 'Looking at this photograph: $message';
+  }
+
+  // Comprehensive vision model testing
+  Future<Map<String, dynamic>> testVisionCapabilities() async {
+    final results = <String, dynamic>{
+      'isReady': false,
+      'supportsVision': false,
+      'canProcessImages': false,
+      'respondsToImages': false,
+      'givesReasonableResponses': false,
+      'errors': <String>[],
+      'testResults': <String, dynamic>{},
+    };
+
+    if (!_isInitialized || _session == null) {
+      results['errors'].add('Model or session not ready');
+      return results;
+    }
+
+    results['isReady'] = true;
+
+    if (!_isMultimodalModel(_currentModelType ?? '')) {
+      results['errors'].add('Model does not claim vision support');
+      return results;
+    }
+
+    results['supportsVision'] = true;
+
     try {
-      print('GemmaManager: Resolving model path for: $inputPath');
+      // Test 1: Simple geometric test image (solid color square)
+      final simpleTestResult = await _testWithSimpleImage();
+      results['testResults']['simpleImage'] = simpleTestResult;
 
-      // Get the documents directory
-      final appDocDir = await getApplicationDocumentsDirectory();
-      final baseFileName = path.basename(inputPath);
+      // Test 2: Text-based test image
+      final textTestResult = await _testWithTextImage();
+      results['testResults']['textImage'] = textTestResult;
 
-      // First, try the exact path if it's a full path
-      if (inputPath.contains('/')) {
-        final file = File(inputPath);
-        if (await file.exists()) {
-          print('GemmaManager: Found exact file at: $inputPath');
-          return inputPath; // Return the full path for the plugin
-        }
-      }
+      // Test 3: Basic shape recognition
+      final shapeTestResult = await _testWithShapeImage();
+      results['testResults']['shapeImage'] = shapeTestResult;
 
-      // Try the filename in the documents directory
-      final directPath = path.join(appDocDir.path, baseFileName);
-      final directFile = File(directPath);
-      if (await directFile.exists()) {
-        print('GemmaManager: Found file in documents: $directPath');
-        return directPath;
-      }
+      // Analyze overall performance
+      results['canProcessImages'] = simpleTestResult['responded'] == true;
+      results['respondsToImages'] = [
+        simpleTestResult,
+        textTestResult,
+        shapeTestResult
+      ].any((test) => test['responded'] == true);
 
-      // If file is in subdirectory, copy it to the documents root
-      if (inputPath.contains('/') && inputPath.contains('models/')) {
-        final sourceFile = File(inputPath);
-        if (await sourceFile.exists()) {
-          final targetPath = path.join(appDocDir.path, baseFileName);
-          print(
-              'GemmaManager: Copying model from subdirectory to documents root: $targetPath');
-          await sourceFile.copy(targetPath);
-          print('GemmaManager: Model copied successfully to documents root');
-          return targetPath;
-        }
-      }
-
-      // Search for .task files in the documents directory
-      print(
-          'GemmaManager: Searching for .task files in documents directory...');
-      final files = await appDocDir.list().toList();
-      final taskFiles = files
-          .where((f) => f is File && f.path.endsWith('.task'))
-          .cast<File>();
-
-      if (taskFiles.isEmpty) {
-        print('GemmaManager: No .task files found in documents directory');
-        return null;
-      }
-
-      // List all found .task files
-      for (final taskFile in taskFiles) {
-        final taskFileName = path.basename(taskFile.path);
-        print('GemmaManager: Found .task file: $taskFileName');
-      }
-
-      // If there's only one .task file, use it
-      if (taskFiles.length == 1) {
-        final taskFile = taskFiles.first;
-        final taskFileName = path.basename(taskFile.path);
-        print('GemmaManager: Using single .task file found: $taskFileName');
-
-        // Ensure the file is in the documents root directory
-        final expectedPath = path.join(appDocDir.path, taskFileName);
-        if (taskFile.path != expectedPath) {
-          print(
-              'GemmaManager: Copying task file to documents root: $expectedPath');
-          await taskFile.copy(expectedPath);
-        }
-        return expectedPath;
-      }
-
-      // Try to find a file that contains similar name components
-      final searchTerms = baseFileName
-          .toLowerCase()
-          .replaceAll('.task', '')
-          .split(RegExp(r'[_\-\.]'))
-          .where((term) => term.length > 2)
+      // Check for reasonable responses (not hallucinations)
+      final responses = [
+        simpleTestResult['response'],
+        textTestResult['response'],
+        shapeTestResult['response']
+      ]
+          .where((r) => r != null && (r as String).isNotEmpty)
+          .cast<String>()
           .toList();
 
-      for (final taskFile in taskFiles) {
-        final taskFileName = path.basename(taskFile.path).toLowerCase();
-        bool isMatch = false;
-
-        // Check if the task file contains any of our search terms
-        for (final term in searchTerms) {
-          if (taskFileName.contains(term)) {
-            isMatch = true;
-            break;
-          }
-        }
-
-        if (isMatch) {
-          final actualFileName = path.basename(taskFile.path);
-          print('GemmaManager: Found matching file: $actualFileName');
-
-          // Ensure the file is in the documents root directory
-          final expectedPath = path.join(appDocDir.path, actualFileName);
-          if (taskFile.path != expectedPath) {
-            print(
-                'GemmaManager: Copying matching file to documents root: $expectedPath');
-            await taskFile.copy(expectedPath);
-          }
-          return expectedPath;
-        }
-      }
-
-      // If no specific match found, but we have .task files, use the first one
-      if (taskFiles.isNotEmpty) {
-        final firstFile = taskFiles.first;
-        final firstName = path.basename(firstFile.path);
-        print(
-            'GemmaManager: No specific match found, using first .task file: $firstName');
-
-        // Ensure the file is in the documents root directory
-        final expectedPath = path.join(appDocDir.path, firstName);
-        if (firstFile.path != expectedPath) {
-          print(
-              'GemmaManager: Copying first file to documents root: $expectedPath');
-          await firstFile.copy(expectedPath);
-        }
-        return expectedPath;
-      }
-
-      print('GemmaManager: No suitable model file found');
-      return null;
+      results['givesReasonableResponses'] =
+          responses.any((response) => !_isResponseProblematic(response));
     } catch (e) {
-      print('GemmaManager: Error resolving model path: $e');
-      return null;
+      results['errors'].add('Testing error: $e');
     }
+
+    return results;
+  }
+
+  // Test with a simple solid color image
+  Future<Map<String, dynamic>> _testWithSimpleImage() async {
+    try {
+      // Create a simple red square (2x2 pixels) in PNG format
+      final testImageBytes = Uint8List.fromList([
+        0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, // PNG signature
+        0x00, 0x00, 0x00, 0x0D, // IHDR length
+        0x49, 0x48, 0x44, 0x52, // IHDR
+        0x00, 0x00, 0x00, 0x02, // Width: 2
+        0x00, 0x00, 0x00, 0x02, // Height: 2
+        0x08, 0x02, 0x00, 0x00, 0x00, // Bit depth 8, RGB
+        0x9D, 0x19, 0x48, 0x2C, // CRC
+        0x00, 0x00, 0x00, 0x12, // IDAT length
+        0x49, 0x44, 0x41, 0x54, // IDAT
+        0x08, 0x1D, 0x01, 0x07, 0x00, 0xF8, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0x00,
+        0x00, 0xFF, 0x00, 0x00, 0x02, 0x07, 0x01, 0x02, // Red pixels
+        0x9A, 0x1C, 0x18, 0xE9, // CRC
+        0x00, 0x00, 0x00, 0x00, // IEND length
+        0x49, 0x45, 0x4E, 0x44, // IEND
+        0xAE, 0x42, 0x60, 0x82 // CRC
+      ]);
+
+      print('Testing with simple red square image...');
+      final response = await sendMessage(
+          'What color is this image? Describe what you see.',
+          imageBytes: testImageBytes);
+
+      return {
+        'responded': response != null && response.isNotEmpty,
+        'response': response,
+        'testType': 'simple_color',
+        'expectedKeywords': ['red', 'square', 'color'],
+      };
+    } catch (e) {
+      return {
+        'responded': false,
+        'error': e.toString(),
+        'testType': 'simple_color',
+      };
+    }
+  }
+
+  // Test with text-like content
+  Future<Map<String, dynamic>> _testWithTextImage() async {
+    try {
+      // Simple 1x1 white pixel (text images usually work better)
+      final testImageBytes = Uint8List.fromList([
+        0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, // PNG header
+        0x00, 0x00, 0x00, 0x0D, // IHDR chunk length
+        0x49, 0x48, 0x44, 0x52, // IHDR
+        0x00, 0x00, 0x00, 0x01, // Width: 1
+        0x00, 0x00, 0x00, 0x01, // Height: 1
+        0x08, 0x02, 0x00, 0x00, 0x00, // Bit depth, color type, etc.
+        0x90, 0x77, 0x53, 0xDE, // CRC
+        0x00, 0x00, 0x00, 0x0C, // IDAT chunk length
+        0x49, 0x44, 0x41, 0x54, // IDAT
+        0x08, 0x99, 0x01, 0x01, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0x00, 0x00,
+        0x02, 0x00, 0x01, // White pixel
+        0xE5, 0x27, 0xDE, 0xFC, // CRC
+        0x00, 0x00, 0x00, 0x00, // IEND chunk length
+        0x49, 0x45, 0x4E, 0x44, // IEND
+        0xAE, 0x42, 0x60, 0x82 // CRC
+      ]);
+
+      print('Testing with minimal white image...');
+      final response = await sendMessage('Describe this image in one word.',
+          imageBytes: testImageBytes);
+
+      return {
+        'responded': response != null && response.isNotEmpty,
+        'response': response,
+        'testType': 'minimal_image',
+        'expectedKeywords': ['white', 'small', 'pixel', 'blank'],
+      };
+    } catch (e) {
+      return {
+        'responded': false,
+        'error': e.toString(),
+        'testType': 'minimal_image',
+      };
+    }
+  }
+
+  // Test with basic shape
+  Future<Map<String, dynamic>> _testWithShapeImage() async {
+    try {
+      // Very basic test - just see if it responds at all
+      final testImageBytes = Uint8List.fromList([
+        0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, // PNG header
+        0x00, 0x00, 0x00, 0x0D,
+        0x49, 0x48, 0x44, 0x52,
+        0x00, 0x00, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x01,
+        0x08, 0x02, 0x00, 0x00, 0x00,
+        0x90, 0x77, 0x53, 0xDE,
+        0x00, 0x00, 0x00, 0x0C,
+        0x49, 0x44, 0x41, 0x54,
+        0x08, 0x99, 0x01, 0x01, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x00,
+        0x02, 0x00, 0x01,
+        0xE5, 0x27, 0xDE, 0xFC,
+        0x00, 0x00, 0x00, 0x00,
+        0x49, 0x45, 0x4E, 0x44,
+        0xAE, 0x42, 0x60, 0x82
+      ]);
+
+      print('Testing basic image processing...');
+      final response =
+          await sendMessage('What do you see?', imageBytes: testImageBytes);
+
+      return {
+        'responded': response != null && response.isNotEmpty,
+        'response': response,
+        'testType': 'basic_processing',
+      };
+    } catch (e) {
+      return {
+        'responded': false,
+        'error': e.toString(),
+        'testType': 'basic_processing',
+      };
+    }
+  }
+
+  // Check if a response shows problematic patterns
+  bool _isResponseProblematic(String response) {
+    final lower = response.toLowerCase();
+
+    final problematicPatterns = [
+      'repeating pattern',
+      'textile',
+      'fabric',
+      'woven',
+      'abstract pattern',
+      'appears to be a design',
+      'typographic exercise',
+      'artistic exploration',
+      'intricate detail',
+      'somewhat abstract',
+    ];
+
+    return problematicPatterns.any((pattern) => lower.contains(pattern));
   }
 
   // Getters
@@ -688,5 +967,5 @@ class GemmaManager {
   String? get currentModelType => _currentModelType;
   String? get currentBackend => _currentBackend;
   bool get hasSession => _session != null;
-  bool get hasChat => _chat != null;
+  bool get supportsVision => _isMultimodalModel(_currentModelType ?? '');
 }
