@@ -21,7 +21,7 @@
     "type": "A",
     "is_deleted": false,
     "current_checksum": "73ffdaaeebbdbeed190edf2767a50b52827656d355dc13b7c9f072cc714780b9",
-    "original_checksum": "73ffdaaeebbdbeed190edf2767a50b52827656d355dc13b7c9f072cc714780b9"
+    "original_checksum": "c2ca17201fbe7bb5efae09f20e183709149d978ddbe7a2ada356517418e2c99d"
   },
   "download_authenticated_model.dart": {
     "old_identifier_name": "downloadAuthenticatedModel",
@@ -29,7 +29,7 @@
     "type": "A",
     "is_deleted": false,
     "current_checksum": "a6159ca89cd4921d51c9b3f993d777117f6017a44de73983a144d395382d1834",
-    "original_checksum": "a6159ca89cd4921d51c9b3f993d777117f6017a44de73983a144d395382d1834"
+    "original_checksum": "d078d11ac0f2cfc511bd2e4354bec26c35f637c0dc4aa47c9eee74c28bab4caf"
   },
   "debug_model_paths.dart": {
     "old_identifier_name": "debugModelPaths",
@@ -69,7 +69,7 @@
     "type": "A",
     "is_deleted": false,
     "current_checksum": "7af3f2252e82aec57c0a0b369168df56d82eac01ebac7d75906855a8269d0db1",
-    "original_checksum": "7af3f2252e82aec57c0a0b369168df56d82eac01ebac7d75906855a8269d0db1"
+    "original_checksum": "5d531c02b538c90661293aa2927061bc512929e9fa709bb73c520181e5d7f121"
   },
   "gemma_chat_widget.dart": {
     "old_identifier_name": "GemmaChatWidget",
