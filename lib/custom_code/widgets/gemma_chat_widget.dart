@@ -11,53 +11,6 @@ import '../GemmaManager.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:typed_data';
 import 'package:flutter/services.dart'; // For Clipboard
-import 'package:image/image.dart' as img; // For image processing
-import 'dart:io';
-import 'dart:async'; // For TimeoutException
-import 'package:flutter/foundation.dart'; // For compute
-
-// Top-level function for async image processing
-Future<Uint8List> _processImageAsync(Uint8List imageBytes) async {
-  try {
-    // Decode the image
-    final image = img.decodeImage(imageBytes);
-    if (image == null) {
-      throw Exception('Failed to decode image');
-    }
-
-    // Calculate target dimensions (max 512x512 for vision models)
-    const maxDimension = 512;
-    int targetWidth = image.width;
-    int targetHeight = image.height;
-
-    if (targetWidth > maxDimension || targetHeight > maxDimension) {
-      final aspectRatio = targetWidth / targetHeight;
-      if (targetWidth > targetHeight) {
-        targetWidth = maxDimension;
-        targetHeight = (maxDimension / aspectRatio).round();
-      } else {
-        targetHeight = maxDimension;
-        targetWidth = (maxDimension * aspectRatio).round();
-      }
-    }
-
-    // Resize the image
-    final resizedImage = img.copyResize(
-      image,
-      width: targetWidth,
-      height: targetHeight,
-      interpolation: img.Interpolation.linear,
-    );
-
-    // Encode as JPEG with quality optimization
-    final compressedBytes = img.encodeJpg(resizedImage, quality: 85);
-
-    return Uint8List.fromList(compressedBytes);
-  } catch (e) {
-    // Fallback: return original image if compression fails
-    return imageBytes;
-  }
-}
 
 class GemmaChatWidget extends StatefulWidget {
   const GemmaChatWidget({
@@ -84,8 +37,6 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
   final ImagePicker _imagePicker = ImagePicker();
   bool _isLoading = false;
   FFUploadedFile? _selectedImage;
-  String _processingStatus = '';
-  bool _canCancelProcessing = false;
 
   final GemmaManager _gemmaManager = GemmaManager();
 
@@ -122,97 +73,20 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
   // Check if current model supports images
   bool get _supportsImages => _gemmaManager.supportsVision;
 
-  // Compress and resize image to prevent memory issues using async processing
-  Future<Uint8List> _compressAndResizeImage(Uint8List imageBytes) async {
-    try {
-      // Use compute to run image processing in a separate isolate
-      final compressedBytes = await compute(_processImageAsync, imageBytes);
-
-      print(
-          'Image compressed: ${imageBytes.length} bytes → ${compressedBytes.length} bytes');
-
-      return compressedBytes;
-    } catch (e) {
-      print('Error compressing image: $e');
-      // Fallback: return original image if compression fails
-      return imageBytes;
-    }
-  }
-
-  // Validate image format and size
-  Future<String?> _validateImageFormat(File file) async {
-    try {
-      // Check file size (max 50MB)
-      final fileSize = await file.length();
-      if (fileSize > 50 * 1024 * 1024) {
-        return 'Image too large. Maximum size is 50MB.';
-      }
-
-      // Check file extension
-      final extension = file.path.split('.').last.toLowerCase();
-      final validExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-      if (!validExtensions.contains(extension)) {
-        return 'Unsupported image format. Please use JPG, PNG, GIF, or WebP.';
-      }
-
-      // Try to decode the image to verify it's valid
-      final imageBytes = await file.readAsBytes();
-      final image = img.decodeImage(imageBytes);
-      if (image == null) {
-        return 'Invalid or corrupted image file.';
-      }
-
-      // Check image dimensions (max 5000x5000)
-      if (image.width > 5000 || image.height > 5000) {
-        return 'Image too large. Maximum dimensions are 5000x5000 pixels.';
-      }
-
-      return null; // Valid image
-    } catch (e) {
-      return 'Error validating image: ${e.toString()}';
-    }
-  }
-
   // Select image from gallery or camera
   Future<void> _selectImage() async {
     try {
       final source = await _showImageSourceDialog();
       if (source == null) return;
 
-      final pickedFile = await _imagePicker.pickImage(
-        source: source,
-        maxWidth: 1920,
-        maxHeight: 1920,
-        imageQuality: 85,
-      );
-
+      final pickedFile = await _imagePicker.pickImage(source: source);
       if (pickedFile == null) return;
 
-      // Validate image format and size
-      final validationError = await _validateImageFormat(File(pickedFile.path));
-      if (validationError != null) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(validationError),
-              backgroundColor: Colors.red,
-              duration: Duration(seconds: 4),
-            ),
-          );
-        }
-        return;
-      }
-
-      final originalImageBytes = await pickedFile.readAsBytes();
-
-      // Compress and resize image to prevent memory issues
-      final compressedImageBytes =
-          await _compressAndResizeImage(originalImageBytes);
-
+      final imageBytes = await pickedFile.readAsBytes();
       setState(() {
         _selectedImage = FFUploadedFile(
           name: pickedFile.name,
-          bytes: compressedImageBytes,
+          bytes: imageBytes,
         );
       });
 
@@ -274,7 +148,7 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
     });
   }
 
-  // Send message with comprehensive error handling
+  // Send message
   Future<void> _sendMessage() async {
     final messageText = _messageController.text.trim();
     final imageBytes = _selectedImage?.bytes;
@@ -305,98 +179,49 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
         imageBytes: imageBytes,
       ));
       _isLoading = true;
-      _processingStatus =
-          imageBytes != null ? 'Processing image...' : 'Generating response...';
-      _canCancelProcessing = true;
     });
 
     _messageController.clear();
     _clearImage();
     _scrollToBottom();
 
-    String? response;
-    String? errorMessage;
-
     try {
-      // Update status for vision processing
-      if (imageBytes != null) {
-        setState(() {
-          _processingStatus = 'Analyzing image with AI...';
-        });
-      }
-
-      // Send message to model with timeout
-      response = await _gemmaManager
-          .sendMessage(
+      // Send message to model
+      final response = await _gemmaManager.sendMessage(
         finalMessage,
         imageBytes: imageBytes,
-      )
-          .timeout(
-        Duration(seconds: 30),
-        onTimeout: () {
-          throw TimeoutException('Processing timed out', Duration(seconds: 30));
-        },
       );
 
-      // Validate response
-      if (response == null || response.isEmpty) {
-        errorMessage = 'No response received from model';
+      // Add model response
+      setState(() {
+        _messages.add(ChatMessage(
+          text: response ?? 'Sorry, I could not generate a response.',
+          isUser: false,
+        ));
+      });
+
+      // Call callback if provided
+      if (widget.onMessageSent != null && response != null) {
+        try {
+          await widget.onMessageSent!(response);
+        } catch (e) {
+          print('Error in callback: $e');
+        }
       }
-    } on TimeoutException catch (e) {
-      errorMessage =
-          'Request timed out. Please try again with a smaller image or simpler request.';
-      print('Timeout error: $e');
     } catch (e) {
-      // Handle different types of errors
-      final errorString = e.toString().toLowerCase();
-
-      if (errorString.contains('memory') ||
-          errorString.contains('allocation')) {
-        errorMessage =
-            'Memory error. Please try with a smaller image or restart the app.';
-      } else if (errorString.contains('timeout') ||
-          errorString.contains('deadline')) {
-        errorMessage = 'Processing timed out. Please try again.';
-      } else if (errorString.contains('gpu') ||
-          errorString.contains('delegate')) {
-        errorMessage = 'GPU processing error. Attempting CPU fallback...';
-      } else if (errorString.contains('vision') ||
-          errorString.contains('image')) {
-        errorMessage =
-            'Image processing error. Please try with a different image.';
-      } else if (errorString.contains('session') ||
-          errorString.contains('model')) {
-        errorMessage = 'Model session error. Please restart the app.';
-      } else {
-        errorMessage = 'An unexpected error occurred. Please try again.';
-      }
-
       print('Error sending message: $e');
-    }
 
-    // Add model response or error message
-    setState(() {
-      _messages.add(ChatMessage(
-        text: response ??
-            errorMessage ??
-            'Sorry, I could not generate a response.',
-        isUser: false,
-      ));
-    });
-
-    // Call callback if provided and response is successful
-    if (widget.onMessageSent != null && response != null) {
-      try {
-        await widget.onMessageSent!(response);
-      } catch (e) {
-        print('Error in callback: $e');
-      }
+      // Add error message
+      setState(() {
+        _messages.add(ChatMessage(
+          text: 'Sorry, an error occurred. Please try again.',
+          isUser: false,
+        ));
+      });
     }
 
     setState(() {
       _isLoading = false;
-      _processingStatus = '';
-      _canCancelProcessing = false;
     });
     _scrollToBottom();
   }
@@ -441,7 +266,7 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
             ),
           ),
 
-          // Loading indicator with status
+          // Loading indicator
           if (_isLoading)
             Padding(
               padding: EdgeInsets.all(8),
@@ -454,9 +279,7 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   ),
                   SizedBox(width: 8),
-                  Text(_processingStatus.isNotEmpty
-                      ? _processingStatus
-                      : 'Thinking...'),
+                  Text('Thinking...'),
                 ],
               ),
             ),
@@ -608,14 +431,18 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
 
             // Text message
             if (message.text.isNotEmpty)
-              Text(
-                message.text,
-                style: TextStyle(
-                  color: message.isUser
-                      ? Colors.white
-                      : FlutterFlowTheme.of(context).primaryText,
-                ),
-              ),
+              message.isUser
+                  ? Text(
+                      message.text,
+                      style: const TextStyle(
+                        color: Colors.white,
+                      ),
+                    )
+                  : MarkdownDisplayWidget(
+                      markdownData: message.text,
+                      selectable: true,
+                      shrinkWrap: true,
+                    ),
           ],
         ),
       ),
@@ -628,7 +455,7 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
           await Clipboard.setData(ClipboardData(text: message.text));
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
+              const SnackBar(
                 content: Text('Copied to clipboard'),
                 duration: Duration(seconds: 1),
               ),

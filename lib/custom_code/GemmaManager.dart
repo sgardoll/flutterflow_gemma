@@ -276,7 +276,7 @@ class GemmaManager {
     }
   }
 
-  // Send message and get response with CPU fallback for vision
+  // Send message and get response
   Future<String?> sendMessage(String message, {Uint8List? imageBytes}) async {
     if (_session == null) {
       print('GemmaManager: No session available');
@@ -305,100 +305,8 @@ class GemmaManager {
       return response;
     } catch (e) {
       print('GemmaManager: Error sending message: $e');
-
-      // If vision processing fails and we have an image, try CPU fallback
-      if (imageBytes != null && _currentBackend != 'cpu') {
-        print(
-            'GemmaManager: Vision processing failed, attempting CPU fallback...');
-        return await _attemptCpuFallback(message, imageBytes);
-      }
-
       return null;
     }
-  }
-
-  // Attempt CPU fallback for vision processing
-  Future<String?> _attemptCpuFallback(
-      String message, Uint8List imageBytes) async {
-    try {
-      print('GemmaManager: Reinitializing with CPU backend...');
-
-      // Store current model type
-      final currentModel = _currentModelType;
-      if (currentModel == null) return null;
-
-      // Close current session/model
-      await closeModel();
-
-      // Reinitialize with CPU backend
-      final initSuccess = await initializeModel(
-        modelType: currentModel,
-        backend: 'cpu',
-        maxTokens: 1024,
-        supportImage: true, // Still try vision on CPU
-        maxNumImages: 1,
-        localModelPath: _getModelFileName(currentModel),
-      );
-
-      if (!initSuccess) {
-        print('GemmaManager: CPU fallback initialization failed');
-        return null;
-      }
-
-      // Create new session
-      final sessionSuccess = await createSession(
-        temperature: 0.8,
-        randomSeed: 1,
-        topK: 1,
-      );
-
-      if (!sessionSuccess) {
-        print('GemmaManager: CPU fallback session creation failed');
-        return null;
-      }
-
-      // Try sending message with CPU backend
-      final msg = Message.withImage(
-          text: message, imageBytes: imageBytes, isUser: true);
-
-      await _session!.addQueryChunk(msg);
-      final response = await _session!.getResponse();
-
-      print('GemmaManager: CPU fallback successful');
-      return response;
-    } catch (e) {
-      print('GemmaManager: CPU fallback also failed: $e');
-
-      // Final fallback: text-only response
-      try {
-        final textMsg = Message.text(
-            text:
-                'I can see an image but cannot process it right now. $message',
-            isUser: true);
-        await _session!.addQueryChunk(textMsg);
-        final response = await _session!.getResponse();
-        return response;
-      } catch (textError) {
-        print('GemmaManager: Text fallback also failed: $textError');
-        return null;
-      }
-    }
-  }
-
-  // Helper to get model filename from model type
-  String _getModelFileName(String modelType) {
-    // Map model types to their expected filenames
-    final modelFiles = {
-      'gemma-3n-e4b-it': 'gemma-3n-E4B-it-int4.task',
-      'gemma-3n-e2b-it': 'gemma-3n-E2B-it-int4.task',
-      'gemma3-1b-it': 'gemma3-1b-it-int4.task',
-      'gemma3-1b-web': 'gemma3-1b-it-int4-web.task',
-      'gemma3-9b': 'gemma-3-9b-it.task',
-      'gemma3-27b': 'gemma-3-27b-it.task',
-      'gemma3n-1b': 'gemma-3n-1b-it.task',
-    };
-
-    return modelFiles[modelType] ?? 'gemma-3n-E2B-it-int4.task';
   }
 
   // Close current session

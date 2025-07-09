@@ -11,6 +11,7 @@ import '../GemmaManager.dart';
 import '../actions/download_authenticated_model.dart';
 import '../actions/install_local_model_file.dart';
 import '../actions/validate_and_repair_model.dart';
+import 'gemma_visual_model_selector.dart';
 import 'dart:io';
 
 class GemmaSimpleSetupWidget extends StatefulWidget {
@@ -37,15 +38,18 @@ class GemmaSimpleSetupWidget extends StatefulWidget {
 class _GemmaSimpleSetupWidgetState extends State<GemmaSimpleSetupWidget> {
   bool _isSetupInProgress = false;
   bool _isSetupComplete = false;
+  bool _showModelSelector = false;
   String _currentStep = '';
   String _errorMessage = '';
   double _downloadProgress = 0.0;
+  String? _selectedModelId;
 
   final GemmaManager _gemmaManager = GemmaManager();
 
   @override
   void initState() {
     super.initState();
+    _selectedModelId = widget.modelId ?? _getDefaultModelForPlatform();
     _checkExistingSetup();
   }
 
@@ -57,6 +61,28 @@ class _GemmaSimpleSetupWidgetState extends State<GemmaSimpleSetupWidget> {
         _currentStep = 'Model ready for use!';
       });
     }
+  }
+
+  // Handle model selection
+  void _onModelSelected(String modelId) {
+    setState(() {
+      _selectedModelId = modelId;
+      _showModelSelector = false;
+    });
+  }
+
+  // Show model selector
+  void _showModelSelection() {
+    setState(() {
+      _showModelSelector = true;
+    });
+  }
+
+  // Hide model selector
+  void _hideModelSelection() {
+    setState(() {
+      _showModelSelector = false;
+    });
   }
 
   // Start the complete setup process
@@ -77,8 +103,8 @@ class _GemmaSimpleSetupWidgetState extends State<GemmaSimpleSetupWidget> {
     });
 
     try {
-      // Use platform-appropriate default model
-      final modelToDownload = widget.modelId ?? _getDefaultModelForPlatform();
+      // Use selected model or fallback to default
+      final modelToDownload = _selectedModelId ?? _getDefaultModelForPlatform();
 
       await _performSetup(modelToDownload);
     } catch (e) {
@@ -392,184 +418,256 @@ class _GemmaSimpleSetupWidgetState extends State<GemmaSimpleSetupWidget> {
     return Container(
       width: widget.width,
       height: widget.height,
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: FlutterFlowTheme.of(context).primaryBackground,
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Title
-          Text(
-            'Gemma Model Setup',
-            style: FlutterFlowTheme.of(context).headlineMedium.override(
-                  fontWeight: FontWeight.bold,
-                ),
-            textAlign: TextAlign.center,
+      child:
+          _showModelSelector ? _buildModelSelector() : _buildSetupInterface(),
+    );
+  }
+
+  Widget _buildModelSelector() {
+    return Column(
+      children: [
+        // Header with back button
+        Row(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: _hideModelSelection,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Choose Model',
+              style: FlutterFlowTheme.of(context).headlineMedium.override(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        // Model selector
+        Expanded(
+          child: GemmaVisualModelSelector(
+            selectedModelId: _selectedModelId,
+            onModelSelected: _onModelSelected,
           ),
+        ),
 
-          SizedBox(height: 20),
+        const SizedBox(height: 16),
 
-          // Status/Error Messages
-          if (_errorMessage.isNotEmpty) ...[
-            Container(
-              padding: EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.red.withOpacity(0.3)),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.error, color: Colors.red, size: 20),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _errorMessage,
-                      style: FlutterFlowTheme.of(context).bodyMedium.override(
-                            color: Colors.red,
-                          ),
-                    ),
-                  ),
-                ],
-              ),
+        // Continue button
+        ElevatedButton(
+          onPressed: _selectedModelId != null ? _hideModelSelection : null,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: FlutterFlowTheme.of(context).primary,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
             ),
-            SizedBox(height: 16),
-          ],
-
-          if (_isSetupComplete) ...[
-            Container(
-              padding: EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.green.withOpacity(0.3)),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.check_circle, color: Colors.green, size: 20),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _currentStep,
-                      style: FlutterFlowTheme.of(context).bodyMedium.override(
-                            color: Colors.green,
-                            fontWeight: FontWeight.w500,
-                          ),
-                    ),
-                  ),
-                ],
-              ),
+          ),
+          child: const Text(
+            'Continue with Selected Model',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
             ),
-            SizedBox(height: 16),
-          ],
+          ),
+        ),
+      ],
+    );
+  }
 
-          // Progress Section
-          if (_isSetupInProgress) ...[
-            Column(
+  Widget _buildSetupInterface() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        // Title
+        Text(
+          'Gemma Model Setup',
+          style: FlutterFlowTheme.of(context).headlineMedium.override(
+                fontWeight: FontWeight.bold,
+              ),
+          textAlign: TextAlign.center,
+        ),
+
+        SizedBox(height: 20),
+
+        // Status/Error Messages
+        if (_errorMessage.isNotEmpty) ...[
+          Container(
+            padding: EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.red.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.red.withOpacity(0.3)),
+            ),
+            child: Row(
               children: [
-                Text(
-                  _currentStep,
-                  style: FlutterFlowTheme.of(context).bodyMedium,
-                  textAlign: TextAlign.center,
-                ),
-                SizedBox(height: 12),
-
-                // Progress bar
-                Container(
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: FlutterFlowTheme.of(context).primaryBackground,
-                    borderRadius: BorderRadius.circular(4),
-                    border: Border.all(
-                      color:
-                          FlutterFlowTheme.of(context).primary.withOpacity(0.2),
-                    ),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: _downloadProgress,
-                      backgroundColor: Colors.transparent,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        FlutterFlowTheme.of(context).primary,
-                      ),
-                    ),
+                Icon(Icons.error, color: Colors.red, size: 20),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _errorMessage,
+                    style: FlutterFlowTheme.of(context).bodyMedium.override(
+                          color: Colors.red,
+                        ),
                   ),
                 ),
+              ],
+            ),
+          ),
+          SizedBox(height: 16),
+        ],
 
-                SizedBox(height: 8),
-
-                if (_downloadProgress > 0) ...[
-                  Text(
-                    '${(_downloadProgress * 100).toStringAsFixed(1)}%',
-                    style: FlutterFlowTheme.of(context).bodySmall,
+        if (_isSetupComplete) ...[
+          Container(
+            padding: EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.green.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.green.withOpacity(0.3)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.green, size: 20),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _currentStep,
+                    style: FlutterFlowTheme.of(context).bodyMedium.override(
+                          color: Colors.green,
+                          fontWeight: FontWeight.w500,
+                        ),
                   ),
-                ],
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 16),
+        ],
 
-                SizedBox(height: 16),
+        // Progress Section
+        if (_isSetupInProgress) ...[
+          Column(
+            children: [
+              Text(
+                _currentStep,
+                style: FlutterFlowTheme.of(context).bodyMedium,
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 12),
 
-                // Loading indicator
-                SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
+              // Progress bar
+              Container(
+                height: 8,
+                decoration: BoxDecoration(
+                  color: FlutterFlowTheme.of(context).primaryBackground,
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(
+                    color:
+                        FlutterFlowTheme.of(context).primary.withOpacity(0.2),
+                  ),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: _downloadProgress,
+                    backgroundColor: Colors.transparent,
                     valueColor: AlwaysStoppedAnimation<Color>(
                       FlutterFlowTheme.of(context).primary,
                     ),
                   ),
                 ),
-              ],
-            ),
-            SizedBox(height: 20),
-          ],
+              ),
 
-          // Setup Button
-          if (!_isSetupInProgress && !_isSetupComplete) ...[
-            ElevatedButton(
-              onPressed: _startSetup,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: FlutterFlowTheme.of(context).primary,
-                foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+              SizedBox(height: 8),
+
+              if (_downloadProgress > 0) ...[
+                Text(
+                  '${(_downloadProgress * 100).toStringAsFixed(1)}%',
+                  style: FlutterFlowTheme.of(context).bodySmall,
+                ),
+              ],
+
+              SizedBox(height: 16),
+
+              // Loading indicator
+              SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    FlutterFlowTheme.of(context).primary,
+                  ),
                 ),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.download, size: 20),
-                  SizedBox(width: 8),
-                  Text(
-                    'Setup Gemma Model',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
+            ],
+          ),
+          SizedBox(height: 20),
+        ],
+
+        // Setup Button
+        if (!_isSetupInProgress && !_isSetupComplete) ...[
+          ElevatedButton(
+            onPressed: _startSetup,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: FlutterFlowTheme.of(context).primary,
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
               ),
             ),
-          ],
-
-          // Model Info
-          if (!_isSetupInProgress) ...[
-            SizedBox(height: 16),
-            Text(
-              _isSetupComplete
-                  ? 'Model: ${_gemmaManager.currentModelType ?? "Unknown"}'
-                  : 'Model: ${widget.modelId ?? "gemma3-1b-it (default)"}',
-              style: FlutterFlowTheme.of(context).bodySmall.override(
-                    color: FlutterFlowTheme.of(context).secondaryText,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.download, size: 20),
+                SizedBox(width: 8),
+                Text(
+                  'Setup Gemma Model',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
                   ),
-              textAlign: TextAlign.center,
+                ),
+              ],
             ),
-          ],
+          ),
         ],
-      ),
+
+        // Model selector button
+        if (!_isSetupInProgress && !_isSetupComplete) ...[
+          const SizedBox(height: 12),
+          TextButton.icon(
+            onPressed: _showModelSelection,
+            icon: const Icon(Icons.settings),
+            label: const Text('Change Model'),
+            style: TextButton.styleFrom(
+              foregroundColor: FlutterFlowTheme.of(context).primary,
+            ),
+          ),
+        ],
+
+        // Model Info
+        if (!_isSetupInProgress) ...[
+          const SizedBox(height: 16),
+          Text(
+            _isSetupComplete
+                ? 'Model: ${_gemmaManager.currentModelType ?? "Unknown"}'
+                : 'Model: ${_selectedModelId ?? "gemma3-1b-it (default)"}',
+            style: FlutterFlowTheme.of(context).bodySmall.override(
+                  color: FlutterFlowTheme.of(context).secondaryText,
+                ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ],
     );
   }
 }

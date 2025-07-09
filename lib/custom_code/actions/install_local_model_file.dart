@@ -277,18 +277,40 @@ Future<void> _clearOldModelFiles(Directory targetDirectory,
     {String? currentFilePath}) async {
   try {
     final targetFiles = await targetDirectory.list().toList();
+    final currentFileName =
+        currentFilePath != null ? path.basename(currentFilePath) : null;
+
     for (final entity in targetFiles) {
       if (entity is File && entity.path.endsWith('.task')) {
-        // Don't delete the current file being installed
+        final entityFileName = path.basename(entity.path);
+
+        // Don't delete the current file being installed (exact path match)
         if (currentFilePath != null && entity.path == currentFilePath) {
-          print('Preserving current model file: ${entity.path}');
+          print('Preserving current model file (exact path): ${entity.path}');
           continue;
         }
 
         // Don't delete if it's the same file name as the current one
-        if (currentFilePath != null &&
-            path.basename(entity.path) == path.basename(currentFilePath)) {
+        if (currentFileName != null && entityFileName == currentFileName) {
           print('Preserving model file with same name: ${entity.path}');
+          continue;
+        }
+
+        // Additional safety: Don't delete files that were modified recently (within last 5 minutes)
+        // This prevents accidental deletion of files that were just downloaded
+        try {
+          final fileStat = await entity.stat();
+          final now = DateTime.now();
+          final timeSinceModified = now.difference(fileStat.modified);
+
+          if (timeSinceModified.inMinutes < 5) {
+            print(
+                'Preserving recently modified model file: ${entity.path} (modified ${timeSinceModified.inMinutes} minutes ago)');
+            continue;
+          }
+        } catch (e) {
+          print('Could not check modification time for ${entity.path}: $e');
+          // If we can't check modification time, err on the side of caution and keep the file
           continue;
         }
 

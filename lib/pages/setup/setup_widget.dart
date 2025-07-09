@@ -1,13 +1,9 @@
-import '/flutter_flow/flutter_flow_drop_down.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
-import '/flutter_flow/form_field_controller.dart';
 import '/custom_code/widgets/index.dart' as custom_widgets;
 import '/index.dart';
-import 'package:gemma/custom_code/GemmaManager.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'setup_model.dart';
 export 'setup_model.dart';
 
@@ -85,111 +81,30 @@ class _SetupWidgetState extends State<SetupWidget> {
           child: Column(
             mainAxisSize: MainAxisSize.max,
             children: [
-              Padding(
-                padding: EdgeInsetsDirectional.fromSTEB(24.0, 0.0, 24.0, 0.0),
-                child: FlutterFlowDropDown<String>(
-                  controller: _model.dropDownValueController ??=
-                      FormFieldController<String>(null),
-                  options: GemmaManager.getAvailableModelIds(),
-                  onChanged: (val) async {
-                    safeSetState(() => _model.dropDownValue = val);
-                    _model.modelChoice = _model.dropDownValue;
-                    safeSetState(() {});
-                  },
-                  width: MediaQuery.sizeOf(context).width * 1.0,
-                  height: 50.0,
-                  searchHintTextStyle: FlutterFlowTheme.of(context)
-                      .titleMedium
-                      .override(
-                        font: GoogleFonts.interTight(
-                          fontWeight: FlutterFlowTheme.of(context)
-                              .titleMedium
-                              .fontWeight,
-                          fontStyle: FlutterFlowTheme.of(context)
-                              .titleMedium
-                              .fontStyle,
-                        ),
-                        letterSpacing: 0.0,
-                        fontWeight:
-                            FlutterFlowTheme.of(context).titleMedium.fontWeight,
-                        fontStyle:
-                            FlutterFlowTheme.of(context).titleMedium.fontStyle,
-                      ),
-                  searchTextStyle: FlutterFlowTheme.of(context)
-                      .titleMedium
-                      .override(
-                        font: GoogleFonts.interTight(
-                          fontWeight: FlutterFlowTheme.of(context)
-                              .titleMedium
-                              .fontWeight,
-                          fontStyle: FlutterFlowTheme.of(context)
-                              .titleMedium
-                              .fontStyle,
-                        ),
-                        letterSpacing: 0.0,
-                        fontWeight:
-                            FlutterFlowTheme.of(context).titleMedium.fontWeight,
-                        fontStyle:
-                            FlutterFlowTheme.of(context).titleMedium.fontStyle,
-                      ),
-                  textStyle: FlutterFlowTheme.of(context).titleMedium.override(
-                        font: GoogleFonts.interTight(
-                          fontWeight: FlutterFlowTheme.of(context)
-                              .titleMedium
-                              .fontWeight,
-                          fontStyle: FlutterFlowTheme.of(context)
-                              .titleMedium
-                              .fontStyle,
-                        ),
-                        letterSpacing: 0.0,
-                        fontWeight:
-                            FlutterFlowTheme.of(context).titleMedium.fontWeight,
-                        fontStyle:
-                            FlutterFlowTheme.of(context).titleMedium.fontStyle,
-                      ),
-                  hintText: 'Select Model...',
-                  searchHintText: 'Search...',
-                  icon: Icon(
-                    Icons.keyboard_arrow_down_rounded,
-                    color: FlutterFlowTheme.of(context).secondaryText,
-                    size: 24.0,
-                  ),
-                  fillColor: FlutterFlowTheme.of(context).primaryBackground,
-                  elevation: 2.0,
-                  borderColor: FlutterFlowTheme.of(context).alternate,
-                  borderWidth: 1.0,
-                  borderRadius: 12.0,
-                  margin: EdgeInsetsDirectional.fromSTEB(12.0, 0.0, 12.0, 0.0),
-                  hidesUnderline: true,
-                  isOverButton: true,
-                  isSearchable: true,
-                  isMultiSelect: false,
-                ),
-              ),
               Flexible(
                 child: Container(
                   width: MediaQuery.sizeOf(context).width * 1.0,
                   height: MediaQuery.sizeOf(context).height * 1.0,
                   decoration: BoxDecoration(),
-                  child: Container(
-                    width: MediaQuery.sizeOf(context).width * 1.0,
-                    height: MediaQuery.sizeOf(context).height * 1.0,
-                    child: custom_widgets.GemmaSimpleSetupWidget(
+                  child: Padding(
+                    padding: EdgeInsets.all(24.0),
+                    child: Container(
                       width: MediaQuery.sizeOf(context).width * 1.0,
                       height: MediaQuery.sizeOf(context).height * 1.0,
-                      hfToken: FFLibraryValues().huggingFaceToken,
-                      modelId: _model.modelChoice,
-                      onComplete: () async {
-                        context.pushNamed(HomePageWidget.routeName);
-                      },
+                      child: custom_widgets.GemmaSimpleSetupWidget(
+                        width: MediaQuery.sizeOf(context).width * 1.0,
+                        height: MediaQuery.sizeOf(context).height * 1.0,
+                        hfToken: FFLibraryValues().huggingFaceToken,
+                        modelId: _model.modelChoice,
+                        onComplete: () async {
+                          context.pushNamed(HomePageWidget.routeName);
+                        },
+                      ),
                     ),
                   ),
                 ),
               ),
-            ]
-                .divide(SizedBox(height: 12.0))
-                .addToStart(SizedBox(height: 12.0))
-                .addToEnd(SizedBox(height: 12.0)),
+            ],
           ),
         ),
       ),
