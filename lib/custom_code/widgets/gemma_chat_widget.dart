@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import '../GemmaManager.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:typed_data';
+import 'package:flutter/services.dart'; // For Clipboard
 
 class GemmaChatWidget extends StatefulWidget {
   const GemmaChatWidget({
@@ -397,7 +398,8 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
 
   // Build message bubble
   Widget _buildMessageBubble(ChatMessage message) {
-    return Align(
+    final isAgent = !message.isUser;
+    Widget bubble = Align(
       alignment: message.isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: EdgeInsets.symmetric(vertical: 4),
@@ -441,6 +443,25 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
         ),
       ),
     );
+
+    if (isAgent && message.text.isNotEmpty) {
+      // Wrap with GestureDetector for long-press copy
+      bubble = GestureDetector(
+        onLongPress: () async {
+          await Clipboard.setData(ClipboardData(text: message.text));
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Copied to clipboard'),
+                duration: Duration(seconds: 1),
+              ),
+            );
+          }
+        },
+        child: bubble,
+      );
+    }
+    return bubble;
   }
 
   @override
