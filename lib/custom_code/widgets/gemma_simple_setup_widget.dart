@@ -64,11 +64,12 @@ class _GemmaSimpleSetupWidgetState extends State<GemmaSimpleSetupWidget> {
   }
 
   // Handle model selection
-  void _onModelSelected(String modelId) {
+  Future<dynamic> _onModelSelected(String modelId) async {
     setState(() {
       _selectedModelId = modelId;
       _showModelSelector = false;
     });
+    return Future.value();
   }
 
   // Show model selector

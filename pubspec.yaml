@@ -40,7 +40,6 @@ dependencies:
   flutter_animate: 4.5.0
   flutter_cache_manager: 3.4.1
   flutter_gemma: ^0.9.0
-  flutter_markdown: ^0.7.7+1
   flutter_native_splash: 2.4.1
   flutter_secure_storage: ^10.0.0-beta.4
   flutter_secure_storage_linux: ^2.0.1
@@ -56,6 +55,7 @@ dependencies:
   image_picker: ^1.1.2
   intl: 0.20.2
   json_path: 0.7.2
+  markdown_widget: ^2.3.2+8
   page_transition: 2.1.0
   path: ^1.9.0
   path_provider: 2.1.4
