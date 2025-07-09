@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'home_page_model.dart';
 export 'home_page_model.dart';
 
+/// make this more stylish, icon driven and more compact in height
 class HomePageWidget extends StatefulWidget {
   const HomePageWidget({super.key});
 

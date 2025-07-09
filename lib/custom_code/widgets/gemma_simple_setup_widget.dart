@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import '../GemmaManager.dart';
 import '../actions/download_authenticated_model.dart';
 import '../actions/install_local_model_file.dart';
+import '../actions/validate_and_repair_model.dart';
 import 'dart:io';
 
 class GemmaSimpleSetupWidget extends StatefulWidget {
@@ -97,7 +98,7 @@ class _GemmaSimpleSetupWidgetState extends State<GemmaSimpleSetupWidget> {
         _currentStep = 'Downloading model...';
       });
 
-      final downloadPath = await downloadAuthenticatedModel(
+      String? downloadPath = await downloadAuthenticatedModel(
         modelId,
         widget.hfToken!,
         (downloaded, total, percentage) async {
@@ -111,10 +112,77 @@ class _GemmaSimpleSetupWidgetState extends State<GemmaSimpleSetupWidget> {
         throw Exception('Failed to download model');
       }
 
-      // Step 2: Install model
+      // Step 2: Validate downloaded model
+      setState(() {
+        _currentStep = 'Validating model file...';
+        _downloadProgress = 1.0;
+      });
+
+      final validationResult =
+          await validateAndRepairModel(downloadPath, widget.hfToken, modelId);
+
+      if (!validationResult['isValid']) {
+        // Model is corrupted - delete and re-download
+        if (validationResult['canRepair'] == true) {
+          setState(() {
+            _currentStep = 'Model corrupted - deleting and re-downloading...';
+          });
+
+          // Delete the corrupted file
+          try {
+            final corruptedFile = File(downloadPath);
+            if (await corruptedFile.exists()) {
+              await corruptedFile.delete();
+              print('Deleted corrupted model file: $downloadPath');
+            }
+          } catch (e) {
+            print('Error deleting corrupted file: $e');
+          }
+
+          // Re-download the model
+          setState(() {
+            _currentStep = 'Re-downloading model...';
+            _downloadProgress = 0.0;
+          });
+
+          downloadPath = await downloadAuthenticatedModel(
+            modelId,
+            widget.hfToken!,
+            (downloaded, total, percentage) async {
+              setState(() {
+                _downloadProgress = percentage / 100.0;
+                _currentStep =
+                    'Re-downloading model... ${percentage.toStringAsFixed(1)}%';
+              });
+            },
+          );
+
+          if (downloadPath == null) {
+            throw Exception('Failed to re-download model after corruption');
+          }
+
+          // Validate the re-downloaded model
+          final revalidationResult =
+              await validateAndRepairModel(downloadPath, null, null);
+
+          if (!revalidationResult['isValid']) {
+            throw Exception(
+                'Re-downloaded model is still corrupted: ${revalidationResult['error']}');
+          }
+
+          setState(() {
+            _currentStep = 'Model re-downloaded and validated successfully';
+            _downloadProgress = 1.0;
+          });
+        } else {
+          throw Exception(
+              'Model validation failed: ${validationResult['error']}. ${validationResult['recommendation']}');
+        }
+      }
+
+      // Step 3: Install model
       setState(() {
         _currentStep = 'Installing model...';
-        _downloadProgress = 1.0;
       });
 
       final installSuccess = await installLocalModelFile(downloadPath, null);

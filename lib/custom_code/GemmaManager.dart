@@ -145,12 +145,8 @@ class GemmaManager {
   // Check if model file exists in platform-specific plugin directory
   Future<bool> _checkModelFileExists(String filename) async {
     try {
-      late Directory pluginDirectory;
-      if (Platform.isIOS) {
-        pluginDirectory = await getApplicationDocumentsDirectory();
-      } else {
-        pluginDirectory = await getApplicationSupportDirectory();
-      }
+      // Use Documents directory for both platforms
+      final pluginDirectory = await getApplicationDocumentsDirectory();
 
       final modelPath = path.join(pluginDirectory.path, filename);
       final exists = await File(modelPath).exists();
@@ -332,7 +328,25 @@ class GemmaManager {
 
   // Helper method to convert string to ModelType enum
   ModelType _getModelType(String modelType) {
-    switch (modelType.toLowerCase()) {
+    final normalized = modelType.toLowerCase().replaceAll('_', '-');
+
+    // Handle SmolVLM models
+    if (normalized.contains('smolvlm')) {
+      return ModelType.gemmaIt; // SmolVLM uses gemmaIt type
+    }
+
+    // Handle Gemma 3 Nano models
+    if (normalized.contains('gemma-3n') || normalized.contains('gemma3n')) {
+      return ModelType.gemmaIt; // Gemma 3 Nano uses gemmaIt type
+    }
+
+    // Handle other Gemma 3 models
+    if (normalized.contains('gemma-3') || normalized.contains('gemma3')) {
+      return ModelType.gemmaIt;
+    }
+
+    // Handle specific model types
+    switch (normalized) {
       case 'deepseek':
       case 'deep-seek':
       case 'deep_seek':
