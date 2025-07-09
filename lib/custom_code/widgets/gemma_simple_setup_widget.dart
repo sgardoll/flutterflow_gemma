@@ -380,7 +380,7 @@ class _GemmaSimpleSetupWidgetState extends State<GemmaSimpleSetupWidget> {
       return 'gemma3-1b-it'; // Standard iOS-compatible .task file
     } else if (Platform.isAndroid) {
       // Android can handle various formats
-      return 'smolvlm-500m'; // SafeTensors format works well on Android
+      return 'gemma3-1b-it'; // Standard Android-compatible .task file
     } else {
       // Web/other platforms
       return 'gemma3-1b-web'; // Web-optimized for browser deployment
@@ -561,7 +561,7 @@ class _GemmaSimpleSetupWidgetState extends State<GemmaSimpleSetupWidget> {
             Text(
               _isSetupComplete
                   ? 'Model: ${_gemmaManager.currentModelType ?? "Unknown"}'
-                  : 'Model: ${widget.modelId ?? "smolvlm-500m (default)"}',
+                  : 'Model: ${widget.modelId ?? "gemma3-1b-it (default)"}',
               style: FlutterFlowTheme.of(context).bodySmall.override(
                     color: FlutterFlowTheme.of(context).secondaryText,
                   ),

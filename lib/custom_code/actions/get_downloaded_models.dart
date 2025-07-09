@@ -35,44 +35,35 @@ Future<List<dynamic>> getDownloadedModels() async {
         final fileSize = fileStat.size;
         final modifiedDate = fileStat.modified;
 
-        // Determine model type from filename
+        // Determine Gemma model type from filename
         String modelType = 'Unknown';
         String description = 'Downloaded model file';
 
-        if (fileName.contains('smolvlm')) {
-          modelType = 'SmolVLM';
-          description = 'SmolVLM multimodal model';
-        } else if (fileName.contains('paligemma')) {
-          modelType = 'PaliGemma';
-          description = 'Google PaliGemma vision model';
-        } else if (fileName.contains('gemma-3n-E4B-it')) {
-          modelType = 'Gemma 3 4B Edge';
-          description = 'Optimized 4B model with vision support';
+        if (fileName.contains('gemma-3n-E4B-it')) {
+          modelType = 'Gemma 3 Nano 4B';
+          description = 'Gemma 3 Nano 4B with vision support';
         } else if (fileName.contains('gemma-3n-E2B-it')) {
-          modelType = 'Gemma 3 2B Edge';
-          description = 'Compact 2B model with vision support';
+          modelType = 'Gemma 3 Nano 2B';
+          description = 'Gemma 3 Nano 2B with vision support';
         } else if (fileName.contains('gemma3-1b-it')) {
-          modelType = 'Gemma 3 1B Instruct';
-          description = 'Compact 1B model optimized for mobile deployment';
+          modelType = 'Gemma3 1B';
+          description = 'Gemma3 1B model optimized for mobile deployment';
+        } else if (fileName.contains('gemma3-1b-web')) {
+          modelType = 'Gemma3 1B Web';
+          description = 'Web-optimized Gemma3 1B model';
         } else if (fileName.contains('gemma-3-9b-it')) {
-          modelType = 'Gemma 3 9B';
+          modelType = 'Gemma3 9B';
           description = 'High-quality 9B text model with strong reasoning';
         } else if (fileName.contains('gemma-3-27b-it')) {
-          modelType = 'Gemma 3 27B';
+          modelType = 'Gemma3 27B';
           description = 'Large 27B text model with exceptional reasoning';
         } else if (fileName.contains('gemma-3n-1b-it')) {
-          modelType = 'Gemma 3 Nano 1B';
+          modelType = 'Gemma3 Nano 1B';
           description =
               'Compact 1B Nano model for resource-constrained environments';
         } else if (fileName.contains('gemma')) {
           modelType = 'Gemma Model';
           description = 'Gemma language model';
-        } else if (fileName.contains('nanollava')) {
-          modelType = 'nanoLLaVA';
-          description = 'Compact LLAVA multimodal model';
-        } else if (fileName.contains('minicpm')) {
-          modelType = 'MiniCPM-V';
-          description = 'MiniCPM vision model';
         }
 
         models.add({
@@ -102,22 +93,19 @@ Future<List<dynamic>> getDownloadedModels() async {
 }
 
 bool _checkVisionSupport(String fileName) {
-  final visionModels = [
-    'smolvlm',
-    'paligemma',
+  // Only Gemma 3 Nano vision models support vision
+  final gemmaVisionModels = [
     'gemma-3n-e4b-it',
     'gemma-3n-e2b-it',
-    'nanollava',
-    'minicpm',
-    'idefics',
   ];
 
-  // Text-only models (explicitly no vision support)
+  // Text-only Gemma models (explicitly no vision support)
   final textOnlyModels = [
     'gemma-3-9b-it',
     'gemma-3-27b-it',
     'gemma-3n-1b-it',
     'gemma3-1b-it',
+    'gemma3-1b-web',
   ];
 
   // If it's explicitly a text-only model, return false
@@ -125,7 +113,8 @@ bool _checkVisionSupport(String fileName) {
     return false;
   }
 
-  return visionModels.any((model) => fileName.toLowerCase().contains(model));
+  return gemmaVisionModels
+      .any((model) => fileName.toLowerCase().contains(model));
 }
 
 String _formatFileSize(int bytes) {

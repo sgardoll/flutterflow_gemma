@@ -7,8 +7,6 @@ import 'package:flutter/material.dart';
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
 import 'dart:io';
-import 'dart:typed_data';
-import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 
 /// Validates a model file and returns detailed validation information
@@ -102,8 +100,6 @@ Future<Map<String, dynamic>> _validateModelFile(File modelFile) async {
     // Check file extension and validate accordingly
     if (modelFile.path.endsWith('.task')) {
       return await _validateTaskFile(modelFile);
-    } else if (modelFile.path.endsWith('.safetensors')) {
-      return await _validateSafetensorsFile(modelFile);
     } else {
       return await _validateGenericFile(modelFile);
     }
@@ -235,49 +231,6 @@ Map<String, dynamic> _validateZipHeader(List<int> headerBytes, int fileSize) {
       'isValid': false,
       'error': 'Error parsing ZIP header: ${e.toString()}',
       'errorType': 'zip_parsing_error',
-    };
-  }
-}
-
-/// Validate .safetensors files
-Future<Map<String, dynamic>> _validateSafetensorsFile(File file) async {
-  try {
-    // Safetensors files start with a JSON header length (8 bytes little-endian)
-    final bytes = await file.openRead(0, 8).first;
-
-    if (bytes.length < 8) {
-      return {
-        'isValid': false,
-        'error': 'Safetensors file too small for header',
-        'errorType': 'invalid_header',
-      };
-    }
-
-    // Read header length (first 8 bytes, little-endian)
-    final uint8List = Uint8List.fromList(bytes);
-    final byteData = ByteData.sublistView(uint8List);
-    final headerLength = byteData.getUint64(0, Endian.little);
-
-    if (headerLength > 0 && headerLength < 1024 * 1024) {
-      // Reasonable header size
-      return {
-        'isValid': true,
-        'format': 'safetensors',
-        'headerLength': headerLength,
-      };
-    }
-
-    return {
-      'isValid': false,
-      'error': 'Invalid safetensors header length: $headerLength',
-      'errorType': 'invalid_header_length',
-      'headerLength': headerLength,
-    };
-  } catch (e) {
-    return {
-      'isValid': false,
-      'error': 'Error validating safetensors file: ${e.toString()}',
-      'errorType': 'validation_exception',
     };
   }
 }

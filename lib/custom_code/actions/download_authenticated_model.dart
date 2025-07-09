@@ -16,34 +16,23 @@ Future<String?> downloadAuthenticatedModel(
   Future Function(int downloaded, int total, double percentage)? onProgress,
 ) async {
   /*
-   * AVAILABLE MULTIMODAL MODELS:
+   * AVAILABLE GEMMA MODELS:
    * 
-   * RECOMMENDED FOR WEB/MOBILE:
-   * - 'smolvlm-500m': SmolVLM 500M (1.2GB RAM, image+text, best for web)
-   * - 'smolvlm-500m-onnx': ONNX version for cross-platform deployment
-   * - 'gemma3-1b-web': Web-optimized Gemma3 (text-only, very efficient)
+   * VISION + TEXT MODELS:
+   * - 'gemma-3n-e4b-it': Gemma 3 Nano 4B (vision + text)
+   * - 'gemma-3n-e2b-it': Gemma 3 Nano 2B (vision + text)
    * 
-   * MULTIMODAL MODELS:
-   * - 'smolvlm-2b': SmolVLM 2.2B (better quality, more RAM needed)
-   * - 'paligemma-3b-224': Google PaliGemma (224px images, OCR capable)
-   * - 'paligemma-3b-448': Google PaliGemma (448px images, higher resolution)
-   * - 'paligemma-3b-896': Google PaliGemma (896px images, best quality)
-   * - 'nanollava': Compact LLAVA variant (1.05B params, efficient)
-   * - 'minicpm-v2': MiniCPM Vision model (good balance)
-   * - 'idefics2-8b-ocr': Specialized for OCR and document understanding
-   * 
-   * UTILITIES:
-   * - 'rmbg-1.4-onnx': Background removal model (computer vision)
-   * 
-   * LEGACY TEXT-ONLY:
-   * - 'gemma-3n-e4b-it': Gemma 3 Nano 4B
-   * - 'gemma-3n-e2b-it': Gemma 3 Nano 2B
-   * - 'gemma3-1b-it': Gemma3 1B
+   * TEXT-ONLY MODELS:
+   * - 'gemma3-1b-web': Web-optimized Gemma3 1B (text-only)
+   * - 'gemma3-1b-it': Gemma3 1B (text-only)
+   * - 'gemma3-9b': Gemma3 9B (text-only)
+   * - 'gemma3-27b': Gemma3 27B (text-only)
+   * - 'gemma3n-1b': Gemma3 Nano 1B (text-only)
    * 
    * Usage Examples:
-   * await downloadAuthenticatedModel('smolvlm-500m', token, onProgress);
-   * await downloadAuthenticatedModel('paligemma-3b-448', token, onProgress);
-   * await downloadAuthenticatedModel('https://custom-url.com/model.safetensors', token, onProgress);
+   * await downloadAuthenticatedModel('gemma-3n-e2b-it', token, onProgress);
+   * await downloadAuthenticatedModel('gemma3-9b', token, onProgress);
+   * await downloadAuthenticatedModel('https://custom-url.com/model.task', token, onProgress);
    */
 
   try {
@@ -175,64 +164,28 @@ Future<String?> downloadAuthenticatedModel(
 
 String _getModelDownloadUrl(String modelIdentifier) {
   final modelUrls = <String, String>{
-    // Existing Gemma models
+    // Gemma vision models
     'gemma-3n-e4b-it':
         'https://huggingface.co/google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-3n-E4B-it-int4.task',
     'gemma-3n-e2b-it':
         'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task',
+
+    // Gemma text-only models
     'gemma3-1b-it':
         'https://huggingface.co/litert-community/Gemma3-1B-IT/resolve/main/gemma3-1b-it-int4.task',
-
-    // New Gemma 3 text-only models
+    'gemma3-1b-web':
+        'https://huggingface.co/litert-community/Gemma3-1B-IT/resolve/main/gemma3-1b-it-int4-web.task',
     'gemma3-9b':
         'https://huggingface.co/google/gemma-3-9b-it/resolve/main/gemma-3-9b-it.task',
     'gemma3-27b':
         'https://huggingface.co/google/gemma-3-27b-it/resolve/main/gemma-3-27b-it.task',
     'gemma3n-1b':
         'https://huggingface.co/google/gemma-3n-1b-it/resolve/main/gemma-3n-1b-it.task',
-
-    // New Multimodal Models - SmolVLM (Recommended for on-device)
-    'smolvlm-500m':
-        'https://huggingface.co/HuggingFaceTB/SmolVLM-500M-Instruct/resolve/main/model.safetensors',
-    'smolvlm-500m-onnx':
-        'https://huggingface.co/HuggingFaceTB/SmolVLM-500M-Instruct/resolve/main/onnx/model.onnx',
-    'smolvlm-2b':
-        'https://huggingface.co/HuggingFaceTB/SmolVLM-Instruct/resolve/main/model.safetensors',
-    'smolvlm-2b-onnx':
-        'https://huggingface.co/HuggingFaceTB/SmolVLM-Instruct/resolve/main/onnx/model.onnx',
-
-    // PaliGemma Models (Google's multimodal)
-    'paligemma-3b-224':
-        'https://huggingface.co/google/paligemma-3b-pt-224/resolve/main/model.safetensors',
-    'paligemma-3b-448':
-        'https://huggingface.co/google/paligemma-3b-pt-448/resolve/main/model.safetensors',
-    'paligemma-3b-896':
-        'https://huggingface.co/google/paligemma-3b-pt-896/resolve/main/model.safetensors',
-
-    // Efficient Multimodal Models
-    'nanollava':
-        'https://huggingface.co/mlx-community/nanoLLaVA/resolve/main/model.safetensors',
-    'minicpm-v2':
-        'https://huggingface.co/openbmb/MiniCPM-V-2/resolve/main/model.safetensors',
-
-    // LiteRT Web-Optimized Models
-    'gemma3-1b-web':
-        'https://huggingface.co/litert-community/Gemma3-1B-IT/resolve/main/gemma3-1b-it-int4-web.task',
-    'gemma3-1b-int8-web':
-        'https://huggingface.co/litert-community/Gemma3-1B-IT/resolve/main/gemma3-1b-it-int8-web.task',
-
-    // Vision-specific models
-    'idefics2-8b-ocr':
-        'https://huggingface.co/huz-relay/idefics2-8b-ocr/resolve/main/model.safetensors',
-
-    // Background removal (computer vision utility)
-    'rmbg-1.4-onnx':
-        'https://huggingface.co/briaai/RMBG-1.4/resolve/main/onnx/model_fp16.onnx',
   };
 
   final url = modelUrls[modelIdentifier] ??
-      // Default to SmolVLM-500M as it's most suitable for web deployment
-      'https://huggingface.co/HuggingFaceTB/SmolVLM-500M-Instruct/resolve/main/model.safetensors';
+      // Default to Gemma 3 Nano 2B as it's the most balanced model
+      'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task';
 
   print('Mapped model $modelIdentifier to URL: $url');
   return url;
@@ -240,187 +193,67 @@ String _getModelDownloadUrl(String modelIdentifier) {
 
 String _getModelFileName(String modelIdentifier) {
   final modelFileNames = <String, String>{
-    // Existing Gemma models
+    // Gemma vision models
     'gemma-3n-e4b-it': 'gemma-3n-E4B-it-int4.task',
     'gemma-3n-e2b-it': 'gemma-3n-E2B-it-int4.task',
-    'gemma3-1b-it': 'gemma3-1b-it-int4.task',
 
-    // New Gemma 3 text-only models
+    // Gemma text-only models
+    'gemma3-1b-it': 'gemma3-1b-it-int4.task',
+    'gemma3-1b-web': 'gemma3-1b-it-int4-web.task',
     'gemma3-9b': 'gemma-3-9b-it.task',
     'gemma3-27b': 'gemma-3-27b-it.task',
     'gemma3n-1b': 'gemma-3n-1b-it.task',
-
-    // New Multimodal Models - SmolVLM (Recommended for on-device)
-    'smolvlm-500m': 'smolvlm-500m-instruct.safetensors',
-    'smolvlm-500m-onnx': 'smolvlm-500m-instruct.onnx',
-    'smolvlm-2b': 'smolvlm-2b-instruct.safetensors',
-    'smolvlm-2b-onnx': 'smolvlm-2b-instruct.onnx',
-
-    // PaliGemma Models (Google's multimodal)
-    'paligemma-3b-224': 'paligemma-3b-pt-224.safetensors',
-    'paligemma-3b-448': 'paligemma-3b-pt-448.safetensors',
-    'paligemma-3b-896': 'paligemma-3b-pt-896.safetensors',
-
-    // Efficient Multimodal Models
-    'nanollava': 'nanollava.safetensors',
-    'minicpm-v2': 'minicpm-v2.safetensors',
-
-    // LiteRT Web-Optimized Models
-    'gemma3-1b-web': 'gemma3-1b-it-int4-web.task',
-    'gemma3-1b-int8-web': 'gemma3-1b-it-int8-web.task',
-
-    // Vision-specific models
-    'idefics2-8b-ocr': 'idefics2-8b-ocr.safetensors',
-
-    // Background removal (computer vision utility)
-    'rmbg-1.4-onnx': 'rmbg-1.4-fp16.onnx',
   };
 
-  return modelFileNames[modelIdentifier] ?? 'smolvlm-500m-instruct.safetensors';
+  return modelFileNames[modelIdentifier] ?? 'gemma-3n-E2B-it-int4.task';
 }
 
-/// Get detailed information about available models
+/// Get detailed information about available Gemma models
 Map<String, dynamic>? getModelInfo(String modelIdentifier) {
   final modelInfo = <String, Map<String, dynamic>>{
-    // Recommended for Web/Mobile
-    'smolvlm-500m': {
-      'name': 'SmolVLM 500M Instruct',
-      'size': '507M parameters',
-      'type': 'multimodal',
-      'capabilities': ['image-captioning', 'vqa', 'ocr', 'text-reading'],
-      'memory_requirement': '1.2GB GPU RAM',
-      'optimized_for': 'web',
-      'formats': ['safetensors'],
-      'description': 'Smallest multimodal model, perfect for web deployment',
-    },
-    'smolvlm-500m-onnx': {
-      'name': 'SmolVLM 500M ONNX',
-      'size': '507M parameters',
-      'type': 'multimodal',
-      'capabilities': ['image-captioning', 'vqa', 'ocr', 'text-reading'],
-      'memory_requirement': '1.2GB RAM',
-      'optimized_for': 'cross-platform',
-      'formats': ['onnx'],
-      'description': 'ONNX version for cross-platform deployment',
-    },
-    'smolvlm-2b': {
-      'name': 'SmolVLM 2.2B Instruct',
-      'size': '2.25B parameters',
-      'type': 'multimodal',
+    // Gemma vision models
+    'gemma-3n-e4b-it': {
+      'name': 'Gemma 3 Nano 4B',
+      'size': '4B parameters',
+      'type': 'vision-text',
       'capabilities': [
         'image-captioning',
         'vqa',
-        'document-understanding',
-        'chart-comprehension'
+        'text-generation',
+        'instruction-following'
       ],
-      'memory_requirement': '5GB GPU RAM',
-      'optimized_for': 'quality',
-      'formats': ['safetensors'],
-      'description':
-          'Higher quality multimodal model with document understanding',
-    },
-
-    // PaliGemma Models
-    'paligemma-3b-224': {
-      'name': 'PaliGemma 3B (224px)',
-      'size': '2.93B parameters',
-      'type': 'multimodal',
-      'capabilities': [
-        'image-captioning',
-        'vqa',
-        'ocr',
-        'object-detection',
-        'segmentation'
-      ],
-      'memory_requirement': '6GB GPU RAM',
-      'image_resolution': '224x224',
-      'optimized_for': 'general-tasks',
-      'formats': ['safetensors'],
-      'description': 'Google\'s vision-language model for general tasks',
-      'license': 'gemma',
-    },
-    'paligemma-3b-448': {
-      'name': 'PaliGemma 3B (448px)',
-      'size': '2.93B parameters',
-      'type': 'multimodal',
-      'capabilities': [
-        'image-captioning',
-        'vqa',
-        'ocr',
-        'object-detection',
-        'segmentation'
-      ],
-      'memory_requirement': '8GB GPU RAM',
-      'image_resolution': '448x448',
-      'optimized_for': 'high-resolution',
-      'formats': ['safetensors'],
-      'description': 'Higher resolution version for detailed image analysis',
-      'license': 'gemma',
-    },
-    'paligemma-3b-896': {
-      'name': 'PaliGemma 3B (896px)',
-      'size': '2.93B parameters',
-      'type': 'multimodal',
-      'capabilities': [
-        'image-captioning',
-        'vqa',
-        'ocr',
-        'object-detection',
-        'segmentation'
-      ],
-      'memory_requirement': '12GB GPU RAM',
-      'image_resolution': '896x896',
-      'optimized_for': 'ultra-high-resolution',
-      'formats': ['safetensors'],
-      'description': 'Ultra high resolution for detailed document analysis',
-      'license': 'gemma',
-    },
-
-    // Compact Models
-    'nanollava': {
-      'name': 'nanoLLaVA',
-      'size': '1.05B parameters',
-      'type': 'multimodal',
-      'capabilities': ['image-captioning', 'vqa'],
       'memory_requirement': '3GB RAM',
-      'optimized_for': 'efficiency',
-      'formats': ['safetensors', 'mlx'],
-      'description': 'Compact LLAVA variant optimized for Apple Silicon',
+      'optimized_for': 'vision-tasks',
+      'formats': ['task'],
+      'description': 'Gemma 3 Nano 4B with vision and text capabilities',
     },
-    'minicpm-v2': {
-      'name': 'MiniCPM-V-2',
+    'gemma-3n-e2b-it': {
+      'name': 'Gemma 3 Nano 2B',
       'size': '2B parameters',
-      'type': 'multimodal',
-      'capabilities': ['image-captioning', 'vqa', 'visual-reasoning'],
-      'memory_requirement': '4GB GPU RAM',
-      'optimized_for': 'balance',
-      'formats': ['safetensors'],
-      'description': 'Good balance of size and capability',
+      'type': 'vision-text',
+      'capabilities': [
+        'image-captioning',
+        'vqa',
+        'text-generation',
+        'instruction-following'
+      ],
+      'memory_requirement': '2GB RAM',
+      'optimized_for': 'vision-tasks',
+      'formats': ['task'],
+      'description': 'Gemma 3 Nano 2B with vision and text capabilities',
     },
 
-    // Specialized Models
-    'idefics2-8b-ocr': {
-      'name': 'Idefics2 8B OCR',
-      'size': '8.4B parameters',
-      'type': 'multimodal',
-      'capabilities': ['ocr', 'document-understanding', 'visual-reasoning'],
-      'memory_requirement': '16GB GPU RAM',
-      'optimized_for': 'ocr-documents',
-      'formats': ['safetensors'],
-      'description': 'Specialized for OCR and document understanding',
+    // Gemma text-only models
+    'gemma3-1b-it': {
+      'name': 'Gemma3 1B',
+      'size': '1B parameters',
+      'type': 'text-only',
+      'capabilities': ['text-generation', 'instruction-following'],
+      'memory_requirement': '800MB RAM',
+      'optimized_for': 'efficiency',
+      'formats': ['task'],
+      'description': 'Compact Gemma3 1B model for mobile deployment',
     },
-    'rmbg-1.4-onnx': {
-      'name': 'RMBG 1.4',
-      'size': '88MB',
-      'type': 'computer-vision',
-      'capabilities': ['background-removal'],
-      'memory_requirement': '512MB RAM',
-      'optimized_for': 'image-processing',
-      'formats': ['onnx'],
-      'description': 'Background removal utility model',
-    },
-
-    // Web-Optimized
     'gemma3-1b-web': {
       'name': 'Gemma3 1B Web',
       'size': '1B parameters',
@@ -429,20 +262,8 @@ Map<String, dynamic>? getModelInfo(String modelIdentifier) {
       'memory_requirement': '700MB RAM',
       'optimized_for': 'web',
       'formats': ['task'],
-      'description': 'Web-optimized text model with LiteRT',
+      'description': 'Web-optimized Gemma3 1B model with LiteRT',
     },
-    'gemma3-1b-int8-web': {
-      'name': 'Gemma3 1B INT8 Web',
-      'size': '1B parameters',
-      'type': 'text-only',
-      'capabilities': ['text-generation', 'instruction-following'],
-      'memory_requirement': '1GB RAM',
-      'optimized_for': 'web',
-      'formats': ['task'],
-      'description': 'INT8 quantized version for better quality',
-    },
-
-    // New Gemma 3 text-only models
     'gemma3-9b': {
       'name': 'Gemma3 9B',
       'size': '9B parameters',
@@ -486,21 +307,15 @@ Map<String, dynamic>? getModelInfo(String modelIdentifier) {
   return modelInfo[modelIdentifier];
 }
 
-/// Get list of recommended models for different use cases
+/// Get list of recommended Gemma models for different use cases
 Map<String, List<String>> getModelRecommendations() {
   return {
-    'web_deployment': ['smolvlm-500m', 'gemma3-1b-web', 'smolvlm-500m-onnx'],
-    'mobile_apps': ['smolvlm-500m', 'nanollava', 'gemma3-1b-web', 'gemma3n-1b'],
-    'multimodal_tasks': ['smolvlm-500m', 'smolvlm-2b', 'paligemma-3b-448'],
-    'ocr_documents': ['idefics2-8b-ocr', 'paligemma-3b-896', 'smolvlm-2b'],
-    'image_processing': ['rmbg-1.4-onnx', 'paligemma-3b-224'],
-    'low_memory': ['smolvlm-500m', 'nanollava', 'gemma3-1b-web', 'gemma3n-1b'],
-    'high_quality': [
-      'gemma3-27b',
-      'gemma3-9b',
-      'paligemma-3b-896',
-      'idefics2-8b-ocr'
-    ],
-    'text_only': ['gemma3-27b', 'gemma3-9b', 'gemma3n-1b', 'gemma3-1b-web'],
+    'web_deployment': ['gemma3-1b-web', 'gemma3n-1b', 'gemma3-1b-it'],
+    'mobile_apps': ['gemma3n-1b', 'gemma3-1b-it', 'gemma-3n-e2b-it'],
+    'vision_tasks': ['gemma-3n-e2b-it', 'gemma-3n-e4b-it'],
+    'text_generation': ['gemma3-9b', 'gemma3-27b', 'gemma3-1b-it'],
+    'low_memory': ['gemma3n-1b', 'gemma3-1b-web', 'gemma3-1b-it'],
+    'high_quality': ['gemma3-27b', 'gemma3-9b', 'gemma-3n-e4b-it'],
+    'balanced': ['gemma-3n-e2b-it', 'gemma3-9b', 'gemma3-1b-it'],
   };
 }

@@ -8,9 +8,6 @@ import 'package:flutter/material.dart';
 
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'dart:io';
-import 'dart:typed_data';
-import 'dart:convert';
-import 'package:crypto/crypto.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 
@@ -158,11 +155,6 @@ Future<bool> _validateModelFile(File modelFile) async {
       return await _validateTaskFile(modelFile);
     }
 
-    // For .safetensors files, validate they have proper structure
-    if (modelFile.path.endsWith('.safetensors')) {
-      return await _validateSafetensorsFile(modelFile);
-    }
-
     // For other formats, do basic checks
     return await _validateGenericFile(modelFile);
   } catch (e) {
@@ -265,36 +257,6 @@ bool _validateZipHeader(List<int> headerBytes, int fileSize) {
   }
 }
 
-/// Validate .safetensors files
-Future<bool> _validateSafetensorsFile(File file) async {
-  try {
-    // Safetensors files start with a JSON header length (8 bytes little-endian)
-    final bytes = await file.openRead(0, 8).first;
-
-    if (bytes.length < 8) {
-      print('Error: Safetensors file too small');
-      return false;
-    }
-
-    // Read header length (first 8 bytes, little-endian)
-    final uint8List = Uint8List.fromList(bytes);
-    final byteData = ByteData.sublistView(uint8List);
-    final headerLength = byteData.getUint64(0, Endian.little);
-
-    if (headerLength > 0 && headerLength < 1024 * 1024) {
-      // Reasonable header size
-      print('Safetensors file has valid header length: $headerLength');
-      return true;
-    }
-
-    print('Error: Invalid safetensors header length: $headerLength');
-    return false;
-  } catch (e) {
-    print('Error validating safetensors file: $e');
-    return false;
-  }
-}
-
 /// Generic file validation for other formats
 Future<bool> _validateGenericFile(File file) async {
   try {
@@ -318,9 +280,7 @@ Future<void> _clearOldModelFiles(Directory targetDirectory,
   try {
     final targetFiles = await targetDirectory.list().toList();
     for (final entity in targetFiles) {
-      if (entity is File &&
-          (entity.path.endsWith('.task') ||
-              entity.path.endsWith('.safetensors'))) {
+      if (entity is File && entity.path.endsWith('.task')) {
         // Don't delete the current file being installed
         if (currentFilePath != null && entity.path == currentFilePath) {
           print('Preserving current model file: ${entity.path}');
@@ -350,9 +310,7 @@ Future<void> _clearOldModelFiles(Directory targetDirectory,
     if (otherDirectory.path != targetDirectory.path) {
       final otherFiles = await otherDirectory.list().toList();
       for (final entity in otherFiles) {
-        if (entity is File &&
-            (entity.path.endsWith('.task') ||
-                entity.path.endsWith('.safetensors'))) {
+        if (entity is File && entity.path.endsWith('.task')) {
           // Don't delete the current file being installed
           if (currentFilePath != null && entity.path == currentFilePath) {
             print(
