@@ -97,7 +97,7 @@ class _SetupWidgetState extends State<SetupWidget> {
                         hfToken: FFLibraryValues().huggingFaceToken,
                         modelId: _model.modelChoice,
                         onComplete: () async {
-                          context.pushNamed(HomePageWidget.routeName);
+                          context.goNamed(HomePageWidget.routeName);
                         },
                       ),
                     ),

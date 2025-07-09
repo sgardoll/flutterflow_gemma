@@ -1,6 +1,8 @@
+import '/flutter_flow/flutter_flow_icon_button.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/custom_code/widgets/index.dart' as custom_widgets;
+import '/index.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'home_page_model.dart';
@@ -48,7 +50,19 @@ class _HomePageWidgetState extends State<HomePageWidget> {
         appBar: AppBar(
           backgroundColor: FlutterFlowTheme.of(context).accent4,
           iconTheme: IconThemeData(color: FlutterFlowTheme.of(context).primary),
-          automaticallyImplyLeading: true,
+          automaticallyImplyLeading: false,
+          leading: FlutterFlowIconButton(
+            borderRadius: 8.0,
+            buttonSize: 40.0,
+            icon: Icon(
+              Icons.arrow_back,
+              color: FlutterFlowTheme.of(context).primary,
+              size: 24.0,
+            ),
+            onPressed: () async {
+              context.goNamed(SetupWidget.routeName);
+            },
+          ),
           actions: [],
           flexibleSpace: FlexibleSpaceBar(
             title: Text(
