@@ -49,34 +49,36 @@ class _SetupWidgetState extends State<SetupWidget> {
       child: Scaffold(
         key: scaffoldKey,
         backgroundColor: FlutterFlowTheme.of(context).info,
-        appBar: AppBar(
-          backgroundColor: FlutterFlowTheme.of(context).accent4,
-          automaticallyImplyLeading: false,
-          actions: [],
-          flexibleSpace: FlexibleSpaceBar(
-            background: InkWell(
-              splashColor: Colors.transparent,
-              focusColor: Colors.transparent,
-              hoverColor: Colors.transparent,
-              highlightColor: Colors.transparent,
-              onTap: () async {
-                context.pushNamed(SetupWidget.routeName);
-              },
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(0.0),
-                child: CachedNetworkImage(
-                  fadeInDuration: Duration(milliseconds: 500),
-                  fadeOutDuration: Duration(milliseconds: 500),
-                  imageUrl:
-                      'https://storage.googleapis.com/gweb-developer-goog-blog-assets/images/Gemma3n_Wagtial_RD1-V02.original.jpg',
-                  fit: BoxFit.cover,
+        appBar: PreferredSize(
+          preferredSize: Size.fromHeight(90.0),
+          child: AppBar(
+            backgroundColor: FlutterFlowTheme.of(context).accent4,
+            automaticallyImplyLeading: false,
+            actions: [],
+            flexibleSpace: FlexibleSpaceBar(
+              background: InkWell(
+                splashColor: Colors.transparent,
+                focusColor: Colors.transparent,
+                hoverColor: Colors.transparent,
+                highlightColor: Colors.transparent,
+                onTap: () async {
+                  context.pushNamed(SetupWidget.routeName);
+                },
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(0.0),
+                  child: CachedNetworkImage(
+                    fadeInDuration: Duration(milliseconds: 500),
+                    fadeOutDuration: Duration(milliseconds: 500),
+                    imageUrl:
+                        'https://storage.googleapis.com/gweb-developer-goog-blog-assets/images/Gemma3n_Wagtial_RD1-V02.original.jpg',
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
             ),
-            centerTitle: true,
-            expandedTitleScale: 1.0,
+            centerTitle: false,
+            elevation: 2.0,
           ),
-          elevation: 2.0,
         ),
         body: SafeArea(
           top: true,
@@ -137,7 +139,7 @@ class _SetupWidgetState extends State<SetupWidget> {
                       fontStyle:
                           FlutterFlowTheme.of(context).titleMedium.fontStyle,
                     ),
-                hintText: 'Select...',
+                hintText: 'Select Model...',
                 searchHintText: 'Search...',
                 icon: Icon(
                   Icons.keyboard_arrow_down_rounded,
