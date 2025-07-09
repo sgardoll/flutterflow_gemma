@@ -15,21 +15,15 @@ Future<List<dynamic>> getDownloadedModels() async {
     print('getDownloadedModels: Listing downloaded models...');
 
     final directory = await getApplicationDocumentsDirectory();
-    final modelsDir = Directory(path.join(directory.path, 'models'));
-
-    if (!await modelsDir.exists()) {
-      print('getDownloadedModels: Models directory does not exist');
-      return [];
-    }
 
     final List<dynamic> models = [];
-    final List<FileSystemEntity> files = modelsDir.listSync();
+    final List<FileSystemEntity> files = directory.listSync();
 
     print(
-        'getDownloadedModels: Found ${files.length} files in models directory');
+        'getDownloadedModels: Found ${files.length} files in documents directory');
 
     for (final file in files) {
-      if (file is File) {
+      if (file is File && file.path.endsWith('.task')) {
         final fileName = path.basename(file.path);
         final fileStat = await file.stat();
         final fileSize = fileStat.size;

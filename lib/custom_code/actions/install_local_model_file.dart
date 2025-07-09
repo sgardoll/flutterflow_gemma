@@ -49,62 +49,60 @@ Future<bool> installLocalModelFile(
       print('No existing model to clear: $e');
     }
 
-    // Step 2: Use platform-specific directories
-    late Directory targetDirectory;
-    if (Platform.isIOS) {
-      // iOS plugin expects models in Documents directory
-      targetDirectory = await getApplicationDocumentsDirectory();
-      print('iOS: Using documents directory: ${targetDirectory.path}');
-    } else {
-      // Android: Use documents directory as a more accessible location
-      targetDirectory = await getApplicationDocumentsDirectory();
-      print('Android: Using documents directory: ${targetDirectory.path}');
-    }
+    // Step 2: Get the target directory (should be same as download location)
+    final targetDirectory = await getApplicationDocumentsDirectory();
 
     // Clear old model files (but not the current file being installed)
     await _clearOldModelFiles(targetDirectory, currentFilePath: localModelPath);
 
-    // Step 3: Copy the model file to the platform-specific directory
-    final targetModelPath = path.join(targetDirectory.path, modelFileName);
-    print('Copying model to platform directory: $targetModelPath');
+    // Step 3: Verify the model file is in the correct location
+    final expectedPath = path.join(targetDirectory.path, modelFileName);
 
-    await modelFile.copy(targetModelPath);
-    print('Model file copied successfully');
-
-    // Step 4: Verify the file was copied correctly
-    final copiedFile = File(targetModelPath);
-    if (!await copiedFile.exists()) {
-      print('Error: Failed to copy model file to target location');
-      return false;
-    }
-
-    final copiedSize = await copiedFile.length();
-    if (copiedSize != fileSize) {
+    // Check if model is already in the right location
+    if (localModelPath != expectedPath) {
       print(
-          'Error: Copied file size mismatch. Original: $fileSize, Copied: $copiedSize');
+          'Model not in expected location. Moving from $localModelPath to $expectedPath');
+
+      // Move the file instead of copying to avoid duplication
+      await modelFile.rename(expectedPath);
+      print('Model file moved successfully');
+    } else {
+      print('Model file already in correct location: $expectedPath');
+    }
+
+    // Step 4: Verify the file exists and is valid
+    final finalFile = File(expectedPath);
+    if (!await finalFile.exists()) {
+      print('Error: Model file not found at expected location');
       return false;
     }
 
-    // Validate copied file integrity
-    if (!await _validateModelFile(copiedFile)) {
-      print('Error: Copied model file validation failed');
-      await copiedFile.delete();
+    final finalSize = await finalFile.length();
+    if (finalSize != fileSize) {
+      print(
+          'Error: Model file size mismatch. Expected: $fileSize, Actual: $finalSize');
+      return false;
+    }
+
+    // Validate final file integrity
+    if (!await _validateModelFile(finalFile)) {
+      print('Error: Final model file validation failed');
+      await finalFile.delete();
       return false;
     }
 
     print(
-        'File copy verified. Size: ${(copiedSize / (1024 * 1024)).toStringAsFixed(1)} MB');
+        'File verified. Size: ${(finalSize / (1024 * 1024)).toStringAsFixed(1)} MB');
 
     // Step 5: Wait a moment for file system operations to complete
-    await Future.delayed(Duration(milliseconds: 200));
+    await Future.delayed(const Duration(milliseconds: 200));
 
     // Step 6: Register the model with the plugin
     print('Registering model with plugin: $modelFileName');
     try {
       // ANDROID FIX: Always use the absolute path for Android to avoid
       // path resolution issues in the native plugin code.
-      final pathToRegister =
-          Platform.isAndroid ? targetModelPath : modelFileName;
+      final pathToRegister = Platform.isAndroid ? expectedPath : modelFileName;
 
       print('Registering with path: "$pathToRegister"');
       await modelManager.setModelPath(pathToRegister);
@@ -300,38 +298,5 @@ Future<void> _clearOldModelFiles(Directory targetDirectory,
     }
   } catch (e) {
     print('Could not clear old model files: $e');
-  }
-
-  // Also clear the other directory for good measure
-  try {
-    final otherDirectory = Platform.isIOS
-        ? await getApplicationSupportDirectory()
-        : await getApplicationDocumentsDirectory();
-    if (otherDirectory.path != targetDirectory.path) {
-      final otherFiles = await otherDirectory.list().toList();
-      for (final entity in otherFiles) {
-        if (entity is File && entity.path.endsWith('.task')) {
-          // Don't delete the current file being installed
-          if (currentFilePath != null && entity.path == currentFilePath) {
-            print(
-                'Preserving current model file in other directory: ${entity.path}');
-            continue;
-          }
-
-          // Don't delete if it's the same file name as the current one
-          if (currentFilePath != null &&
-              path.basename(entity.path) == path.basename(currentFilePath)) {
-            print(
-                'Preserving model file with same name in other directory: ${entity.path}');
-            continue;
-          }
-
-          print('Removing old model file from other directory: ${entity.path}');
-          await entity.delete();
-        }
-      }
-    }
-  } catch (e) {
-    print('Could not clear other directory: $e');
   }
 }

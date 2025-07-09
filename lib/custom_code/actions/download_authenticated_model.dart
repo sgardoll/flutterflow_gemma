@@ -40,12 +40,8 @@ Future<String?> downloadAuthenticatedModel(
     print('Model identifier: $modelIdentifier');
     print('Token provided: ${hfToken.isNotEmpty}');
 
-    // Get the app documents directory
+    // Get the app documents directory (final destination)
     final appDir = await getApplicationDocumentsDirectory();
-    final modelsDir = Directory('${appDir.path}/models');
-    if (!await modelsDir.exists()) {
-      await modelsDir.create(recursive: true);
-    }
 
     String downloadUrl;
     String fileName;
@@ -74,7 +70,7 @@ Future<String?> downloadAuthenticatedModel(
     print('Download URL: $downloadUrl');
     print('File name: $fileName');
 
-    final filePath = '${modelsDir.path}/$fileName';
+    final filePath = '${appDir.path}/$fileName';
     final file = File(filePath);
 
     // Check if file already exists
