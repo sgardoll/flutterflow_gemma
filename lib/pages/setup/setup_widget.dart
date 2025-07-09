@@ -3,9 +3,11 @@ import '/flutter_flow/flutter_flow_icon_button.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/flutter_flow/form_field_controller.dart';
+import '/custom_code/actions/index.dart' as actions;
 import '/custom_code/widgets/index.dart' as custom_widgets;
 import '/index.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'setup_model.dart';
 export 'setup_model.dart';
@@ -29,6 +31,11 @@ class _SetupWidgetState extends State<SetupWidget> {
   void initState() {
     super.initState();
     _model = createModel(context, () => SetupModel());
+
+    // On page load action.
+    SchedulerBinding.instance.addPostFrameCallback((_) async {
+      _model.downloadedModels = await actions.getDownloadedModels();
+    });
   }
 
   @override
@@ -98,7 +105,14 @@ class _SetupWidgetState extends State<SetupWidget> {
               FlutterFlowDropDown<String>(
                 controller: _model.dropDownValueController ??=
                     FormFieldController<String>(null),
-                options: ['Option 1', 'Option 2', 'Option 3'],
+                options: _model.downloadedModels!
+                    .map((e) => getJsonField(
+                          e,
+                          r'''$.fileName''',
+                        ))
+                    .toList()
+                    .map((e) => e.toString())
+                    .toList(),
                 onChanged: (val) =>
                     safeSetState(() => _model.dropDownValue = val),
                 width: MediaQuery.sizeOf(context).width * 1.0,
