@@ -210,10 +210,43 @@ class GemmaManager {
     } catch (e) {
       print('GemmaManager: Error initializing model: $e');
 
-      // Simple CPU fallback for GPU errors
-      if ((e.toString().contains('GPU') || e.toString().contains('delegate')) &&
+      // Enhanced iOS-specific error handling
+      if (Platform.isIOS && e.toString().contains('RET_CHECK failure')) {
+        print('GemmaManager: iOS TensorFlow Lite error detected');
+        print('GemmaManager: This model may not be compatible with iOS');
+
+        // Disable vision for iOS compatibility
+        if (supportImage && backend != 'cpu') {
+          print('GemmaManager: Attempting iOS fallback without vision...');
+          try {
+            await closeModel();
+
+            _model = await FlutterGemmaPlugin.instance.createModel(
+              modelType: _getModelType(modelType),
+              preferredBackend: PreferredBackend.cpu,
+              maxTokens: maxTokens,
+              supportImage: false, // Disable vision for iOS compatibility
+              maxNumImages: 1,
+            );
+
+            _isInitialized = true;
+            _currentModelType = modelType;
+            _currentBackend = 'cpu';
+
+            print('GemmaManager: iOS CPU fallback without vision successful');
+            return true;
+          } catch (iosError) {
+            print('GemmaManager: iOS CPU fallback failed: $iosError');
+          }
+        }
+      }
+
+      // General CPU fallback for GPU errors
+      if ((e.toString().contains('GPU') ||
+              e.toString().contains('delegate') ||
+              e.toString().contains('RET_CHECK failure')) &&
           backend != 'cpu') {
-        print('GemmaManager: Attempting CPU fallback...');
+        print('GemmaManager: Attempting general CPU fallback...');
         try {
           await closeModel();
 
@@ -221,7 +254,9 @@ class GemmaManager {
             modelType: _getModelType(modelType),
             preferredBackend: PreferredBackend.cpu,
             maxTokens: maxTokens,
-            supportImage: supportImage && isMultimodalModel(modelType),
+            supportImage: Platform.isIOS
+                ? false
+                : (supportImage && isMultimodalModel(modelType)),
             maxNumImages: maxNumImages,
           );
 
@@ -229,10 +264,10 @@ class GemmaManager {
           _currentModelType = modelType;
           _currentBackend = 'cpu';
 
-          print('GemmaManager: CPU fallback successful');
+          print('GemmaManager: General CPU fallback successful');
           return true;
         } catch (cpuError) {
-          print('GemmaManager: CPU fallback failed: $cpuError');
+          print('GemmaManager: General CPU fallback failed: $cpuError');
         }
       }
 

@@ -77,8 +77,8 @@ class _GemmaSimpleSetupWidgetState extends State<GemmaSimpleSetupWidget> {
     });
 
     try {
-      // Use default efficient model if none specified
-      final modelToDownload = widget.modelId ?? 'smolvlm-500m';
+      // Use platform-appropriate default model
+      final modelToDownload = widget.modelId ?? _getDefaultModelForPlatform();
 
       await _performSetup(modelToDownload);
     } catch (e) {
@@ -199,7 +199,8 @@ class _GemmaSimpleSetupWidgetState extends State<GemmaSimpleSetupWidget> {
       final modelType = GemmaManager.getModelTypeFromPath(downloadPath);
       final supportsVision = GemmaManager.isMultimodalModel(modelType);
 
-      final initSuccess = await _gemmaManager.initializeModel(
+      // Try GPU first, then fall back to CPU for iOS compatibility
+      bool initSuccess = await _gemmaManager.initializeModel(
         modelType: modelType,
         backend: 'gpu',
         maxTokens: 1024,
@@ -208,8 +209,27 @@ class _GemmaSimpleSetupWidgetState extends State<GemmaSimpleSetupWidget> {
         localModelPath: _getModelFileName(downloadPath),
       );
 
+      // iOS-specific fallback: If GPU fails, try CPU
+      if (!initSuccess && Platform.isIOS) {
+        setState(() {
+          _currentStep = 'GPU failed, trying CPU backend...';
+        });
+
+        print('GPU initialization failed on iOS, attempting CPU fallback');
+
+        initSuccess = await _gemmaManager.initializeModel(
+          modelType: modelType,
+          backend: 'cpu',
+          maxTokens: 1024,
+          supportImage: false, // Disable vision for CPU on iOS
+          maxNumImages: 1,
+          localModelPath: _getModelFileName(downloadPath),
+        );
+      }
+
       if (!initSuccess) {
-        throw Exception('Failed to initialize model');
+        throw Exception(
+            'Failed to initialize model on both GPU and CPU backends');
       }
 
       // Step 4: Create session
@@ -250,6 +270,21 @@ class _GemmaSimpleSetupWidgetState extends State<GemmaSimpleSetupWidget> {
   // Extract filename from path
   String _getModelFileName(String filePath) {
     return filePath.split('/').last;
+  }
+
+  // Get platform-appropriate default model
+  String _getDefaultModelForPlatform() {
+    if (Platform.isIOS) {
+      // iOS works best with .task files specifically built for iOS
+      // Avoid web-optimized models as they cause TensorFlow Lite errors
+      return 'gemma3-1b-it'; // Standard iOS-compatible .task file
+    } else if (Platform.isAndroid) {
+      // Android can handle various formats
+      return 'smolvlm-500m'; // SafeTensors format works well on Android
+    } else {
+      // Web/other platforms
+      return 'gemma3-1b-web'; // Web-optimized for browser deployment
+    }
   }
 
   @override
