@@ -7,6 +7,61 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 
 // Simplified Gemma model manager for FlutterFlow
+
+// Enum for available Gemma model IDs
+enum GemmaModelId {
+  smolvlm500m,
+  smolvlm500mOnnx,
+  gemma31bWeb,
+  smolvlm2b,
+  paligemma3b224,
+  paligemma3b448,
+  paligemma3b896,
+  nanollava,
+  minicpmV2,
+  idefics28bOcr,
+  rmbg14Onnx,
+  gemma3nE4bIt,
+  gemma3nE2bIt,
+  gemma31bIt,
+}
+
+// Mapping from enum to model ID string
+const Map<GemmaModelId, String> gemmaModelIdStrings = {
+  GemmaModelId.smolvlm500m: 'smolvlm-500m',
+  GemmaModelId.smolvlm500mOnnx: 'smolvlm-500m-onnx',
+  GemmaModelId.gemma31bWeb: 'gemma3-1b-web',
+  GemmaModelId.smolvlm2b: 'smolvlm-2b',
+  GemmaModelId.paligemma3b224: 'paligemma-3b-224',
+  GemmaModelId.paligemma3b448: 'paligemma-3b-448',
+  GemmaModelId.paligemma3b896: 'paligemma-3b-896',
+  GemmaModelId.nanollava: 'nanollava',
+  GemmaModelId.minicpmV2: 'minicpm-v2',
+  GemmaModelId.idefics28bOcr: 'idefics2-8b-ocr',
+  GemmaModelId.rmbg14Onnx: 'rmbg-1.4-onnx',
+  GemmaModelId.gemma3nE4bIt: 'gemma-3n-e4b-it',
+  GemmaModelId.gemma3nE2bIt: 'gemma-3n-e2b-it',
+  GemmaModelId.gemma31bIt: 'gemma3-1b-it',
+};
+
+// Optional: Display names for UI
+const Map<GemmaModelId, String> gemmaModelDisplayNames = {
+  GemmaModelId.smolvlm500m: 'SmolVLM 500M (image+text, best for web)',
+  GemmaModelId.smolvlm500mOnnx: 'SmolVLM 500M ONNX (cross-platform)',
+  GemmaModelId.gemma31bWeb: 'Gemma3 1B Web (text-only, efficient)',
+  GemmaModelId.smolvlm2b: 'SmolVLM 2.2B (better quality)',
+  GemmaModelId.paligemma3b224: 'PaliGemma 3B 224px (OCR)',
+  GemmaModelId.paligemma3b448: 'PaliGemma 3B 448px (high-res)',
+  GemmaModelId.paligemma3b896: 'PaliGemma 3B 896px (best quality)',
+  GemmaModelId.nanollava: 'nanoLLaVA (compact, efficient)',
+  GemmaModelId.minicpmV2: 'MiniCPM-V2 (good balance)',
+  GemmaModelId.idefics28bOcr: 'Idefics2 8B OCR (document understanding)',
+  GemmaModelId.rmbg14Onnx: 'RMBG 1.4 ONNX (background removal)',
+  GemmaModelId.gemma3nE4bIt: 'Gemma 3 Nano 4B (legacy text-only)',
+  GemmaModelId.gemma3nE2bIt: 'Gemma 3 Nano 2B (legacy text-only)',
+  GemmaModelId.gemma31bIt: 'Gemma3 1B (legacy text-only)',
+};
+
 class GemmaManager {
   static final GemmaManager _instance = GemmaManager._internal();
   factory GemmaManager() => _instance;
@@ -313,6 +368,19 @@ class GemmaManager {
       default:
         return PreferredBackend.gpu;
     }
+  }
+
+  /// Returns a list of all available model ID strings
+  static List<String> getAvailableModelIds() {
+    return gemmaModelIdStrings.values.toList();
+  }
+
+  /// Returns a map of model ID string to display name
+  static Map<String, String> getModelIdDisplayNames() {
+    return {
+      for (final entry in gemmaModelIdStrings.entries)
+        entry.value: gemmaModelDisplayNames[entry.key] ?? entry.value,
+    };
   }
 
   // Getters

@@ -10,10 +10,10 @@ class SetupModel extends FlutterFlowModel<SetupWidget> {
 
   GemmaManager? classSupport;
 
+  String? modelChoice;
+
   ///  State fields for stateful widgets in this page.
 
-  // Stores action output result for [Custom Action - getDownloadedModels] action in Setup widget.
-  List<dynamic>? downloadedModels;
   // State field(s) for DropDown widget.
   String? dropDownValue;
   FormFieldController<String>? dropDownValueController;

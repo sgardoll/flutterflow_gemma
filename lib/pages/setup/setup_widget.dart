@@ -3,11 +3,10 @@ import '/flutter_flow/flutter_flow_icon_button.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/flutter_flow/form_field_controller.dart';
-import '/custom_code/actions/index.dart' as actions;
 import '/custom_code/widgets/index.dart' as custom_widgets;
 import '/index.dart';
+import 'package:gemma/custom_code/GemmaManager.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'setup_model.dart';
 export 'setup_model.dart';
@@ -31,11 +30,6 @@ class _SetupWidgetState extends State<SetupWidget> {
   void initState() {
     super.initState();
     _model = createModel(context, () => SetupModel());
-
-    // On page load action.
-    SchedulerBinding.instance.addPostFrameCallback((_) async {
-      _model.downloadedModels = await actions.getDownloadedModels();
-    });
   }
 
   @override
@@ -105,32 +99,59 @@ class _SetupWidgetState extends State<SetupWidget> {
               FlutterFlowDropDown<String>(
                 controller: _model.dropDownValueController ??=
                     FormFieldController<String>(null),
-                options: _model.downloadedModels!
-                    .map((e) => getJsonField(
-                          e,
-                          r'''$.fileName''',
-                        ))
-                    .toList()
-                    .map((e) => e.toString())
-                    .toList(),
-                onChanged: (val) =>
-                    safeSetState(() => _model.dropDownValue = val),
+                options: GemmaManager.getAvailableModelIds(),
+                onChanged: (val) async {
+                  safeSetState(() => _model.dropDownValue = val);
+                  _model.modelChoice = _model.dropDownValue;
+                  safeSetState(() {});
+                },
                 width: MediaQuery.sizeOf(context).width * 1.0,
                 height: 50.0,
-                textStyle: FlutterFlowTheme.of(context).bodyMedium.override(
-                      font: GoogleFonts.inter(
+                searchHintTextStyle: FlutterFlowTheme.of(context)
+                    .titleMedium
+                    .override(
+                      font: GoogleFonts.interTight(
                         fontWeight:
-                            FlutterFlowTheme.of(context).bodyMedium.fontWeight,
+                            FlutterFlowTheme.of(context).titleMedium.fontWeight,
                         fontStyle:
-                            FlutterFlowTheme.of(context).bodyMedium.fontStyle,
+                            FlutterFlowTheme.of(context).titleMedium.fontStyle,
                       ),
                       letterSpacing: 0.0,
                       fontWeight:
-                          FlutterFlowTheme.of(context).bodyMedium.fontWeight,
+                          FlutterFlowTheme.of(context).titleMedium.fontWeight,
                       fontStyle:
-                          FlutterFlowTheme.of(context).bodyMedium.fontStyle,
+                          FlutterFlowTheme.of(context).titleMedium.fontStyle,
+                    ),
+                searchTextStyle: FlutterFlowTheme.of(context)
+                    .titleMedium
+                    .override(
+                      font: GoogleFonts.interTight(
+                        fontWeight:
+                            FlutterFlowTheme.of(context).titleMedium.fontWeight,
+                        fontStyle:
+                            FlutterFlowTheme.of(context).titleMedium.fontStyle,
+                      ),
+                      letterSpacing: 0.0,
+                      fontWeight:
+                          FlutterFlowTheme.of(context).titleMedium.fontWeight,
+                      fontStyle:
+                          FlutterFlowTheme.of(context).titleMedium.fontStyle,
+                    ),
+                textStyle: FlutterFlowTheme.of(context).titleMedium.override(
+                      font: GoogleFonts.interTight(
+                        fontWeight:
+                            FlutterFlowTheme.of(context).titleMedium.fontWeight,
+                        fontStyle:
+                            FlutterFlowTheme.of(context).titleMedium.fontStyle,
+                      ),
+                      letterSpacing: 0.0,
+                      fontWeight:
+                          FlutterFlowTheme.of(context).titleMedium.fontWeight,
+                      fontStyle:
+                          FlutterFlowTheme.of(context).titleMedium.fontStyle,
                     ),
                 hintText: 'Select...',
+                searchHintText: 'Search...',
                 icon: Icon(
                   Icons.keyboard_arrow_down_rounded,
                   color: FlutterFlowTheme.of(context).secondaryText,
@@ -143,25 +164,27 @@ class _SetupWidgetState extends State<SetupWidget> {
                 borderRadius: 8.0,
                 margin: EdgeInsetsDirectional.fromSTEB(12.0, 0.0, 12.0, 0.0),
                 hidesUnderline: true,
-                isOverButton: false,
-                isSearchable: false,
+                isOverButton: true,
+                isSearchable: true,
                 isMultiSelect: false,
               ),
-              Container(
-                width: MediaQuery.sizeOf(context).width * 1.0,
-                height: MediaQuery.sizeOf(context).height * 1.0,
-                decoration: BoxDecoration(),
+              Flexible(
                 child: Container(
-                  width: double.infinity,
-                  height: double.infinity,
-                  child: custom_widgets.GemmaSimpleSetupWidget(
-                    width: double.infinity,
-                    height: double.infinity,
-                    hfToken: FFLibraryValues().huggingFaceToken,
-                    modelId: '',
-                    onComplete: () async {
-                      context.pushNamed(HomePageWidget.routeName);
-                    },
+                  width: MediaQuery.sizeOf(context).width * 1.0,
+                  height: MediaQuery.sizeOf(context).height * 1.0,
+                  decoration: BoxDecoration(),
+                  child: Container(
+                    width: MediaQuery.sizeOf(context).width * 1.0,
+                    height: MediaQuery.sizeOf(context).height * 1.0,
+                    child: custom_widgets.GemmaSimpleSetupWidget(
+                      width: MediaQuery.sizeOf(context).width * 1.0,
+                      height: MediaQuery.sizeOf(context).height * 1.0,
+                      hfToken: FFLibraryValues().huggingFaceToken,
+                      modelId: _model.modelChoice,
+                      onComplete: () async {
+                        context.pushNamed(HomePageWidget.routeName);
+                      },
+                    ),
                   ),
                 ),
               ),
