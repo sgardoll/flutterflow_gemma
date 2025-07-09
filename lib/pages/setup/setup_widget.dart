@@ -1,5 +1,6 @@
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
+import '/custom_code/actions/index.dart' as actions;
 import '/custom_code/widgets/index.dart' as custom_widgets;
 import '/index.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -58,6 +59,8 @@ class _SetupWidgetState extends State<SetupWidget> {
                 hoverColor: Colors.transparent,
                 highlightColor: Colors.transparent,
                 onTap: () async {
+                  await actions.closeModel();
+
                   context.pushNamed(SetupWidget.routeName);
                 },
                 child: ClipRRect(

@@ -1,6 +1,7 @@
 import '/flutter_flow/flutter_flow_icon_button.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
+import '/custom_code/actions/index.dart' as actions;
 import '/custom_code/widgets/index.dart' as custom_widgets;
 import '/index.dart';
 import 'package:flutter/material.dart';
@@ -60,6 +61,8 @@ class _HomePageWidgetState extends State<HomePageWidget> {
               size: 24.0,
             ),
             onPressed: () async {
+              await actions.closeModel();
+
               context.goNamed(SetupWidget.routeName);
             },
           ),
