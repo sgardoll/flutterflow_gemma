@@ -1,11 +1,11 @@
 import '/flutter_flow/flutter_flow_drop_down.dart';
-import '/flutter_flow/flutter_flow_icon_button.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/flutter_flow/form_field_controller.dart';
 import '/custom_code/widgets/index.dart' as custom_widgets;
 import '/index.dart';
 import 'package:gemma/custom_code/GemmaManager.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'setup_model.dart';
@@ -52,27 +52,25 @@ class _SetupWidgetState extends State<SetupWidget> {
         appBar: AppBar(
           backgroundColor: FlutterFlowTheme.of(context).accent4,
           automaticallyImplyLeading: false,
-          leading: FlutterFlowIconButton(
-            borderRadius: 8.0,
-            buttonSize: 40.0,
-            icon: Icon(
-              Icons.home_rounded,
-              color: FlutterFlowTheme.of(context).primary,
-              size: 24.0,
-            ),
-            onPressed: () async {
-              context.pushNamed(SetupWidget.routeName);
-            },
-          ),
           actions: [],
           flexibleSpace: FlexibleSpaceBar(
-            title: ClipRRect(
-              borderRadius: BorderRadius.circular(8.0),
-              child: Image.asset(
-                'assets/images/gemmaLogo.png',
-                width: 100.0,
-                height: 100.0,
-                fit: BoxFit.contain,
+            background: InkWell(
+              splashColor: Colors.transparent,
+              focusColor: Colors.transparent,
+              hoverColor: Colors.transparent,
+              highlightColor: Colors.transparent,
+              onTap: () async {
+                context.pushNamed(SetupWidget.routeName);
+              },
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(0.0),
+                child: CachedNetworkImage(
+                  fadeInDuration: Duration(milliseconds: 500),
+                  fadeOutDuration: Duration(milliseconds: 500),
+                  imageUrl:
+                      'https://storage.googleapis.com/gweb-developer-goog-blog-assets/images/Gemma3n_Wagtial_RD1-V02.original.jpg',
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
             centerTitle: true,

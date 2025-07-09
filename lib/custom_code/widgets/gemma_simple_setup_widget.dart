@@ -193,10 +193,6 @@ class _GemmaSimpleSetupWidgetState extends State<GemmaSimpleSetupWidget> {
       decoration: BoxDecoration(
         color: FlutterFlowTheme.of(context).primaryBackground,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: FlutterFlowTheme.of(context).primary.withOpacity(0.2),
-          width: 1,
-        ),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
