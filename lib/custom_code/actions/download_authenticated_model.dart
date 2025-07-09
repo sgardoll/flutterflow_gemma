@@ -90,8 +90,12 @@ Future<String?> downloadAuthenticatedModel(
 
     // Check if file already exists
     if (await file.exists()) {
-      print('Model file already exists at: $filePath');
+      final fileSize = await file.length();
+      print(
+          'Model file already exists at: $filePath (${(fileSize / (1024 * 1024)).toStringAsFixed(1)} MB)');
       return filePath;
+    } else {
+      print('No existing model file found at: $filePath');
     }
 
     // Prepare headers for authenticated request
@@ -149,6 +153,7 @@ Future<String?> downloadAuthenticatedModel(
 
     await sink.close();
 
+    // Simple completion confirmation
     print('Download completed successfully');
     print('File saved at: $filePath');
     print('Final size: ${await file.length()} bytes');
@@ -177,6 +182,14 @@ String _getModelDownloadUrl(String modelIdentifier) {
         'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task',
     'gemma3-1b-it':
         'https://huggingface.co/litert-community/Gemma3-1B-IT/resolve/main/gemma3-1b-it-int4.task',
+
+    // New Gemma 3 text-only models
+    'gemma3-9b':
+        'https://huggingface.co/google/gemma-3-9b-it/resolve/main/gemma-3-9b-it.task',
+    'gemma3-27b':
+        'https://huggingface.co/google/gemma-3-27b-it/resolve/main/gemma-3-27b-it.task',
+    'gemma3n-1b':
+        'https://huggingface.co/google/gemma-3n-1b-it/resolve/main/gemma-3n-1b-it.task',
 
     // New Multimodal Models - SmolVLM (Recommended for on-device)
     'smolvlm-500m':
@@ -231,6 +244,11 @@ String _getModelFileName(String modelIdentifier) {
     'gemma-3n-e4b-it': 'gemma-3n-E4B-it-int4.task',
     'gemma-3n-e2b-it': 'gemma-3n-E2B-it-int4.task',
     'gemma3-1b-it': 'gemma3-1b-it-int4.task',
+
+    // New Gemma 3 text-only models
+    'gemma3-9b': 'gemma-3-9b-it.task',
+    'gemma3-27b': 'gemma-3-27b-it.task',
+    'gemma3n-1b': 'gemma-3n-1b-it.task',
 
     // New Multimodal Models - SmolVLM (Recommended for on-device)
     'smolvlm-500m': 'smolvlm-500m-instruct.safetensors',
@@ -423,6 +441,46 @@ Map<String, dynamic>? getModelInfo(String modelIdentifier) {
       'formats': ['task'],
       'description': 'INT8 quantized version for better quality',
     },
+
+    // New Gemma 3 text-only models
+    'gemma3-9b': {
+      'name': 'Gemma3 9B',
+      'size': '9B parameters',
+      'type': 'text-only',
+      'capabilities': ['text-generation', 'instruction-following', 'reasoning'],
+      'memory_requirement': '6GB RAM',
+      'optimized_for': 'quality',
+      'formats': ['task'],
+      'description':
+          'High-quality text model with strong reasoning capabilities',
+    },
+    'gemma3-27b': {
+      'name': 'Gemma3 27B',
+      'size': '27B parameters',
+      'type': 'text-only',
+      'capabilities': [
+        'text-generation',
+        'instruction-following',
+        'reasoning',
+        'complex-tasks'
+      ],
+      'memory_requirement': '18GB RAM',
+      'optimized_for': 'quality',
+      'formats': ['task'],
+      'description':
+          'Largest Gemma3 model with exceptional reasoning and complex task handling',
+    },
+    'gemma3n-1b': {
+      'name': 'Gemma3 Nano 1B',
+      'size': '1B parameters',
+      'type': 'text-only',
+      'capabilities': ['text-generation', 'instruction-following'],
+      'memory_requirement': '800MB RAM',
+      'optimized_for': 'efficiency',
+      'formats': ['task'],
+      'description':
+          'Compact Gemma3 Nano model for resource-constrained environments',
+    },
   };
 
   return modelInfo[modelIdentifier];
@@ -432,11 +490,17 @@ Map<String, dynamic>? getModelInfo(String modelIdentifier) {
 Map<String, List<String>> getModelRecommendations() {
   return {
     'web_deployment': ['smolvlm-500m', 'gemma3-1b-web', 'smolvlm-500m-onnx'],
-    'mobile_apps': ['smolvlm-500m', 'nanollava', 'gemma3-1b-web'],
+    'mobile_apps': ['smolvlm-500m', 'nanollava', 'gemma3-1b-web', 'gemma3n-1b'],
     'multimodal_tasks': ['smolvlm-500m', 'smolvlm-2b', 'paligemma-3b-448'],
     'ocr_documents': ['idefics2-8b-ocr', 'paligemma-3b-896', 'smolvlm-2b'],
     'image_processing': ['rmbg-1.4-onnx', 'paligemma-3b-224'],
-    'low_memory': ['smolvlm-500m', 'nanollava', 'gemma3-1b-web'],
-    'high_quality': ['paligemma-3b-896', 'idefics2-8b-ocr', 'smolvlm-2b'],
+    'low_memory': ['smolvlm-500m', 'nanollava', 'gemma3-1b-web', 'gemma3n-1b'],
+    'high_quality': [
+      'gemma3-27b',
+      'gemma3-9b',
+      'paligemma-3b-896',
+      'idefics2-8b-ocr'
+    ],
+    'text_only': ['gemma3-27b', 'gemma3-9b', 'gemma3n-1b', 'gemma3-1b-web'],
   };
 }

@@ -6,8 +6,6 @@ import 'package:flutter/material.dart';
 // Begin custom action code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-import 'index.dart'; // Imports other custom actions
-
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
@@ -56,6 +54,16 @@ Future<List<dynamic>> getDownloadedModels() async {
         } else if (fileName.contains('gemma3-1b-it')) {
           modelType = 'Gemma 3 1B Instruct';
           description = 'Compact 1B model optimized for mobile deployment';
+        } else if (fileName.contains('gemma-3-9b-it')) {
+          modelType = 'Gemma 3 9B';
+          description = 'High-quality 9B text model with strong reasoning';
+        } else if (fileName.contains('gemma-3-27b-it')) {
+          modelType = 'Gemma 3 27B';
+          description = 'Large 27B text model with exceptional reasoning';
+        } else if (fileName.contains('gemma-3n-1b-it')) {
+          modelType = 'Gemma 3 Nano 1B';
+          description =
+              'Compact 1B Nano model for resource-constrained environments';
         } else if (fileName.contains('gemma')) {
           modelType = 'Gemma Model';
           description = 'Gemma language model';
@@ -103,6 +111,19 @@ bool _checkVisionSupport(String fileName) {
     'minicpm',
     'idefics',
   ];
+
+  // Text-only models (explicitly no vision support)
+  final textOnlyModels = [
+    'gemma-3-9b-it',
+    'gemma-3-27b-it',
+    'gemma-3n-1b-it',
+    'gemma3-1b-it',
+  ];
+
+  // If it's explicitly a text-only model, return false
+  if (textOnlyModels.any((model) => fileName.toLowerCase().contains(model))) {
+    return false;
+  }
 
   return visionModels.any((model) => fileName.toLowerCase().contains(model));
 }

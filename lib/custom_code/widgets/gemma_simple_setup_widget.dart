@@ -122,8 +122,17 @@ class _GemmaSimpleSetupWidgetState extends State<GemmaSimpleSetupWidget> {
           await validateAndRepairModel(downloadPath, widget.hfToken, modelId);
 
       if (!validationResult['isValid']) {
-        // Model is corrupted - delete and re-download
-        if (validationResult['canRepair'] == true) {
+        // Check if file is genuinely corrupted vs format issues
+        print('Model validation failed: ${validationResult['error']}');
+
+        // Only delete files that are genuinely corrupted
+        final shouldDeleteFile =
+            validationResult['errorType'] == 'corrupted_header' ||
+                validationResult['errorType'] == 'html_content' ||
+                validationResult['errorType'] == 'size_too_small' ||
+                validationResult['errorType'] == 'empty_file';
+
+        if (shouldDeleteFile) {
           setState(() {
             _currentStep = 'Model corrupted - deleting and re-downloading...';
           });
@@ -138,7 +147,98 @@ class _GemmaSimpleSetupWidgetState extends State<GemmaSimpleSetupWidget> {
           } catch (e) {
             print('Error deleting corrupted file: $e');
           }
+        } else {
+          // File exists but has validation issues - try to use it anyway
+          setState(() {
+            _currentStep =
+                'Model validation failed, but file appears intact. Proceeding...';
+          });
+          print(
+              'Model validation failed but file not deleted: ${validationResult['errorType']}');
 
+          // Skip to initialization instead of re-downloading
+          setState(() {
+            _currentStep = 'Installing model...';
+          });
+
+          final installSuccess =
+              await installLocalModelFile(downloadPath, null);
+          if (!installSuccess) {
+            throw Exception('Failed to install model');
+          }
+
+          setState(() {
+            _currentStep = 'Initializing model...';
+          });
+
+          // Derive model type from path
+          final modelType = GemmaManager.getModelTypeFromPath(downloadPath);
+          final supportsVision = GemmaManager.isMultimodalModel(modelType);
+
+          // Try GPU first, then fall back to CPU for iOS compatibility
+          bool initSuccess = await _gemmaManager.initializeModel(
+            modelType: modelType,
+            backend: 'gpu',
+            maxTokens: 1024,
+            supportImage: supportsVision,
+            maxNumImages: 1,
+            localModelPath: _getModelFileName(downloadPath),
+          );
+
+          // iOS-specific fallback: If GPU fails, try CPU
+          if (!initSuccess && Platform.isIOS) {
+            setState(() {
+              _currentStep = 'GPU failed, trying CPU backend...';
+            });
+
+            print('GPU initialization failed on iOS, attempting CPU fallback');
+
+            initSuccess = await _gemmaManager.initializeModel(
+              modelType: modelType,
+              backend: 'cpu',
+              maxTokens: 1024,
+              supportImage: false, // Disable vision for CPU on iOS
+              maxNumImages: 1,
+              localModelPath: _getModelFileName(downloadPath),
+            );
+          }
+
+          if (!initSuccess) {
+            throw Exception(
+                'Failed to initialize model on both GPU and CPU backends');
+          }
+
+          // Create session
+          setState(() {
+            _currentStep = 'Creating session...';
+          });
+
+          final sessionSuccess = await _gemmaManager.createSession(
+            temperature: 0.8,
+            randomSeed: 1,
+            topK: 1,
+          );
+
+          if (!sessionSuccess) {
+            throw Exception('Failed to create session');
+          }
+
+          // Setup complete
+          setState(() {
+            _isSetupInProgress = false;
+            _isSetupComplete = true;
+            _currentStep = 'Setup complete! Model ready for use.';
+          });
+
+          // Call completion callback
+          if (widget.onComplete != null) {
+            await widget.onComplete!();
+          }
+          return;
+        }
+
+        // Only re-download if we actually deleted the file
+        if (shouldDeleteFile) {
           // Re-download the model
           setState(() {
             _currentStep = 'Re-downloading model...';

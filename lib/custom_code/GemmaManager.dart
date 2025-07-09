@@ -24,6 +24,9 @@ enum GemmaModelId {
   gemma3nE4bIt,
   gemma3nE2bIt,
   gemma31bIt,
+  gemma3_9b,
+  gemma3_27b,
+  gemma3n_1b,
 }
 
 // Mapping from enum to model ID string
@@ -42,6 +45,9 @@ const Map<GemmaModelId, String> gemmaModelIdStrings = {
   GemmaModelId.gemma3nE4bIt: 'gemma-3n-e4b-it',
   GemmaModelId.gemma3nE2bIt: 'gemma-3n-e2b-it',
   GemmaModelId.gemma31bIt: 'gemma3-1b-it',
+  GemmaModelId.gemma3_9b: 'gemma3-9b',
+  GemmaModelId.gemma3_27b: 'gemma3-27b',
+  GemmaModelId.gemma3n_1b: 'gemma3n-1b',
 };
 
 // Optional: Display names for UI
@@ -60,6 +66,9 @@ const Map<GemmaModelId, String> gemmaModelDisplayNames = {
   GemmaModelId.gemma3nE4bIt: 'Gemma 3 Nano 4B (legacy text-only)',
   GemmaModelId.gemma3nE2bIt: 'Gemma 3 Nano 2B (legacy text-only)',
   GemmaModelId.gemma31bIt: 'Gemma3 1B (legacy text-only)',
+  GemmaModelId.gemma3_9b: 'Gemma3 9B (text-only)',
+  GemmaModelId.gemma3_27b: 'Gemma3 27B (text-only)',
+  GemmaModelId.gemma3n_1b: 'Gemma3 Nano 1B (text-only)',
 };
 
 class GemmaManager {

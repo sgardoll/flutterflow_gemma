@@ -40,7 +40,7 @@ Future<dynamic> validateAndRepairModel(
 
     print('File size: ${(fileSize / (1024 * 1024)).toStringAsFixed(1)} MB');
 
-    // Perform validation
+    // Perform enhanced validation
     final validationResult = await _validateModelFile(modelFile);
 
     if (validationResult['isValid'] == true) {
@@ -53,6 +53,7 @@ Future<dynamic> validateAndRepairModel(
     }
 
     // File is corrupted - offer repair options
+    print('Validation failed: ${validationResult['error']}');
     final response = {
       'isValid': false,
       'fileSize': fileSize,
@@ -115,57 +116,125 @@ Future<Map<String, dynamic>> _validateModelFile(File modelFile) async {
   }
 }
 
-/// Validate .task files (Gemma LiteRT format)
+/// Validate .task files (MediaPipe LiteRT format - ZIP archives)
 Future<Map<String, dynamic>> _validateTaskFile(File file) async {
   try {
-    // Read first few bytes to check for valid zip/archive header
-    final bytes = await file.openRead(0, 1024).first;
+    final fileSize = await file.length();
 
-    if (bytes.length < 4) {
+    // Basic file size validation - .task files should be reasonably large
+    if (fileSize < 1024 * 1024) {
+      // Less than 1MB is suspicious
       return {
         'isValid': false,
-        'error': 'File too small to contain valid header',
-        'errorType': 'invalid_header',
+        'error': 'Task file too small (${fileSize} bytes) - likely incomplete',
+        'errorType': 'size_too_small',
+        'expectedMinSize': 1024 * 1024,
       };
     }
 
-    final signature = bytes.sublist(0, 4);
-    final signatureHex =
-        signature.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ');
+    // Read the first 8 bytes efficiently using RandomAccessFile
+    final raf = await file.open();
+    try {
+      final headerBytes = await raf.read(8);
 
-    // Check for ZIP file signature (PK header)
-    if (signature[0] == 0x50 && signature[1] == 0x4B) {
-      return {
-        'isValid': true,
-        'format': 'zip_archive',
-        'signature': signatureHex,
-      };
+      if (headerBytes.length < 8) {
+        return {
+          'isValid': false,
+          'error': 'Cannot read task file header',
+          'errorType': 'invalid_header',
+        };
+      }
+
+      // Validate as ZIP archive format
+      return _validateZipHeader(headerBytes, fileSize);
+    } finally {
+      await raf.close();
     }
-
-    // Check for other valid model formats
-    // TensorFlow Lite files often start with different patterns
-    if (bytes.length >= 16) {
-      // Allow files that might be valid TensorFlow Lite models
-      // The actual validation will happen when the model loads
-      return {
-        'isValid': true,
-        'format': 'tensorflow_lite',
-        'signature': signatureHex,
-        'note': 'Non-ZIP format but may be valid TensorFlow Lite model',
-      };
-    }
-
-    return {
-      'isValid': false,
-      'error': 'Invalid file signature for .task file',
-      'errorType': 'invalid_signature',
-      'signature': signatureHex,
-    };
   } catch (e) {
     return {
       'isValid': false,
       'error': 'Error validating task file: ${e.toString()}',
       'errorType': 'validation_exception',
+    };
+  }
+}
+
+/// Validate ZIP header for .task files
+Map<String, dynamic> _validateZipHeader(List<int> headerBytes, int fileSize) {
+  try {
+    final signatureHex =
+        headerBytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ');
+
+    print('Task file validation - ZIP header: $signatureHex');
+
+    // Check for ZIP file signature (PK header)
+    // ZIP local file header: 50 4b 03 04 ("PK\x03\x04")
+    // Note: Some ZIP files may have padding at the beginning
+
+    // Look for ZIP signature in first 8 bytes
+    bool foundZipSignature = false;
+    int zipSignatureOffset = -1;
+
+    for (int i = 0; i <= 4; i++) {
+      if (i + 3 < headerBytes.length &&
+          headerBytes[i] == 0x50 &&
+          headerBytes[i + 1] == 0x4B &&
+          headerBytes[i + 2] == 0x03 &&
+          headerBytes[i + 3] == 0x04) {
+        foundZipSignature = true;
+        zipSignatureOffset = i;
+        break;
+      }
+    }
+
+    if (!foundZipSignature) {
+      // Check if it could be corrupted (all zeros or HTML content)
+      if (headerBytes.every((b) => b == 0)) {
+        return {
+          'isValid': false,
+          'error': 'Task file corrupted: header contains only zeros',
+          'errorType': 'corrupted_header',
+          'header': signatureHex,
+        };
+      }
+
+      // Check for HTML content (download error)
+      final textStart = String.fromCharCodes(headerBytes);
+      if (textStart.toLowerCase().contains('<html') ||
+          textStart.toLowerCase().contains('<!doctype') ||
+          textStart.toLowerCase().contains('error')) {
+        return {
+          'isValid': false,
+          'error':
+              'Task file corrupted: contains HTML/text instead of binary data',
+          'errorType': 'html_content',
+          'header': signatureHex,
+        };
+      }
+
+      return {
+        'isValid': false,
+        'error': 'Invalid ZIP signature for .task file',
+        'errorType': 'invalid_zip_signature',
+        'header': signatureHex,
+        'note': 'Expected ZIP format (PK signature) for .task files',
+      };
+    }
+
+    // Valid ZIP file found
+    return {
+      'isValid': true,
+      'format': 'zip_archive',
+      'header': signatureHex,
+      'zipSignatureOffset': zipSignatureOffset,
+      'fileSize': fileSize,
+      'note': 'Valid ZIP archive format for .task file',
+    };
+  } catch (e) {
+    return {
+      'isValid': false,
+      'error': 'Error parsing ZIP header: ${e.toString()}',
+      'errorType': 'zip_parsing_error',
     };
   }
 }

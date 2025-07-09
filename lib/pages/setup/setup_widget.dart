@@ -48,7 +48,7 @@ class _SetupWidgetState extends State<SetupWidget> {
       },
       child: Scaffold(
         key: scaffoldKey,
-        backgroundColor: FlutterFlowTheme.of(context).info,
+        backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
         appBar: PreferredSize(
           preferredSize: Size.fromHeight(90.0),
           child: AppBar(
@@ -85,77 +85,86 @@ class _SetupWidgetState extends State<SetupWidget> {
           child: Column(
             mainAxisSize: MainAxisSize.max,
             children: [
-              FlutterFlowDropDown<String>(
-                controller: _model.dropDownValueController ??=
-                    FormFieldController<String>(null),
-                options: GemmaManager.getAvailableModelIds(),
-                onChanged: (val) async {
-                  safeSetState(() => _model.dropDownValue = val);
-                  _model.modelChoice = _model.dropDownValue;
-                  safeSetState(() {});
-                },
-                width: MediaQuery.sizeOf(context).width * 1.0,
-                height: 50.0,
-                searchHintTextStyle: FlutterFlowTheme.of(context)
-                    .titleMedium
-                    .override(
-                      font: GoogleFonts.interTight(
+              Padding(
+                padding: EdgeInsetsDirectional.fromSTEB(24.0, 0.0, 24.0, 0.0),
+                child: FlutterFlowDropDown<String>(
+                  controller: _model.dropDownValueController ??=
+                      FormFieldController<String>(null),
+                  options: GemmaManager.getAvailableModelIds(),
+                  onChanged: (val) async {
+                    safeSetState(() => _model.dropDownValue = val);
+                    _model.modelChoice = _model.dropDownValue;
+                    safeSetState(() {});
+                  },
+                  width: MediaQuery.sizeOf(context).width * 1.0,
+                  height: 50.0,
+                  searchHintTextStyle: FlutterFlowTheme.of(context)
+                      .titleMedium
+                      .override(
+                        font: GoogleFonts.interTight(
+                          fontWeight: FlutterFlowTheme.of(context)
+                              .titleMedium
+                              .fontWeight,
+                          fontStyle: FlutterFlowTheme.of(context)
+                              .titleMedium
+                              .fontStyle,
+                        ),
+                        letterSpacing: 0.0,
                         fontWeight:
                             FlutterFlowTheme.of(context).titleMedium.fontWeight,
                         fontStyle:
                             FlutterFlowTheme.of(context).titleMedium.fontStyle,
                       ),
-                      letterSpacing: 0.0,
-                      fontWeight:
-                          FlutterFlowTheme.of(context).titleMedium.fontWeight,
-                      fontStyle:
-                          FlutterFlowTheme.of(context).titleMedium.fontStyle,
-                    ),
-                searchTextStyle: FlutterFlowTheme.of(context)
-                    .titleMedium
-                    .override(
-                      font: GoogleFonts.interTight(
+                  searchTextStyle: FlutterFlowTheme.of(context)
+                      .titleMedium
+                      .override(
+                        font: GoogleFonts.interTight(
+                          fontWeight: FlutterFlowTheme.of(context)
+                              .titleMedium
+                              .fontWeight,
+                          fontStyle: FlutterFlowTheme.of(context)
+                              .titleMedium
+                              .fontStyle,
+                        ),
+                        letterSpacing: 0.0,
                         fontWeight:
                             FlutterFlowTheme.of(context).titleMedium.fontWeight,
                         fontStyle:
                             FlutterFlowTheme.of(context).titleMedium.fontStyle,
                       ),
-                      letterSpacing: 0.0,
-                      fontWeight:
-                          FlutterFlowTheme.of(context).titleMedium.fontWeight,
-                      fontStyle:
-                          FlutterFlowTheme.of(context).titleMedium.fontStyle,
-                    ),
-                textStyle: FlutterFlowTheme.of(context).titleMedium.override(
-                      font: GoogleFonts.interTight(
+                  textStyle: FlutterFlowTheme.of(context).titleMedium.override(
+                        font: GoogleFonts.interTight(
+                          fontWeight: FlutterFlowTheme.of(context)
+                              .titleMedium
+                              .fontWeight,
+                          fontStyle: FlutterFlowTheme.of(context)
+                              .titleMedium
+                              .fontStyle,
+                        ),
+                        letterSpacing: 0.0,
                         fontWeight:
                             FlutterFlowTheme.of(context).titleMedium.fontWeight,
                         fontStyle:
                             FlutterFlowTheme.of(context).titleMedium.fontStyle,
                       ),
-                      letterSpacing: 0.0,
-                      fontWeight:
-                          FlutterFlowTheme.of(context).titleMedium.fontWeight,
-                      fontStyle:
-                          FlutterFlowTheme.of(context).titleMedium.fontStyle,
-                    ),
-                hintText: 'Select Model...',
-                searchHintText: 'Search...',
-                icon: Icon(
-                  Icons.keyboard_arrow_down_rounded,
-                  color: FlutterFlowTheme.of(context).secondaryText,
-                  size: 24.0,
+                  hintText: 'Select Model...',
+                  searchHintText: 'Search...',
+                  icon: Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: FlutterFlowTheme.of(context).secondaryText,
+                    size: 24.0,
+                  ),
+                  fillColor: FlutterFlowTheme.of(context).primaryBackground,
+                  elevation: 2.0,
+                  borderColor: FlutterFlowTheme.of(context).alternate,
+                  borderWidth: 1.0,
+                  borderRadius: 12.0,
+                  margin: EdgeInsetsDirectional.fromSTEB(12.0, 0.0, 12.0, 0.0),
+                  hidesUnderline: true,
+                  isOverButton: true,
+                  isSearchable: true,
+                  isMultiSelect: false,
                 ),
-                fillColor: FlutterFlowTheme.of(context).secondaryBackground,
-                elevation: 2.0,
-                borderColor: Colors.transparent,
-                borderWidth: 0.0,
-                borderRadius: 8.0,
-                margin: EdgeInsetsDirectional.fromSTEB(12.0, 0.0, 12.0, 0.0),
-                hidesUnderline: true,
-                isOverButton: true,
-                isSearchable: true,
-                isMultiSelect: false,
               ),
               Flexible(
                 child: Container(
