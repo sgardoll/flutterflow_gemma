@@ -17,6 +17,8 @@ class FlutterFlowIconButton extends StatefulWidget {
     this.hoverBorderColor,
     this.onPressed,
     this.showLoadingIndicator = false,
+    this.focusBorderSide,
+    this.focusBorderRadius,
   }) : super(key: key);
 
   final Widget icon;
@@ -32,6 +34,8 @@ class FlutterFlowIconButton extends StatefulWidget {
   final double? borderWidth;
   final bool showLoadingIndicator;
   final Function()? onPressed;
+  final BorderSide? focusBorderSide;
+  final BorderRadius? focusBorderRadius;
 
   @override
   State<FlutterFlowIconButton> createState() => _FlutterFlowIconButtonState();
@@ -90,6 +94,14 @@ class _FlutterFlowIconButtonState extends State<FlutterFlowIconButton> {
                     Colors.transparent,
                 width: widget.borderWidth ?? 0,
               ),
+            );
+          }
+          if (states.contains(WidgetState.focused) &&
+              widget.focusBorderSide != null) {
+            return RoundedRectangleBorder(
+              borderRadius:
+                  widget.focusBorderRadius ?? BorderRadius.circular(8),
+              side: widget.focusBorderSide!,
             );
           }
           return RoundedRectangleBorder(

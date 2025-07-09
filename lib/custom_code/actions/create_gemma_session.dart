@@ -6,40 +6,48 @@ import 'package:flutter/material.dart';
 // Begin custom action code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-import 'index.dart'; // Imports other custom actions
-
-import './GemmaManager.dart';
+import '../GemmaManager.dart';
 
 Future<bool> createGemmaSession(
-  double temperature,
-  int randomSeed,
-  int topK,
+  double? temperature,
+  int? topK,
+  int? randomSeed,
 ) async {
   try {
     print('createGemmaSession: Starting session creation...');
-    print('Parameters: temp=$temperature, seed=$randomSeed, topK=$topK');
 
     final gemmaManager = GemmaManager();
-    print(
-        'createGemmaSession: GemmaManager initialized=${gemmaManager.isInitialized}');
-    print('createGemmaSession: Already has session=${gemmaManager.hasSession}');
 
-    // If we already have a session, just return true
-    if (gemmaManager.hasSession) {
-      print('createGemmaSession: Session already exists, skipping creation');
-      return true;
+    // Check if model is initialized
+    if (!gemmaManager.isInitialized) {
+      print('createGemmaSession: Error - Model not initialized');
+      return false;
     }
 
-    final result = await gemmaManager.createSession(
-      temperature: temperature,
-      randomSeed: randomSeed,
-      topK: topK,
+    // Use defaults if parameters not provided
+    final finalTemperature = temperature ?? 0.8;
+    final finalTopK = topK ?? 1;
+    final finalRandomSeed = randomSeed ?? 1;
+
+    print(
+        'Parameters: temp=$finalTemperature, topK=$finalTopK, seed=$finalRandomSeed');
+
+    final success = await gemmaManager.createSession(
+      temperature: finalTemperature,
+      randomSeed: finalRandomSeed,
+      topK: finalTopK,
     );
 
-    print('createGemmaSession: Session creation result=$result');
-    return result;
+    if (success) {
+      print('createGemmaSession: Session created successfully!');
+      print('Ready for chat: ${gemmaManager.hasSession}');
+    } else {
+      print('createGemmaSession: Session creation failed');
+    }
+
+    return success;
   } catch (e) {
-    print('Error in createGemmaSession: $e');
+    print('createGemmaSession: Error - $e');
     return false;
   }
 }

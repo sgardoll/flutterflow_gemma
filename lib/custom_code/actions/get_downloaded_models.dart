@@ -8,35 +8,27 @@ import 'package:flutter/material.dart';
 
 import 'index.dart'; // Imports other custom actions
 
-import 'package:flutter_gemma/flutter_gemma.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 
-Future<List<dynamic>> manageDownloadedModels(
-  String? action,
-  String? modelPath,
-) async {
+Future<List<dynamic>> getDownloadedModels() async {
   try {
+    print('getDownloadedModels: Listing downloaded models...');
+
     final directory = await getApplicationDocumentsDirectory();
     final modelsDir = Directory(path.join(directory.path, 'models'));
 
     if (!await modelsDir.exists()) {
+      print('getDownloadedModels: Models directory does not exist');
       return [];
     }
 
-    if (action == 'delete' && modelPath != null) {
-      // Delete specific model
-      final file = File(modelPath);
-      if (await file.exists()) {
-        await file.delete();
-        print('Deleted model: $modelPath');
-      }
-    }
-
-    // List all models
     final List<dynamic> models = [];
     final List<FileSystemEntity> files = modelsDir.listSync();
+
+    print(
+        'getDownloadedModels: Found ${files.length} files in models directory');
 
     for (final file in files) {
       if (file is File) {
@@ -49,18 +41,30 @@ Future<List<dynamic>> manageDownloadedModels(
         String modelType = 'Unknown';
         String description = 'Downloaded model file';
 
-        if (fileName.contains('gemma-3n-E4B-it')) {
+        if (fileName.contains('smolvlm')) {
+          modelType = 'SmolVLM';
+          description = 'SmolVLM multimodal model';
+        } else if (fileName.contains('paligemma')) {
+          modelType = 'PaliGemma';
+          description = 'Google PaliGemma vision model';
+        } else if (fileName.contains('gemma-3n-E4B-it')) {
           modelType = 'Gemma 3 4B Edge';
           description = 'Optimized 4B model with vision support';
         } else if (fileName.contains('gemma-3n-E2B-it')) {
           modelType = 'Gemma 3 2B Edge';
           description = 'Compact 2B model with vision support';
-        } else if (fileName.contains('Gemma3-1B-IT')) {
+        } else if (fileName.contains('gemma3-1b-it')) {
           modelType = 'Gemma 3 1B Instruct';
           description = 'Compact 1B model optimized for mobile deployment';
         } else if (fileName.contains('gemma')) {
           modelType = 'Gemma Model';
           description = 'Gemma language model';
+        } else if (fileName.contains('nanollava')) {
+          modelType = 'nanoLLaVA';
+          description = 'Compact LLAVA multimodal model';
+        } else if (fileName.contains('minicpm')) {
+          modelType = 'MiniCPM-V';
+          description = 'MiniCPM vision model';
         }
 
         models.add({
@@ -72,6 +76,7 @@ Future<List<dynamic>> manageDownloadedModels(
           'description': description,
           'sizeFormatted': _formatFileSize(fileSize),
           'dateFormatted': _formatDate(modifiedDate),
+          'supportsVision': _checkVisionSupport(fileName),
         });
       }
     }
@@ -80,11 +85,26 @@ Future<List<dynamic>> manageDownloadedModels(
     models.sort((a, b) => DateTime.parse(b['modifiedDate'])
         .compareTo(DateTime.parse(a['modifiedDate'])));
 
+    print('getDownloadedModels: Returning ${models.length} models');
     return models;
   } catch (e) {
-    print('Error managing downloaded models: $e');
+    print('getDownloadedModels: Error - $e');
     return [];
   }
+}
+
+bool _checkVisionSupport(String fileName) {
+  final visionModels = [
+    'smolvlm',
+    'paligemma',
+    'gemma-3n-e4b-it',
+    'gemma-3n-e2b-it',
+    'nanollava',
+    'minicpm',
+    'idefics',
+  ];
+
+  return visionModels.any((model) => fileName.toLowerCase().contains(model));
 }
 
 String _formatFileSize(int bytes) {
