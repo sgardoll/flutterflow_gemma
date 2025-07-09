@@ -1,5 +1,6 @@
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
+import '/custom_code/widgets/index.dart' as custom_widgets;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'home_page_model.dart';
@@ -71,6 +72,26 @@ class _HomePageWidgetState extends State<HomePageWidget> {
             expandedTitleScale: 1.0,
           ),
           elevation: 0.0,
+        ),
+        body: SafeArea(
+          top: true,
+          child: Container(
+            width: MediaQuery.sizeOf(context).width * 1.0,
+            height: MediaQuery.sizeOf(context).height * 1.0,
+            decoration: BoxDecoration(
+              color: FlutterFlowTheme.of(context).secondaryBackground,
+            ),
+            child: Container(
+              width: double.infinity,
+              height: double.infinity,
+              child: custom_widgets.GemmaChatWidget(
+                width: double.infinity,
+                height: double.infinity,
+                placeholder: 'Enter text here...',
+                onMessageSent: (message) async {},
+              ),
+            ),
+          ),
         ),
       ),
     );
