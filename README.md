@@ -8,7 +8,7 @@ An integration of Google's Gemma 3n AI models, providing offline/local on-device
 - **Gemma 3 Text Models**: 1B, 9B, 27B parameters (text-only)
 - **Gemma 3 Nano Models**: 1B, 2B, 4B parameters (vision + text)
 - **On-device Processing**: Complete offline AI capabilities
-- **Platform Optimized**: iOS, Android, and Web support
+- **Mobile Optimized**: iOS & Android Support (Web coming soon)
 
 ### 🎨 User Interface
 - **Visual Model Selector**: Expandable card interface for intuitive model selection
