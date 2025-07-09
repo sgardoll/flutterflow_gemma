@@ -48,17 +48,16 @@ class _SetupWidgetState extends State<SetupWidget> {
       },
       child: Scaffold(
         key: scaffoldKey,
-        backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
+        backgroundColor: FlutterFlowTheme.of(context).info,
         appBar: AppBar(
-          backgroundColor: FlutterFlowTheme.of(context).primary,
+          backgroundColor: FlutterFlowTheme.of(context).accent4,
           automaticallyImplyLeading: false,
           leading: FlutterFlowIconButton(
             borderRadius: 8.0,
             buttonSize: 40.0,
-            fillColor: FlutterFlowTheme.of(context).primary,
             icon: Icon(
               Icons.home_rounded,
-              color: FlutterFlowTheme.of(context).info,
+              color: FlutterFlowTheme.of(context).primary,
               size: 24.0,
             ),
             onPressed: () async {
@@ -67,24 +66,14 @@ class _SetupWidgetState extends State<SetupWidget> {
           ),
           actions: [],
           flexibleSpace: FlexibleSpaceBar(
-            title: Text(
-              'Download & Setup',
-              maxLines: 2,
-              style: FlutterFlowTheme.of(context).titleLarge.override(
-                    font: GoogleFonts.interTight(
-                      fontWeight:
-                          FlutterFlowTheme.of(context).titleLarge.fontWeight,
-                      fontStyle:
-                          FlutterFlowTheme.of(context).titleLarge.fontStyle,
-                    ),
-                    color: FlutterFlowTheme.of(context).info,
-                    letterSpacing: 0.0,
-                    fontWeight:
-                        FlutterFlowTheme.of(context).titleLarge.fontWeight,
-                    fontStyle:
-                        FlutterFlowTheme.of(context).titleLarge.fontStyle,
-                    lineHeight: 0.9,
-                  ),
+            title: ClipRRect(
+              borderRadius: BorderRadius.circular(8.0),
+              child: Image.asset(
+                'assets/images/gemmaLogo.png',
+                width: 100.0,
+                height: 100.0,
+                fit: BoxFit.contain,
+              ),
             ),
             centerTitle: true,
             expandedTitleScale: 1.0,

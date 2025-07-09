@@ -43,9 +43,10 @@ class _HomePageWidgetState extends State<HomePageWidget> {
       },
       child: Scaffold(
         key: scaffoldKey,
-        backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
+        backgroundColor: FlutterFlowTheme.of(context).info,
         appBar: AppBar(
-          backgroundColor: FlutterFlowTheme.of(context).primary,
+          backgroundColor: FlutterFlowTheme.of(context).accent4,
+          iconTheme: IconThemeData(color: FlutterFlowTheme.of(context).primary),
           automaticallyImplyLeading: true,
           actions: [],
           flexibleSpace: FlexibleSpaceBar(
@@ -59,7 +60,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                       fontStyle:
                           FlutterFlowTheme.of(context).titleLarge.fontStyle,
                     ),
-                    color: FlutterFlowTheme.of(context).info,
+                    color: FlutterFlowTheme.of(context).primary,
                     letterSpacing: 0.0,
                     fontWeight:
                         FlutterFlowTheme.of(context).titleLarge.fontWeight,
@@ -71,7 +72,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
             centerTitle: true,
             expandedTitleScale: 1.0,
           ),
-          elevation: 0.0,
+          elevation: 2.0,
         ),
         body: SafeArea(
           top: true,
