@@ -38,7 +38,6 @@ class _GemmaVisualModelSelectorState extends State<GemmaVisualModelSelector>
   // Model categories and their models
   final Map<String, List<GemmaModelId>> _modelCategories = {
     'Gemma 3': [
-      GemmaModelId.gemma31bWeb,
       GemmaModelId.gemma31bIt,
       GemmaModelId.gemma3_9b,
       GemmaModelId.gemma3_27b,
@@ -46,7 +45,6 @@ class _GemmaVisualModelSelectorState extends State<GemmaVisualModelSelector>
     'Gemma 3n': [
       GemmaModelId.gemma3nE4bIt,
       GemmaModelId.gemma3nE2bIt,
-      GemmaModelId.gemma3n_1b,
     ],
   };
 
@@ -107,8 +105,6 @@ class _GemmaVisualModelSelectorState extends State<GemmaVisualModelSelector>
 
     // Determine category characteristics
     final isVisionCategory = category == 'Gemma 3n';
-    final categoryIcon =
-        isVisionCategory ? Icons.visibility : Icons.text_fields;
     final categoryDescription =
         isVisionCategory ? 'Vision + Text Models' : 'Text-Only Models';
 
@@ -141,10 +137,10 @@ class _GemmaVisualModelSelectorState extends State<GemmaVisualModelSelector>
                       color: theme.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Icon(
-                      categoryIcon,
-                      color: theme.primary,
-                      size: 24,
+                    child: Image.asset(
+                      'assets/images/gemmaLogo.png',
+                      width: 24,
+                      height: 24,
                     ),
                   ),
 
@@ -352,78 +348,13 @@ class _GemmaVisualModelSelectorState extends State<GemmaVisualModelSelector>
 
   @override
   Widget build(BuildContext context) {
-    final theme = FlutterFlowTheme.of(context);
-
-    return Container(
+    return SizedBox(
       width: widget.width,
       height: widget.height,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.model_training,
-                  color: theme.primary,
-                  size: 24,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Select Model',
-                  style: theme.headlineSmall.override(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Model categories
-          Expanded(
-            child: ListView(
-              children: _modelCategories.entries
-                  .map((entry) => _buildCategoryCard(entry.key, entry.value))
-                  .toList(),
-            ),
-          ),
-
-          // Selected model info
-          if (_selectedModelId != null) ...[
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: theme.primary.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: theme.primary.withValues(alpha: 0.2),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    color: theme.primary,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Selected: $_selectedModelId',
-                      style: theme.bodySmall.override(
-                        color: theme.primary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ],
+      child: ListView(
+        children: _modelCategories.entries
+            .map((entry) => _buildCategoryCard(entry.key, entry.value))
+            .toList(),
       ),
     );
   }
