@@ -460,9 +460,6 @@ class _GemmaSimpleSetupWidgetState extends State<GemmaSimpleSetupWidget> {
             ),
           ),
         ),
-
-        // Footer banner with selected model (full width)
-        _buildFooterBanner(),
       ],
     );
   }
@@ -646,29 +643,6 @@ class _GemmaSimpleSetupWidgetState extends State<GemmaSimpleSetupWidget> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildFooterBanner() {
-    final theme = FlutterFlowTheme.of(context);
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: theme.primary.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: theme.primary.withValues(alpha: 0.2),
-        ),
-      ),
-      child: Text(
-        'Selected Model: ${_selectedModelId ?? "None"}',
-        style: theme.bodySmall.override(
-          color: theme.primary,
-          fontWeight: FontWeight.w500,
-        ),
       ),
     );
   }
