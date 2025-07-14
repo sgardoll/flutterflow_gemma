@@ -13,4 +13,25 @@
 
 
 
+# Rules for MediaPipe and Protobuf
+# Keep Protobuf generated classes
+-keep class com.google.protobuf.** { *; }
+-dontwarn com.google.protobuf.**
 
+# MediaPipe
+-keep class com.google.mediapipe.** { *; }
+-dontwarn com.google.mediapipe.**
+
+# OkHttp (used by MediaPipe)
+-dontwarn okhttp3.**
+-keep class okhttp3.** { *; }
+
+# javax.lang.model.*
+-keep class javax.lang.model.** { *; }
+-dontwarn javax.lang.model.**
+
+# AutoValue / Javapoet if needed
+-keep class com.google.auto.value.** { *; }
+-dontwarn com.google.auto.value.**
+-keep class autovalue.shaded.com.squareup.javapoet.** { *; }
+-dontwarn autovalue.shaded.com.squareup.javapoet.**
