@@ -5,8 +5,8 @@ An integration of Google's Gemma 3n AI models, providing offline/local on-device
 ## ✨ Features
 
 ### 🤖 AI Model Support
-- **Gemma 3 Text Models**: 1B, 9B, 27B parameters (text-only)
-- **Gemma 3 Nano Models**: 1B, 2B, 4B parameters (vision + text)
+- **Gemma 3 Text Models**: 1B parameters (text-only)
+- **Gemma 3 Nano Models**: 2B, 4B parameters (vision + text)
 - **On-device Processing**: Complete offline AI capabilities
 - **Mobile Optimized**: iOS & Android Support (Web coming soon)
 
@@ -50,15 +50,11 @@ An integration of Google's Gemma 3n AI models, providing offline/local on-device
 ### Text-Only Models (Gemma 3)
 | Model | Parameters | Memory | Use Case |
 |-------|------------|--------|----------|
-| gemma3-1b-web | 1B | 800MB | Web deployment |
 | gemma3-1b-it | 1B | 800MB | Mobile efficiency |
-| gemma3-9b | 9B | 6GB | High-quality text |
-| gemma3-27b | 27B | 18GB | Complex reasoning |
 
 ### Vision + Text Models (Gemma 3 Nano)
 | Model | Parameters | Memory | Capabilities |
 |-------|------------|--------|--------------|
-| gemma3n-1b | 1B | 800MB | Basic text |
 | gemma-3n-e2b-it | 2B | 2GB | Vision + text |
 | gemma-3n-e4b-it | 4B | 3GB | Advanced vision |
 
