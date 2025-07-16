@@ -8,6 +8,11 @@ class SetupModel extends FlutterFlowModel<SetupWidget> {
 
   String? modelChoice;
 
+  ///  State fields for stateful widgets in this page.
+
+  // Stores action output result for [Alert Dialog - Custom Dialog] action in Setup widget.
+  String? hfPopup;
+
   @override
   void initState(BuildContext context) {}
 

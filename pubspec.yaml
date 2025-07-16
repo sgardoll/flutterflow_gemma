@@ -37,12 +37,10 @@ dependencies:
   collection: 1.19.1
   crypto: ^3.0.3
   csv: 6.0.0
-  file_picker: 10.1.9
   flutter_animate: 4.5.0
   flutter_cache_manager: 3.4.1
   flutter_gemma: ^0.9.0
   flutter_native_splash: 2.4.1
-  flutter_plugin_android_lifecycle: 2.0.28
   flutter_secure_storage: ^10.0.0-beta.4
   flutter_secure_storage_linux: ^2.0.1
   flutter_secure_storage_macos: ^4.0.0
@@ -66,11 +64,6 @@ dependencies:
   path_provider_linux: 2.2.1
   path_provider_platform_interface: 2.1.2
   path_provider_windows: 2.3.0
-  plugin_platform_interface: 2.1.8
-  pointer_interceptor: 0.10.1+2
-  pointer_interceptor_ios: 0.10.1
-  pointer_interceptor_platform_interface: 0.10.0+1
-  pointer_interceptor_web: 0.10.2+1
   provider: 6.1.5
   shared_preferences: 2.5.3
   shared_preferences_android: 2.4.10
@@ -81,7 +74,6 @@ dependencies:
   shared_preferences_windows: 2.4.1
   sqflite: 2.3.3+1
   sqflite_common: 2.5.4+3
-  substring_highlight: 1.0.33
   synchronized: ^3.3.1
   timeago: 3.7.1
   universal_io: 2.2.2
@@ -93,15 +85,6 @@ dependencies:
   url_launcher_platform_interface: 2.3.2
   url_launcher_web: 2.4.1
   url_launcher_windows: 3.1.4
-  uuid: ^4.0.0
-  webview_flutter: 4.13.0
-  webview_flutter_android: 4.7.0
-  webview_flutter_platform_interface: 2.13.1
-  webview_flutter_wkwebview: 3.22.0
-  webviewx_plus: 
-    git:
-      url: https://github.com/wenkaifan0720/webviewx_plus.git
-      ref: 4f84ece5e06d52643c5d844f41880baf8440c584
   xml: 6.5.0
 
   # The following adds the Cupertino Icons font to your application.
