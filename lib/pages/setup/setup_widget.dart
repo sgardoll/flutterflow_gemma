@@ -8,7 +8,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:provider/provider.dart';
-import 'package:webviewx_plus/webviewx_plus.dart';
 import 'setup_model.dart';
 export 'setup_model.dart';
 
@@ -45,18 +44,19 @@ class _SetupWidgetState extends State<SetupWidget> {
               backgroundColor: Colors.transparent,
               alignment: AlignmentDirectional(0.0, 0.0)
                   .resolve(Directionality.of(context)),
-              child: WebViewAware(
-                child: GestureDetector(
-                  onTap: () {
-                    FocusScope.of(dialogContext).unfocus();
-                    FocusManager.instance.primaryFocus?.unfocus();
-                  },
-                  child: HfTokenWidget(),
-                ),
+              child: GestureDetector(
+                onTap: () {
+                  FocusScope.of(dialogContext).unfocus();
+                  FocusManager.instance.primaryFocus?.unfocus();
+                },
+                child: HfTokenWidget(),
               ),
             );
           },
-        );
+        ).then((value) => safeSetState(() => _model.hfPopup = value));
+
+        FFAppState().hfToken = _model.hfPopup!;
+        FFAppState().update(() {});
       }
     });
   }

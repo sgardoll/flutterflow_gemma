@@ -1,12 +1,10 @@
-import '/components/hf_webview_widget.dart';
-import '/flutter_flow/flutter_flow_autocomplete_options_list.dart';
+import '/flutter_flow/flutter_flow_icon_button.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/flutter_flow/flutter_flow_widgets.dart';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:webviewx_plus/webviewx_plus.dart';
 import 'hf_token_model.dart';
 export 'hf_token_model.dart';
 
@@ -32,6 +30,7 @@ class _HfTokenWidgetState extends State<HfTokenWidget> {
     _model = createModel(context, () => HfTokenModel());
 
     _model.tokenTextController ??= TextEditingController();
+    _model.tokenFocusNode ??= FocusNode();
   }
 
   @override
@@ -122,199 +121,148 @@ class _HfTokenWidgetState extends State<HfTokenWidget> {
                                 ),
                           ),
                         ),
-                        Builder(
-                          builder: (context) => InkWell(
-                            splashColor: Colors.transparent,
-                            focusColor: Colors.transparent,
-                            hoverColor: Colors.transparent,
-                            highlightColor: Colors.transparent,
-                            onTap: () async {
-                              await showDialog(
-                                context: context,
-                                builder: (dialogContext) {
-                                  return Dialog(
-                                    elevation: 0,
-                                    insetPadding: EdgeInsets.zero,
-                                    backgroundColor: Colors.transparent,
-                                    alignment: AlignmentDirectional(0.0, 0.0)
-                                        .resolve(Directionality.of(context)),
-                                    child: WebViewAware(
-                                      child: HfWebviewWidget(),
-                                    ),
-                                  );
-                                },
-                              );
-                            },
-                            child: Icon(
-                              Icons.info_outline_rounded,
-                              color: FlutterFlowTheme.of(context).accent1,
-                              size: 24.0,
+                        Column(
+                          mainAxisSize: MainAxisSize.max,
+                          children: [
+                            FlutterFlowIconButton(
+                              borderColor: Color(0xFFE2E8F0),
+                              borderRadius: 8.0,
+                              buttonSize: 40.0,
+                              fillColor: Color(0xFFF7FAFC),
+                              icon: Icon(
+                                Icons.generating_tokens_rounded,
+                                color: Color(0xFF4A5568),
+                                size: 24.0,
+                              ),
+                              onPressed: () async {
+                                await launchURL(
+                                    'https://huggingface.co/settings/tokens');
+                              },
                             ),
-                          ),
-                        ),
-                      ].divide(SizedBox(width: 12.0)),
-                    ),
-                    Autocomplete<String>(
-                      initialValue: TextEditingValue(),
-                      optionsBuilder: (textEditingValue) {
-                        if (textEditingValue.text == '') {
-                          return const Iterable<String>.empty();
-                        }
-                        return ['Option 1'].where((option) {
-                          final lowercaseOption = option.toLowerCase();
-                          return lowercaseOption
-                              .contains(textEditingValue.text.toLowerCase());
-                        });
-                      },
-                      optionsViewBuilder: (context, onSelected, options) {
-                        return AutocompleteOptionsList(
-                          textFieldKey: _model.tokenKey,
-                          textController: _model.tokenTextController!,
-                          options: options.toList(),
-                          onSelected: onSelected,
-                          textStyle:
-                              FlutterFlowTheme.of(context).bodyMedium.override(
+                            Text(
+                              'Get Token',
+                              maxLines: 2,
+                              style: FlutterFlowTheme.of(context)
+                                  .bodySmall
+                                  .override(
                                     font: GoogleFonts.inter(
                                       fontWeight: FlutterFlowTheme.of(context)
-                                          .bodyMedium
+                                          .bodySmall
                                           .fontWeight,
                                       fontStyle: FlutterFlowTheme.of(context)
-                                          .bodyMedium
+                                          .bodySmall
                                           .fontStyle,
                                     ),
+                                    color: FlutterFlowTheme.of(context)
+                                        .secondaryText,
                                     letterSpacing: 0.0,
                                     fontWeight: FlutterFlowTheme.of(context)
-                                        .bodyMedium
+                                        .bodySmall
                                         .fontWeight,
                                     fontStyle: FlutterFlowTheme.of(context)
-                                        .bodyMedium
+                                        .bodySmall
                                         .fontStyle,
                                   ),
-                          textHighlightStyle: TextStyle(),
-                          elevation: 4.0,
-                          optionBackgroundColor:
-                              FlutterFlowTheme.of(context).primaryBackground,
-                          optionHighlightColor:
-                              FlutterFlowTheme.of(context).secondaryBackground,
-                          maxHeight: 200.0,
-                        );
-                      },
-                      onSelected: (String selection) {
-                        safeSetState(
-                            () => _model.tokenSelectedOption = selection);
-                        FocusScope.of(context).unfocus();
-                      },
-                      fieldViewBuilder: (
-                        context,
-                        textEditingController,
-                        focusNode,
-                        onEditingComplete,
-                      ) {
-                        _model.tokenFocusNode = focusNode;
-
-                        _model.tokenTextController = textEditingController;
-                        return TextFormField(
-                          key: _model.tokenKey,
-                          controller: textEditingController,
-                          focusNode: focusNode,
-                          onEditingComplete: onEditingComplete,
-                          autofocus: false,
-                          textInputAction: TextInputAction.done,
-                          obscureText: !_model.tokenVisibility,
-                          decoration: InputDecoration(
-                            hintText: 'hf_...',
-                            hintStyle:
-                                FlutterFlowTheme.of(context).bodyLarge.override(
-                                      font: GoogleFonts.inter(
-                                        fontWeight: FlutterFlowTheme.of(context)
-                                            .bodyLarge
-                                            .fontWeight,
-                                        fontStyle: FlutterFlowTheme.of(context)
-                                            .bodyLarge
-                                            .fontStyle,
-                                      ),
-                                      color: FlutterFlowTheme.of(context)
-                                          .secondaryText,
-                                      letterSpacing: 0.0,
-                                      fontWeight: FlutterFlowTheme.of(context)
-                                          .bodyLarge
-                                          .fontWeight,
-                                      fontStyle: FlutterFlowTheme.of(context)
-                                          .bodyLarge
-                                          .fontStyle,
-                                    ),
-                            enabledBorder: OutlineInputBorder(
-                              borderSide: BorderSide(
-                                color: Color(0xFFE2E8F0),
-                                width: 1.0,
-                              ),
-                              borderRadius: BorderRadius.circular(8.0),
                             ),
-                            focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(
-                                color: Color(0x00000000),
-                                width: 1.0,
-                              ),
-                              borderRadius: BorderRadius.circular(8.0),
-                            ),
-                            errorBorder: OutlineInputBorder(
-                              borderSide: BorderSide(
-                                color: Color(0x00000000),
-                                width: 1.0,
-                              ),
-                              borderRadius: BorderRadius.circular(8.0),
-                            ),
-                            focusedErrorBorder: OutlineInputBorder(
-                              borderSide: BorderSide(
-                                color: Color(0x00000000),
-                                width: 1.0,
-                              ),
-                              borderRadius: BorderRadius.circular(8.0),
-                            ),
-                            filled: true,
-                            fillColor: Color(0xFFF7FAFC),
-                            contentPadding: EdgeInsetsDirectional.fromSTEB(
-                                12.0, 16.0, 12.0, 16.0),
-                            suffixIcon: InkWell(
-                              onTap: () => safeSetState(
-                                () => _model.tokenVisibility =
-                                    !_model.tokenVisibility,
-                              ),
-                              focusNode: FocusNode(skipTraversal: true),
-                              child: Icon(
-                                _model.tokenVisibility
-                                    ? Icons.visibility_outlined
-                                    : Icons.visibility_off_outlined,
-                                color:
-                                    FlutterFlowTheme.of(context).secondaryText,
-                                size: 22.0,
-                              ),
-                            ),
-                          ),
-                          style: FlutterFlowTheme.of(context)
-                              .bodyMedium
-                              .override(
-                                font: GoogleFonts.inter(
-                                  fontWeight: FlutterFlowTheme.of(context)
-                                      .bodyMedium
-                                      .fontWeight,
-                                  fontStyle: FlutterFlowTheme.of(context)
-                                      .bodyMedium
-                                      .fontStyle,
-                                ),
-                                color: FlutterFlowTheme.of(context).primaryText,
-                                letterSpacing: 0.0,
+                          ].divide(SizedBox(height: 4.0)),
+                        ),
+                      ].divide(SizedBox(width: 24.0)),
+                    ),
+                    TextFormField(
+                      controller: _model.tokenTextController,
+                      focusNode: _model.tokenFocusNode,
+                      autofocus: false,
+                      textInputAction: TextInputAction.next,
+                      obscureText: !_model.tokenVisibility,
+                      decoration: InputDecoration(
+                        hintText: 'hf_...',
+                        hintStyle: FlutterFlowTheme.of(context)
+                            .bodyLarge
+                            .override(
+                              font: GoogleFonts.inter(
                                 fontWeight: FlutterFlowTheme.of(context)
-                                    .bodyMedium
+                                    .bodyLarge
                                     .fontWeight,
                                 fontStyle: FlutterFlowTheme.of(context)
-                                    .bodyMedium
+                                    .bodyLarge
                                     .fontStyle,
                               ),
-                          validator: _model.tokenTextControllerValidator
-                              .asValidator(context),
-                        );
-                      },
+                              color: FlutterFlowTheme.of(context).secondaryText,
+                              letterSpacing: 0.0,
+                              fontWeight: FlutterFlowTheme.of(context)
+                                  .bodyLarge
+                                  .fontWeight,
+                              fontStyle: FlutterFlowTheme.of(context)
+                                  .bodyLarge
+                                  .fontStyle,
+                            ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Color(0xFFE2E8F0),
+                            width: 1.0,
+                          ),
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Color(0x00000000),
+                            width: 1.0,
+                          ),
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                        errorBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Color(0x00000000),
+                            width: 1.0,
+                          ),
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                        focusedErrorBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Color(0x00000000),
+                            width: 1.0,
+                          ),
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                        filled: true,
+                        contentPadding: EdgeInsetsDirectional.fromSTEB(
+                            12.0, 16.0, 12.0, 16.0),
+                        suffixIcon: InkWell(
+                          onTap: () => safeSetState(
+                            () => _model.tokenVisibility =
+                                !_model.tokenVisibility,
+                          ),
+                          focusNode: FocusNode(skipTraversal: true),
+                          child: Icon(
+                            _model.tokenVisibility
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
+                            color: FlutterFlowTheme.of(context).secondaryText,
+                            size: 22.0,
+                          ),
+                        ),
+                      ),
+                      style: FlutterFlowTheme.of(context).bodyMedium.override(
+                            font: GoogleFonts.inter(
+                              fontWeight: FlutterFlowTheme.of(context)
+                                  .bodyMedium
+                                  .fontWeight,
+                              fontStyle: FlutterFlowTheme.of(context)
+                                  .bodyMedium
+                                  .fontStyle,
+                            ),
+                            color: FlutterFlowTheme.of(context).primaryText,
+                            letterSpacing: 0.0,
+                            fontWeight: FlutterFlowTheme.of(context)
+                                .bodyMedium
+                                .fontWeight,
+                            fontStyle: FlutterFlowTheme.of(context)
+                                .bodyMedium
+                                .fontStyle,
+                          ),
+                      cursorColor: FlutterFlowTheme.of(context).primary,
+                      validator: _model.tokenTextControllerValidator
+                          .asValidator(context),
                     ),
                   ].divide(SizedBox(height: 8.0)),
                 ),
@@ -368,8 +316,9 @@ class _HfTokenWidgetState extends State<HfTokenWidget> {
                         onPressed: () async {
                           FFAppState().hfToken =
                               _model.tokenTextController.text;
-                          _model.updatePage(() {});
-                          Navigator.pop(context);
+                          FFAppState().update(() {});
+                          Navigator.pop(
+                              context, _model.tokenTextController.text);
                         },
                         text: 'Save',
                         options: FFButtonOptions(
