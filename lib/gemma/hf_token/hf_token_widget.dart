@@ -9,7 +9,14 @@ import 'hf_token_model.dart';
 export 'hf_token_model.dart';
 
 class HfTokenWidget extends StatefulWidget {
-  const HfTokenWidget({super.key});
+  const HfTokenWidget({
+    super.key,
+    required this.onCancel,
+    required this.onSave,
+  });
+
+  final Future Function()? onCancel;
+  final Future Function(String? htToken)? onSave;
 
   @override
   State<HfTokenWidget> createState() => _HfTokenWidgetState();
@@ -271,7 +278,7 @@ class _HfTokenWidgetState extends State<HfTokenWidget> {
                       Flexible(
                         child: FFButtonWidget(
                           onPressed: () async {
-                            Navigator.pop(context);
+                            await widget.onCancel?.call();
                           },
                           text: 'Cancel',
                           options: FFButtonOptions(
@@ -313,11 +320,9 @@ class _HfTokenWidgetState extends State<HfTokenWidget> {
                       Flexible(
                         child: FFButtonWidget(
                           onPressed: () async {
-                            FFAppState().hfToken =
-                                _model.tokenTextController.text;
-                            FFAppState().update(() {});
-                            Navigator.pop(
-                                context, _model.tokenTextController.text);
+                            await widget.onSave?.call(
+                              _model.tokenTextController.text,
+                            );
                           },
                           text: 'Save',
                           options: FFButtonOptions(

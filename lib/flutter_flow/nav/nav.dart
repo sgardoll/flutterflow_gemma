@@ -48,7 +48,7 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
                 ),
               ),
             )
-          : SetupWidget(),
+          : DemoWidget(),
       routes: [
         FFRoute(
           name: '_initialize',
@@ -67,17 +67,12 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
                     ),
                   ),
                 )
-              : SetupWidget(),
+              : DemoWidget(),
         ),
         FFRoute(
           name: DemoWidget.routeName,
           path: DemoWidget.routePath,
           builder: (context, params) => DemoWidget(),
-        ),
-        FFRoute(
-          name: SetupWidget.routeName,
-          path: SetupWidget.routePath,
-          builder: (context, params) => SetupWidget(),
         ),
         FFRoute(
           name: LicenseWidget.routeName,

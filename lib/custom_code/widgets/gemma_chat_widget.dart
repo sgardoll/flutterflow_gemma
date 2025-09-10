@@ -1,4 +1,5 @@
 // Automatic FlutterFlow imports
+import '/actions/actions.dart' as action_blocks;
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import 'index.dart'; // Imports other custom widgets
@@ -7,12 +8,27 @@ import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-import '../GemmaManager.dart';
+import '../actions/send_message_action.dart';
+import '../flutter_gemma_library.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:typed_data';
-import 'package:flutter/services.dart'; // For Clipboard
+import 'package:flutter/services.dart';
 import 'markdown_widget.dart';
 
+/// Simplified Gemma chat widget for FlutterFlow integration This widget
+/// provides a clean chat interface for interacting with Gemma models.
+///
+/// It assumes the model has already been downloaded, set, and initialized
+/// using the corresponding custom actions.
+///
+/// ## Features: - Text-based conversations - Image support for vision-capable
+/// models (auto-detected) - Markdown rendering for model responses -
+/// Copy-to-clipboard functionality for responses - Responsive design with
+/// FlutterFlow theming
+///
+/// ## Usage: 1. Use downloadModelAction to get your model 2. Use
+/// setModelAction to register the model 3. Use initializeModelAction to
+/// prepare the model 4. Add this widget to your FlutterFlow page 5. Start
+/// chatting!
 class GemmaChatWidget extends StatefulWidget {
   const GemmaChatWidget({
     super.key,
@@ -20,12 +36,14 @@ class GemmaChatWidget extends StatefulWidget {
     this.height,
     this.placeholder,
     this.onMessageSent,
+    this.showImageButton,
   });
 
   final double? width;
   final double? height;
-  final String? placeholder; // Input placeholder text
-  final Future Function(String message)? onMessageSent; // Message callback
+  final String? placeholder;
+  final Future Function(String message, String response)? onMessageSent;
+  final bool? showImageButton; // Override image button visibility
 
   @override
   State<GemmaChatWidget> createState() => _GemmaChatWidgetState();
@@ -36,10 +54,9 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
   final ScrollController _scrollController = ScrollController();
   final List<ChatMessage> _messages = [];
   final ImagePicker _imagePicker = ImagePicker();
+
   bool _isLoading = false;
   FFUploadedFile? _selectedImage;
-
-  final GemmaManager _gemmaManager = GemmaManager();
 
   @override
   void initState() {
@@ -47,34 +64,52 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
     _checkModelStatus();
   }
 
-  // Check if model is ready
+  /// Check if the model is ready and show appropriate status message
   void _checkModelStatus() {
-    if (!_gemmaManager.isInitialized) {
+    final gemma = FlutterGemmaLibrary.instance;
+
+    if (!gemma.isInitialized) {
       setState(() {
         _messages.add(ChatMessage(
-          text: 'Please complete model setup first using the setup widget.',
+          text:
+              'Please initialize the model first using the initializeModelAction.',
           isUser: false,
+          isSystemMessage: true,
         ));
       });
-    } else if (!_gemmaManager.hasSession) {
-      // Try to create session if model is ready
-      _gemmaManager.createSession().then((success) {
-        if (!success) {
-          setState(() {
-            _messages.add(ChatMessage(
-              text: 'Failed to start chat session. Please restart the app.',
-              isUser: false,
-            ));
-          });
-        }
+    } else if (!gemma.hasSession) {
+      setState(() {
+        _messages.add(ChatMessage(
+          text:
+              'Model initialized but no session available. This should not happen - please check your setup.',
+          isUser: false,
+          isSystemMessage: true,
+        ));
+      });
+    } else {
+      // Model is ready
+      setState(() {
+        _messages.add(ChatMessage(
+          text:
+              'Hello! I\'m ready to chat. ${gemma.supportsVision ? "You can send me text and images." : "Send me a message to get started."}',
+          isUser: false,
+          isSystemMessage: true,
+        ));
       });
     }
   }
 
-  // Check if current model supports images
-  bool get _supportsImages => _gemmaManager.supportsVision;
+  /// Get whether to show the image button
+  bool get _shouldShowImageButton {
+    if (widget.showImageButton != null) {
+      return widget.showImageButton!;
+    }
 
-  // Select image from gallery or camera
+    // Auto-detect based on model capabilities
+    return FlutterGemmaLibrary.instance.supportsVision;
+  }
+
+  /// Select image from gallery or camera
   Future<void> _selectImage() async {
     try {
       final source = await _showImageSourceDialog();
@@ -95,7 +130,7 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Image selected: ${pickedFile.name}'),
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -105,29 +140,30 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
           SnackBar(
             content: Text('Error selecting image: $e'),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
           ),
         );
       }
     }
   }
 
-  // Show dialog to choose image source
+  /// Show dialog to choose image source
   Future<ImageSource?> _showImageSourceDialog() async {
     return showDialog<ImageSource>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Select Image Source'),
+        title: const Text('Select Image Source'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: Icon(Icons.photo_library),
-              title: Text('Gallery'),
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Gallery'),
               onTap: () => Navigator.pop(context, ImageSource.gallery),
             ),
             ListTile(
-              leading: Icon(Icons.camera_alt),
-              title: Text('Camera'),
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Camera'),
               onTap: () => Navigator.pop(context, ImageSource.camera),
             ),
           ],
@@ -135,49 +171,39 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel'),
+            child: const Text('Cancel'),
           ),
         ],
       ),
     );
   }
 
-  // Clear selected image
+  /// Clear selected image
   void _clearImage() {
     setState(() {
       _selectedImage = null;
     });
   }
 
-  // Send message
+  /// Send message to the model
   Future<void> _sendMessage() async {
     final messageText = _messageController.text.trim();
-    final imageBytes = _selectedImage?.bytes;
+    final imageFile = _selectedImage;
 
-    if ((messageText.isEmpty && imageBytes == null) || _isLoading) {
+    // Validate input
+    if ((messageText.isEmpty && imageFile == null) || _isLoading) {
       return;
     }
 
-    // Check if model is ready
-    if (!_gemmaManager.isInitialized || !_gemmaManager.hasSession) {
-      setState(() {
-        _messages.add(ChatMessage(
-          text: 'Model not ready. Please complete setup first.',
-          isUser: false,
-        ));
-      });
-      return;
-    }
-
-    final finalMessage =
+    final displayMessage =
         messageText.isNotEmpty ? messageText : 'Analyze this image';
 
-    // Add user message
+    // Add user message to chat
     setState(() {
       _messages.add(ChatMessage(
-        text: finalMessage,
+        text: displayMessage,
         isUser: true,
-        imageBytes: imageBytes,
+        imageBytes: imageFile?.bytes,
       ));
       _isLoading = true;
     });
@@ -187,10 +213,10 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
     _scrollToBottom();
 
     try {
-      // Send message to model
-      final response = await _gemmaManager.sendMessage(
-        finalMessage,
-        imageBytes: imageBytes,
+      // Send message using the action (this uses the new library)
+      final response = await sendMessageAction(
+        displayMessage,
+        imageFile,
       );
 
       // Add model response
@@ -204,19 +230,21 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
       // Call callback if provided
       if (widget.onMessageSent != null && response != null) {
         try {
-          await widget.onMessageSent!(response);
+          await widget.onMessageSent!(displayMessage, response);
         } catch (e) {
-          print('Error in callback: $e');
+          print('GemmaChatWidget: Error in callback: $e');
         }
       }
     } catch (e) {
-      print('Error sending message: $e');
+      print('GemmaChatWidget: Error sending message: $e');
 
       // Add error message
       setState(() {
         _messages.add(ChatMessage(
-          text: 'Sorry, an error occurred. Please try again.',
+          text:
+              'Sorry, an error occurred while processing your message. Please try again.',
           isUser: false,
+          isSystemMessage: true,
         ));
       });
     }
@@ -227,13 +255,13 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
     _scrollToBottom();
   }
 
-  // Scroll to bottom of chat
+  /// Scroll to bottom of chat
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
-          duration: Duration(milliseconds: 300),
+          duration: const Duration(milliseconds: 300),
           curve: Curves.easeOut,
         );
       }
@@ -249,7 +277,7 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
         color: FlutterFlowTheme.of(context).primaryBackground,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: FlutterFlowTheme.of(context).primary.withOpacity(0.2),
+          color: FlutterFlowTheme.of(context).primary.withAlpha(51),
         ),
       ),
       child: Column(
@@ -258,7 +286,7 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
           Expanded(
             child: ListView.builder(
               controller: _scrollController,
-              padding: EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
               itemCount: _messages.length,
               itemBuilder: (context, index) {
                 final message = _messages[index];
@@ -269,9 +297,9 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
 
           // Loading indicator
           if (_isLoading)
-            Padding(
-              padding: EdgeInsets.all(8),
-              child: Row(
+            Container(
+              padding: const EdgeInsets.all(8),
+              child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   SizedBox(
@@ -286,110 +314,119 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
             ),
 
           // Selected image preview
-          if (_selectedImage != null)
-            Container(
-              margin: EdgeInsets.symmetric(horizontal: 16),
-              padding: EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: FlutterFlowTheme.of(context).secondaryBackground,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: FlutterFlowTheme.of(context).primary.withOpacity(0.2),
-                ),
-              ),
-              child: Row(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.memory(
-                      _selectedImage!.bytes!,
-                      width: 60,
-                      height: 60,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      _selectedImage!.name ?? 'Selected Image',
-                      style: FlutterFlowTheme.of(context).bodyMedium,
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: _clearImage,
-                    icon: Icon(Icons.close, color: Colors.red, size: 20),
-                  ),
-                ],
-              ),
-            ),
+          if (_selectedImage != null) _buildImagePreview(),
 
           // Input area
-          Container(
-            padding: EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              border: Border(
-                top: BorderSide(
-                  color: FlutterFlowTheme.of(context).primary.withOpacity(0.2),
+          _buildInputArea(),
+        ],
+      ),
+    );
+  }
+
+  /// Build image preview widget
+  Widget _buildImagePreview() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: FlutterFlowTheme.of(context).secondaryBackground,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: FlutterFlowTheme.of(context).primary.withAlpha(51),
+        ),
+      ),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.memory(
+              _selectedImage!.bytes!,
+              width: 60,
+              height: 60,
+              fit: BoxFit.cover,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              _selectedImage!.name ?? 'Selected Image',
+              style: FlutterFlowTheme.of(context).bodyMedium,
+            ),
+          ),
+          IconButton(
+            onPressed: _clearImage,
+            icon: const Icon(Icons.close, color: Colors.red, size: 20),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Build input area widget
+  Widget _buildInputArea() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(
+            color: FlutterFlowTheme.of(context).primary.withAlpha(51),
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          // Image button (conditionally shown)
+          if (_shouldShowImageButton) ...[
+            IconButton(
+              onPressed: _isLoading ? null : _selectImage,
+              icon: Icon(
+                Icons.image,
+                color: _isLoading
+                    ? Colors.grey
+                    : FlutterFlowTheme.of(context).primary,
+              ),
+              tooltip: 'Add Image',
+            ),
+            const SizedBox(width: 8),
+          ],
+
+          // Text input
+          Expanded(
+            child: TextField(
+              controller: _messageController,
+              enabled: !_isLoading,
+              maxLines: 3,
+              minLines: 1,
+              decoration: InputDecoration(
+                hintText: widget.placeholder ?? 'Type your message...',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
                 ),
               ),
+              onSubmitted: (_) => _sendMessage(),
             ),
-            child: Row(
-              children: [
-                // Image button (only show if model supports vision)
-                if (_supportsImages) ...[
-                  IconButton(
-                    onPressed: _isLoading ? null : _selectImage,
-                    icon: Icon(
-                      Icons.image,
-                      color: _isLoading
-                          ? Colors.grey
-                          : FlutterFlowTheme.of(context).primary,
-                    ),
-                    tooltip: 'Add Image',
-                  ),
-                  SizedBox(width: 8),
-                ],
+          ),
 
-                // Text input
-                Expanded(
-                  child: TextField(
-                    controller: _messageController,
-                    enabled: !_isLoading,
-                    maxLines: 3,
-                    minLines: 1,
-                    decoration: InputDecoration(
-                      hintText: widget.placeholder ?? 'Type your message...',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                    ),
-                    onSubmitted: (_) => _sendMessage(),
-                  ),
-                ),
+          const SizedBox(width: 8),
 
-                SizedBox(width: 8),
-
-                // Send button
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _sendMessage,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: FlutterFlowTheme.of(context).primary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    padding: EdgeInsets.all(12),
-                  ),
-                  child: Icon(
-                    Icons.send,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
-              ],
+          // Send button
+          ElevatedButton(
+            onPressed: _isLoading ? null : _sendMessage,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: FlutterFlowTheme.of(context).primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.all(12),
+            ),
+            child: const Icon(
+              Icons.send,
+              color: Colors.white,
+              size: 20,
             ),
           ),
         ],
@@ -397,22 +434,28 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
     );
   }
 
-  // Build message bubble
+  /// Build message bubble widget
   Widget _buildMessageBubble(ChatMessage message) {
-    final isAgent = !message.isUser;
     Widget bubble = Align(
       alignment: message.isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        margin: EdgeInsets.symmetric(vertical: 4),
-        padding: EdgeInsets.all(12),
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.all(12),
         constraints: BoxConstraints(
           maxWidth: MediaQuery.of(context).size.width * 0.8,
         ),
         decoration: BoxDecoration(
-          color: message.isUser
-              ? FlutterFlowTheme.of(context).primary
-              : FlutterFlowTheme.of(context).secondaryBackground,
+          color: message.isSystemMessage
+              ? FlutterFlowTheme.of(context).warning.withAlpha(25)
+              : message.isUser
+                  ? FlutterFlowTheme.of(context).primary
+                  : FlutterFlowTheme.of(context).secondaryBackground,
           borderRadius: BorderRadius.circular(12),
+          border: message.isSystemMessage
+              ? Border.all(
+                  color: FlutterFlowTheme.of(context).warning.withAlpha(76),
+                )
+              : null,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -427,7 +470,7 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
                   width: double.infinity,
                 ),
               ),
-              if (message.text.isNotEmpty) SizedBox(height: 8),
+              if (message.text.isNotEmpty) const SizedBox(height: 8),
             ],
 
             // Text message
@@ -435,27 +478,35 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
               message.isUser
                   ? Text(
                       message.text,
-                      style: const TextStyle(
-                        color: Colors.white,
-                      ),
+                      style: const TextStyle(color: Colors.white),
                     )
-                  : MarkdownWidget(
-                      data: message.text,
-                      mdcolor: FlutterFlowTheme.of(context).primaryText,
-                      fontFamily: 'Readex Pro',
-                      fontSize: 14.0,
-                    ),
+                  : message.isSystemMessage
+                      ? Text(
+                          message.text,
+                          style: TextStyle(
+                            color: FlutterFlowTheme.of(context).primaryText,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        )
+                      : MarkdownWidget(
+                          data: message.text,
+                          mdcolor: FlutterFlowTheme.of(context).primaryText,
+                          fontFamily: 'Readex Pro',
+                          fontSize: 14.0,
+                        ),
           ],
         ),
       ),
     );
 
-    if (isAgent && message.text.isNotEmpty) {
-      // Wrap with GestureDetector for long-press copy
+    // Add copy functionality for non-user messages
+    if (!message.isUser &&
+        !message.isSystemMessage &&
+        message.text.isNotEmpty) {
       bubble = GestureDetector(
         onLongPress: () async {
           await Clipboard.setData(ClipboardData(text: message.text));
-          if (context.mounted) {
+          if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Copied to clipboard'),
@@ -467,6 +518,7 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
         child: bubble,
       );
     }
+
     return bubble;
   }
 
@@ -478,17 +530,19 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
   }
 }
 
-// Simple message class
+/// Simple message class for chat messages
 class ChatMessage {
   final String text;
   final bool isUser;
   final DateTime timestamp;
   final Uint8List? imageBytes;
+  final bool isSystemMessage;
 
   ChatMessage({
     required this.text,
     required this.isUser,
     DateTime? timestamp,
     this.imageBytes,
+    this.isSystemMessage = false,
   }) : timestamp = timestamp ?? DateTime.now();
 }

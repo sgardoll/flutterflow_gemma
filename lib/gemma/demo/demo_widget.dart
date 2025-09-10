@@ -2,9 +2,10 @@ import '/flutter_flow/flutter_flow_icon_button.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/custom_code/actions/index.dart' as actions;
+import '/custom_code/flutter_gemma_library.dart';
 import '/custom_code/widgets/index.dart' as custom_widgets;
-import '/index.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'demo_model.dart';
 export 'demo_model.dart';
@@ -28,6 +29,28 @@ class _DemoWidgetState extends State<DemoWidget> {
   void initState() {
     super.initState();
     _model = createModel(context, () => DemoModel());
+
+    // On page load action.
+    SchedulerBinding.instance.addPostFrameCallback((_) async {
+      _model.downloadAction = await actions.downloadModelAction(
+        FFLibraryValues().huggingFaceToken,
+        FFLibraryValues().modelDownloadUrl,
+      );
+      _model.setAction = await actions.setModelAction(
+        valueOrDefault<String>(
+          FFLibraryValues().modelFileName,
+          'gemma-2b-it.task',
+        ),
+      );
+      _model.initAction = await actions.initializeModelAction(
+        null,
+        'gpu',
+        FlutterGemmaLibrary.instance.plugin.initializedModel?.maxTokens,
+        0.8,
+        1,
+        1,
+      );
+    });
 
     WidgetsBinding.instance.addPostFrameCallback((_) => safeSetState(() {}));
   }
@@ -63,8 +86,6 @@ class _DemoWidgetState extends State<DemoWidget> {
             ),
             onPressed: () async {
               await actions.closeModel();
-
-              context.goNamed(SetupWidget.routeName);
             },
           ),
           actions: [],
@@ -108,7 +129,7 @@ class _DemoWidgetState extends State<DemoWidget> {
                 width: double.infinity,
                 height: double.infinity,
                 placeholder: 'Enter text here...',
-                onMessageSent: (message) async {},
+                onMessageSent: (message, response) async {},
               ),
             ),
           ),

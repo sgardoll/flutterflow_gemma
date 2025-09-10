@@ -12,7 +12,7 @@ class FFLibraryValues {
     _instance = FFLibraryValues._internal();
   }
 
-  String? Gemma3n2BDownload = '';
-  String? Gemma3n4BDownload = '';
-  String? Gemma2BDownload = '';
+  late String modelDownloadUrl = '';
+  String? huggingFaceToken = '';
+  late String modelFileName = '';
 }
