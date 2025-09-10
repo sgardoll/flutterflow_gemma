@@ -1,8 +1,8 @@
-name: gemma
+name: gemma_3n_library
 description: >
-  A complete FlutterFlow integration of Google's Gemma 3 AI models, providing 
-  offline/local on-device AI capabilities with authenticated model downloads 
-  and real-time chat functionality. 
+  A complete FlutterFlow integration of Google's Gemma 3n on-device AI 
+  models, providing offline/local on-device AI capabilities with 
+  authenticated model downloads and real-time chat functionality. 
 
 # The following line prevents the package from being accidentally published to
 # pub.dev using `pub publish`. This is preferred for private packages.
@@ -39,7 +39,8 @@ dependencies:
   csv: 6.0.0
   flutter_animate: 4.5.0
   flutter_cache_manager: 3.4.1
-  flutter_gemma: ^0.9.0
+  flutter_gemma: ^0.10.5
+  flutter_md: ^0.0.7
   flutter_native_splash: 2.4.1
   flutter_secure_storage: ^10.0.0-beta.4
   flutter_secure_storage_linux: ^2.0.1
@@ -55,7 +56,6 @@ dependencies:
   image_picker: ^1.1.2
   intl: 0.20.2
   json_path: 0.7.2
-  markdown_widget: ^2.3.2+8
   page_transition: 2.1.0
   path: ^1.9.0
   path_provider: 2.1.4

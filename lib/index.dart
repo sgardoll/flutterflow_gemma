@@ -1,3 +1,4 @@
 // Export pages
-export '/pages/home_page/home_page_widget.dart' show HomePageWidget;
-export '/pages/setup/setup_widget.dart' show SetupWidget;
+export '/gemma/demo/demo_widget.dart' show DemoWidget;
+export '/gemma/setup/setup_widget.dart' show SetupWidget;
+export '/gemma/license/license_widget.dart' show LicenseWidget;

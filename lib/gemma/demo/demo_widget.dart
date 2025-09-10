@@ -6,29 +6,30 @@ import '/custom_code/widgets/index.dart' as custom_widgets;
 import '/index.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'home_page_model.dart';
-export 'home_page_model.dart';
+import 'demo_model.dart';
+export 'demo_model.dart';
 
-/// make this more stylish, icon driven and more compact in height
-class HomePageWidget extends StatefulWidget {
-  const HomePageWidget({super.key});
+class DemoWidget extends StatefulWidget {
+  const DemoWidget({super.key});
 
-  static String routeName = 'HomePage';
-  static String routePath = '/homePage';
+  static String routeName = 'Demo';
+  static String routePath = '/demo';
 
   @override
-  State<HomePageWidget> createState() => _HomePageWidgetState();
+  State<DemoWidget> createState() => _DemoWidgetState();
 }
 
-class _HomePageWidgetState extends State<HomePageWidget> {
-  late HomePageModel _model;
+class _DemoWidgetState extends State<DemoWidget> {
+  late DemoModel _model;
 
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
     super.initState();
-    _model = createModel(context, () => HomePageModel());
+    _model = createModel(context, () => DemoModel());
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => safeSetState(() {}));
   }
 
   @override
@@ -69,7 +70,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
           actions: [],
           flexibleSpace: FlexibleSpaceBar(
             title: Text(
-              'Gemma 3n On-Device Chat',
+              'Gemma 3n On-Device Demo',
               maxLines: 2,
               style: FlutterFlowTheme.of(context).titleLarge.override(
                     font: GoogleFonts.interTight(

@@ -1,4 +1,4 @@
-# Gemma
+# Gemma 3n Library
 
 A new Flutter project.
 

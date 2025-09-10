@@ -11,6 +11,7 @@ import '../GemmaManager.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:typed_data';
 import 'package:flutter/services.dart'; // For Clipboard
+import 'markdown_widget.dart';
 
 class GemmaChatWidget extends StatefulWidget {
   const GemmaChatWidget({
@@ -438,10 +439,11 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
                         color: Colors.white,
                       ),
                     )
-                  : MarkdownDisplayWidget(
-                      markdownData: message.text,
-                      selectable: true,
-                      shrinkWrap: true,
+                  : MarkdownWidget(
+                      data: message.text,
+                      mdcolor: FlutterFlowTheme.of(context).primaryText,
+                      fontFamily: 'Readex Pro',
+                      fontSize: 14.0,
                     ),
           ],
         ),

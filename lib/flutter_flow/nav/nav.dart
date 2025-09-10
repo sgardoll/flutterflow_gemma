@@ -70,14 +70,19 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
               : SetupWidget(),
         ),
         FFRoute(
-          name: HomePageWidget.routeName,
-          path: HomePageWidget.routePath,
-          builder: (context, params) => HomePageWidget(),
+          name: DemoWidget.routeName,
+          path: DemoWidget.routePath,
+          builder: (context, params) => DemoWidget(),
         ),
         FFRoute(
           name: SetupWidget.routeName,
           path: SetupWidget.routePath,
           builder: (context, params) => SetupWidget(),
+        ),
+        FFRoute(
+          name: LicenseWidget.routeName,
+          path: LicenseWidget.routePath,
+          builder: (context, params) => LicenseWidget(),
         )
       ].map((r) => r.toRoute(appStateNotifier)).toList(),
     );

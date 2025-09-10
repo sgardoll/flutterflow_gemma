@@ -1,4 +1,4 @@
-package com.mycompany.gemma
+package com.mycompany.gemma3nlibrary
 
 import io.flutter.embedding.android.FlutterActivity
 

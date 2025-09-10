@@ -1,6 +1,6 @@
-import '/components/hf_token_widget.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
+import '/gemma/hf_token/hf_token_widget.dart';
 import '/custom_code/actions/index.dart' as actions;
 import '/custom_code/widgets/index.dart' as custom_widgets;
 import '/index.dart';
@@ -59,6 +59,8 @@ class _SetupWidgetState extends State<SetupWidget> {
         FFAppState().update(() {});
       }
     });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => safeSetState(() {}));
   }
 
   @override
@@ -135,7 +137,7 @@ class _SetupWidgetState extends State<SetupWidget> {
                           hfToken: FFAppState().hfToken,
                           modelId: _model.modelChoice,
                           onComplete: () async {
-                            context.goNamed(HomePageWidget.routeName);
+                            context.goNamed(DemoWidget.routeName);
                           },
                         ),
                       ),
