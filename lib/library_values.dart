@@ -12,7 +12,7 @@ class FFLibraryValues {
     _instance = FFLibraryValues._internal();
   }
 
-  late String modelDownloadUrl = '';
+  String modelDownloadUrl =
+      'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task';
   String? huggingFaceToken = '';
-  late String modelFileName = '';
 }

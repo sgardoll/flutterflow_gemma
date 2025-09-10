@@ -37,10 +37,7 @@ class _DemoWidgetState extends State<DemoWidget> {
         FFLibraryValues().modelDownloadUrl,
       );
       _model.setAction = await actions.setModelAction(
-        valueOrDefault<String>(
-          FFLibraryValues().modelFileName,
-          'gemma-2b-it.task',
-        ),
+        _model.downloadAction!,
       );
       _model.initAction = await actions.initializeModelAction(
         null,
