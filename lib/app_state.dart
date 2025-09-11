@@ -65,6 +65,12 @@ class FFAppState extends ChangeNotifier {
   set downloadPercentage(double value) {
     _downloadPercentage = value;
   }
+
+  String _fileName = '';
+  String get fileName => _fileName;
+  set fileName(String value) {
+    _fileName = value;
+  }
 }
 
 void _safeInit(Function() initializeField) {

@@ -56,7 +56,7 @@ class ModelFileManager {
     }
   }
 
-  /// Download model for native platforms using plugin's built-in method
+  /// Download model for native platforms (iOS/Android)
   Future<String?> _downloadModelNative(
     String downloadUrl,
     String fileName,
@@ -64,7 +64,7 @@ class ModelFileManager {
     DownloadProgressCallback? onProgress,
   ) async {
     try {
-      // Get the documents directory for storage  
+      // Get the documents directory for storage
       final directory = await getApplicationDocumentsDirectory();
       final filePath = path.join(directory.path, fileName);
       final file = File(filePath);
@@ -77,30 +77,50 @@ class ModelFileManager {
         return filePath;
       }
 
-      print('ModelFileManager: Using plugin download method');
+      // Prepare headers
+      final headers = <String, String>{
+        'User-Agent': 'FlutterGemma/1.0',
+      };
 
-      // Use the plugin's built-in download method with progress stream
-      final stream = FlutterGemmaPlugin.instance.modelManager
-          .downloadModelFromNetworkWithProgress(downloadUrl, token: huggingFaceToken ?? '');
+      // Add authorization if HuggingFace token provided
+      if (huggingFaceToken != null && huggingFaceToken.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $huggingFaceToken';
+      }
 
-      // Listen to progress updates
-      await for (final progress in stream) {
-        if (onProgress != null) {
-          // Plugin returns progress as 0-100 percentage
-          final totalBytes = 1000000; // Placeholder - we don't have total bytes
-          final downloadedBytes = (totalBytes * progress / 100).round();
-          onProgress(downloadedBytes, totalBytes, progress.toDouble());
+      // Start download
+      final request = http.Request('GET', Uri.parse(downloadUrl));
+      request.headers.addAll(headers);
+
+      final streamedResponse = await request.send();
+
+      if (streamedResponse.statusCode != 200) {
+        final error =
+            'Download failed with status ${streamedResponse.statusCode}';
+        print('ModelFileManager: $error');
+        throw Exception(error);
+      }
+
+      final totalBytes = streamedResponse.contentLength ?? 0;
+      int downloadedBytes = 0;
+
+      // Create file and download with progress tracking
+      final sink = file.openWrite();
+
+      await for (final chunk in streamedResponse.stream) {
+        sink.add(chunk);
+        downloadedBytes += chunk.length;
+
+        if (totalBytes > 0 && onProgress != null) {
+          final percentage = (downloadedBytes / totalBytes) * 100;
+          onProgress(downloadedBytes, totalBytes, percentage);
         }
       }
 
-      // Verify the file was downloaded
-      if (await file.exists()) {
-        final fileSize = await file.length();
-        print('ModelFileManager: Download completed - $fileSize bytes');
-        return filePath;
-      } else {
-        throw Exception('Download completed but file not found');
-      }
+      await sink.close();
+
+      print(
+          'ModelFileManager: Download completed - ${await file.length()} bytes');
+      return filePath;
     } catch (e) {
       print('ModelFileManager: Download error - $e');
       return null;
@@ -450,7 +470,6 @@ class ModelFileManager {
       return 'model_${DateTime.now().millisecondsSinceEpoch}.task';
     }
   }
-
 
   /// Check if a model supports vision based on filename
   bool _checkVisionSupport(String fileName) {

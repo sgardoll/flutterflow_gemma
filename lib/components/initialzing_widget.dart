@@ -9,6 +9,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+
 import 'initialzing_model.dart';
 export 'initialzing_model.dart';
 
@@ -73,25 +74,25 @@ class _InitialzingWidgetState extends State<InitialzingWidget>
         color: Colors.transparent,
       ),
       child: Padding(
-        padding: EdgeInsetsDirectional.fromSTEB(16.0, 16.0, 16.0, 16.0),
+        padding: EdgeInsetsDirectional.fromSTEB(16, 16, 16, 16),
         child: Container(
           decoration: BoxDecoration(
             color: FlutterFlowTheme.of(context).secondaryBackground,
             boxShadow: [
               BoxShadow(
-                blurRadius: 3.0,
+                blurRadius: 3,
                 color: Color(0x33000000),
                 offset: Offset(
-                  0.0,
-                  1.0,
+                  0,
+                  1,
                 ),
-                spreadRadius: 0.0,
+                spreadRadius: 0,
               )
             ],
-            borderRadius: BorderRadius.circular(12.0),
+            borderRadius: BorderRadius.circular(12),
           ),
           child: Padding(
-            padding: EdgeInsets.all(16.0),
+            padding: EdgeInsets.all(16),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -131,15 +132,12 @@ class _InitialzingWidgetState extends State<InitialzingWidget>
                       valueOrDefault<String>(
                         '${valueOrDefault<String>(
                           formatNumber(
-                            valueOrDefault<double>(
-                                  FFAppState().downloadPercentage,
-                                  1.0,
-                                ) /
-                                100,
-                            formatType: FormatType.decimal,
-                            decimalType: DecimalType.automatic,
+                            FFAppState().downloadPercentage,
+                            formatType: FormatType.custom,
+                            format: '###.0',
+                            locale: 'en_US',
                           ),
-                          '0',
+                          '1',
                         )}%',
                         '0%',
                       ),
@@ -166,8 +164,8 @@ class _InitialzingWidgetState extends State<InitialzingWidget>
                 ),
                 Flexible(
                   child: Container(
-                    width: MediaQuery.sizeOf(context).width * 1.0,
-                    height: 12.0,
+                    width: MediaQuery.sizeOf(context).width,
+                    height: 12,
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
@@ -183,12 +181,12 @@ class _InitialzingWidgetState extends State<InitialzingWidget>
                                 100,
                             0.0,
                           ),
-                          1.0
+                          1
                         ],
-                        begin: AlignmentDirectional(1.0, 0.0),
-                        end: AlignmentDirectional(-1.0, 0),
+                        begin: AlignmentDirectional(1, 0),
+                        end: AlignmentDirectional(-1, 0),
                       ),
-                      borderRadius: BorderRadius.circular(12.0),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ).animateOnPageLoad(
                       animationsMap['containerOnPageLoadAnimation']!),
@@ -212,7 +210,7 @@ class _InitialzingWidgetState extends State<InitialzingWidget>
                             FlutterFlowTheme.of(context).labelMedium.fontStyle,
                       ),
                 ),
-              ].divide(SizedBox(height: 12.0)),
+              ].divide(SizedBox(height: 12)),
             ),
           ),
         ),

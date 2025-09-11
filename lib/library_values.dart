@@ -17,6 +17,7 @@ class FFLibraryValues {
     _instance = FFLibraryValues._internal();
   }
 
-  String modelDownloadUrl = 'http://localhost:8000/gemma-3n-E2B-it-int4.task';
-  String? huggingFaceToken = '';
+  String modelDownloadUrl =
+      'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task';
+  String? huggingFaceToken = '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';
 }

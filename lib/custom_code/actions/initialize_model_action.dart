@@ -7,8 +7,6 @@ import 'package:flutter/material.dart';
 // Begin custom action code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-import 'index.dart'; // Imports other custom actions
-
 import '../flutter_gemma_library.dart';
 import '/app_state.dart';
 import 'package:flutter/services.dart';
@@ -58,8 +56,10 @@ Future<bool> initializeModelAction(
   int topK,
 ) async {
   try {
-    print('initializeModelAction: Starting model initialization (following official example pattern)');
-    print('initializeModelAction: Parameters - backend: $backend, maxTokens: $maxTokens, temp: $temperature');
+    print(
+        'initializeModelAction: Starting model initialization (following official example pattern)');
+    print(
+        'initializeModelAction: Parameters - backend: $backend, maxTokens: $maxTokens, temp: $temperature');
 
     // Get app state instance to update initialization status
     final appState = FFAppState();
@@ -73,24 +73,29 @@ Future<bool> initializeModelAction(
     final gemmaLibrary = FlutterGemmaLibrary.instance;
     String finalModelType;
     String? currentModelFile;
-    
+
     if (modelType != null && modelType.isNotEmpty) {
       finalModelType = modelType;
-      print('initializeModelAction: Using provided model type: $finalModelType');
+      print(
+          'initializeModelAction: Using provided model type: $finalModelType');
     } else {
       // Auto-detect from current model file
       try {
-        currentModelFile = await gemmaLibrary.modelManager.getCurrentModelFileName();
+        currentModelFile =
+            await gemmaLibrary.modelManager.getCurrentModelFileName();
         if (currentModelFile != null && currentModelFile.isNotEmpty) {
           finalModelType = ModelUtils.getModelTypeFromPath(currentModelFile);
-          print('initializeModelAction: Auto-detected model type: $finalModelType from current file: $currentModelFile');
+          print(
+              'initializeModelAction: Auto-detected model type: $finalModelType from current file: $currentModelFile');
         } else {
           finalModelType = 'gemma-3n-e2b-it';
-          print('initializeModelAction: No current model file, using fallback: $finalModelType');
+          print(
+              'initializeModelAction: No current model file, using fallback: $finalModelType');
         }
       } catch (e) {
         finalModelType = 'gemma-3n-e2b-it';
-        print('initializeModelAction: Error detecting model type: $e, using fallback: $finalModelType');
+        print(
+            'initializeModelAction: Error detecting model type: $e, using fallback: $finalModelType');
       }
     }
 
@@ -98,7 +103,7 @@ Future<bool> initializeModelAction(
     final supportsVision = ModelUtils.isMultimodalModel(finalModelType);
     final modelTypeEnum = ModelUtils.getModelType(finalModelType);
     final backendEnum = ModelUtils.getBackend(backend);
-    
+
     print('initializeModelAction: Model type: $finalModelType');
     print('initializeModelAction: Supports vision: $supportsVision');
     print('initializeModelAction: Backend: $backend');
@@ -132,12 +137,14 @@ Future<bool> initializeModelAction(
       );
       print('initializeModelAction: Model created successfully');
     } on PlatformException catch (platformError) {
-      print('initializeModelAction: Platform error during model creation: $platformError');
+      print(
+          'initializeModelAction: Platform error during model creation: $platformError');
       appState.isInitializing = false;
       appState.downloadProgress = 'Model creation failed';
       return false;
     } catch (generalError) {
-      print('initializeModelAction: General error during model creation: $generalError');
+      print(
+          'initializeModelAction: General error during model creation: $generalError');
       appState.isInitializing = false;
       appState.downloadProgress = 'Model creation failed';
       return false;
@@ -163,12 +170,14 @@ Future<bool> initializeModelAction(
       );
       print('initializeModelAction: Chat session created successfully');
     } on PlatformException catch (platformError) {
-      print('initializeModelAction: Platform error during chat creation: $platformError');
+      print(
+          'initializeModelAction: Platform error during chat creation: $platformError');
       appState.isInitializing = false;
       appState.downloadProgress = 'Chat creation failed';
       return false;
     } catch (generalError) {
-      print('initializeModelAction: General error during chat creation: $generalError');
+      print(
+          'initializeModelAction: General error during chat creation: $generalError');
       appState.isInitializing = false;
       appState.downloadProgress = 'Chat creation failed';
       return false;
@@ -204,15 +213,16 @@ Future<void> _storeInitializedResources(
 ) async {
   // Update the FlutterGemmaLibrary instance with the new resources
   final library = FlutterGemmaLibrary.instance;
-  
+
   // We need to update the library's internal state
-  // This is a simplified approach - in a production app you might want to 
+  // This is a simplified approach - in a production app you might want to
   // refactor FlutterGemmaLibrary to accept external model/chat instances
   try {
     // Store model type information
     print('_storeInitializedResources: Updating library state');
-    print('_storeInitializedResources: Model type: $modelType, Backend: $backend');
-    
+    print(
+        '_storeInitializedResources: Model type: $modelType, Backend: $backend');
+
     // The library's state will be updated implicitly when the model is used
     // For now, just log that resources are ready
     print('_storeInitializedResources: Resources stored successfully');

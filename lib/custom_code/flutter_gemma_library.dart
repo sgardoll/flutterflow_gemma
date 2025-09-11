@@ -118,7 +118,8 @@ class FlutterGemmaLibrary {
           maxNumImages: maxNumImages,
         );
       } catch (modelCreationError) {
-        print('FlutterGemmaLibrary: Model creation failed: $modelCreationError');
+        print(
+            'FlutterGemmaLibrary: Model creation failed: $modelCreationError');
         // Rethrow to be handled by the outer catch block
         throw modelCreationError;
       }
