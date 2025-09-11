@@ -115,7 +115,7 @@ class _InitialzingWidgetState extends State<InitialzingWidget>
                         } else if (FFAppState().isInitializing) {
                           return 'Initializing...';
                         } else {
-                          return 'Error...';
+                          return FFAppState().downloadProgress;
                         }
                       }(),
                       style: FlutterFlowTheme.of(context).bodyMedium.override(
@@ -145,7 +145,7 @@ class _InitialzingWidgetState extends State<InitialzingWidget>
                             format: '###.0',
                             locale: 'en_US',
                           ),
-                          '1',
+                          '0',
                         )}%',
                         '0%',
                       ),

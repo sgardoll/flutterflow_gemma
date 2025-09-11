@@ -143,7 +143,7 @@ class _DemoWidgetState extends State<DemoWidget> {
                   ),
                 ),
               ),
-              if (FFAppState().isDownloading || !FFAppState().isInitializing)
+              if (FFAppState().downloadProgress != 'Model ready for chat!')
                 wrapWithModel(
                   model: _model.initialzingModel,
                   updateCallback: () => safeSetState(() {}),
