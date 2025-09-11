@@ -2,6 +2,7 @@ import '/flutter_flow/flutter_flow_animations.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -33,6 +34,18 @@ class _InitialzingWidgetState extends State<InitialzingWidget>
   void initState() {
     super.initState();
     _model = createModel(context, () => InitialzingModel());
+
+    // On component load action.
+    SchedulerBinding.instance.addPostFrameCallback((_) async {
+      while (true) {
+        await Future.delayed(
+          Duration(
+            milliseconds: 2000,
+          ),
+        );
+        safeSetState(() {});
+      }
+    });
 
     animationsMap.addAll({
       'containerOnPageLoadAnimation': AnimationInfo(

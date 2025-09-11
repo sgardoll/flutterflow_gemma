@@ -140,15 +140,11 @@ class _DemoWidgetState extends State<DemoWidget> {
                   ),
                 ),
               ),
-              if (!valueOrDefault<bool>(
-                _model.initAction,
-                true,
-              ))
-                wrapWithModel(
-                  model: _model.initialzingModel,
-                  updateCallback: () => safeSetState(() {}),
-                  child: InitialzingWidget(),
-                ),
+              wrapWithModel(
+                model: _model.initialzingModel,
+                updateCallback: () => safeSetState(() {}),
+                child: InitialzingWidget(),
+              ),
             ],
           ),
         ),
