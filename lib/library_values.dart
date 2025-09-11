@@ -18,5 +18,5 @@ class FFLibraryValues {
   }
 
   String modelDownloadUrl = 'http://localhost:8000/gemma-3n-E2B-it-int4.task';
-  String? huggingFaceToken = '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';
+  String? huggingFaceToken = '';
 }
