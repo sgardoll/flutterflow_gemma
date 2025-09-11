@@ -182,11 +182,7 @@ class _InitialzingWidgetState extends State<InitialzingWidget>
                         ],
                         stops: [
                           valueOrDefault<double>(
-                            valueOrDefault<double>(
-                                  FFAppState().downloadPercentage,
-                                  1.0,
-                                ) /
-                                100,
+                            FFAppState().downloadPercentage,
                             0.0,
                           ),
                           1.0

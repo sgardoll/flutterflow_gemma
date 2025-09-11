@@ -7,10 +7,6 @@ import 'package:flutter/material.dart';
 // Begin custom action code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-import 'index.dart'; // Imports other custom actions
-
-import 'index.dart'; // Imports other custom actions
-
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
@@ -91,9 +87,18 @@ Future<bool> initializeGemmaModelAction(
       print(
           'initializeGemmaModelAction: Using provided model type: $finalModelType');
     } else {
+      print(
+          'initializeGemmaModelAction: Detecting model type from URL: $modelUrl');
       finalModelType = ModelUtils.getModelTypeFromPath(modelUrl);
       print(
           'initializeGemmaModelAction: Auto-detected model type: $finalModelType');
+
+      // Debug: Let's also try detecting from the actual filename
+      final fileName = Uri.parse(modelUrl).pathSegments.last;
+      print('initializeGemmaModelAction: Raw filename: $fileName');
+      final debugModelType = ModelUtils.getModelTypeFromPath(fileName);
+      print(
+          'initializeGemmaModelAction: Model type from filename: $debugModelType');
     }
 
     // Check if model is already loaded AND is from the same URL
@@ -179,76 +184,142 @@ Future<bool> initializeGemmaModelAction(
     }
 
     // Determine model parameters
-    final supportsVision = ModelUtils.isMultimodalModel(finalModelType);
     final modelTypeEnum = ModelUtils.getModelType(finalModelType);
     final backendEnum = ModelUtils.getBackend(backend);
+    // Initially detect potential vision support from model type, but don't force it
+    final potentiallySupportsVision =
+        ModelUtils.isMultimodalModel(finalModelType);
 
-    print('initializeGemmaModelAction: Model supports vision: $supportsVision');
     print('initializeGemmaModelAction: Using model type: $modelTypeEnum');
     print('initializeGemmaModelAction: Using backend: $backendEnum');
+    print(
+        'initializeGemmaModelAction: Potentially supports vision: $potentiallySupportsVision');
 
-    // Create model instance (let plugin auto-detect maxTokens from model)
+    // Create model instance with fallback logic
     appState.downloadProgress = 'Creating model instance...';
     late InferenceModel model;
+
+    // Try GPU first, then CPU if it fails
+    bool gpuFailed = false;
     try {
+      print(
+          'initializeGemmaModelAction: Attempting model creation with GPU backend');
       model = await gemma.createModel(
         modelType: modelTypeEnum,
         preferredBackend: backendEnum,
-        // Note: Not setting maxTokens - let plugin get this from model itself
-        supportImage: supportsVision,
-        maxNumImages: supportsVision ? 1 : null,
+        maxTokens: 4096, // Higher for multimodal capability
       );
-      print('initializeGemmaModelAction: Model instance created successfully');
-    } on PlatformException catch (platformError) {
       print(
-          'initializeGemmaModelAction: Platform error during model creation: $platformError');
-      appState.isInitializing = false;
-      appState.downloadProgress = 'Model creation failed: Platform error';
-      return false;
-    } catch (generalError) {
-      print(
-          'initializeGemmaModelAction: General error during model creation: $generalError');
-      appState.isInitializing = false;
-      appState.downloadProgress =
-          'Model creation failed: ${generalError.toString()}';
-      return false;
+          'initializeGemmaModelAction: Model instance created successfully with GPU');
+    } catch (gpuError) {
+      print('initializeGemmaModelAction: GPU model creation failed: $gpuError');
+      gpuFailed = true;
+
+      // Try CPU fallback
+      try {
+        print(
+            'initializeGemmaModelAction: Attempting model creation with CPU backend');
+        model = await gemma.createModel(
+          modelType: modelTypeEnum,
+          preferredBackend: ModelUtils.getBackend('cpu'),
+          maxTokens: 4096,
+        );
+        print(
+            'initializeGemmaModelAction: Model instance created successfully with CPU fallback');
+      } catch (cpuError) {
+        print(
+            'initializeGemmaModelAction: CPU model creation also failed: $cpuError');
+        appState.isInitializing = false;
+        appState.downloadProgress =
+            'Model creation failed on both GPU and CPU: ${cpuError.toString()}';
+        return false;
+      }
     }
 
-    // Create chat session
+    // Create chat session with fallback logic for vision support
     appState.downloadProgress = 'Creating chat session...';
     late InferenceChat chat;
-    try {
-      chat = await model.createChat(
-        temperature: temperature,
-        randomSeed: 1,
-        topK: 1,
-        topP: 0.95,
-        tokenBuffer: 256,
-        supportImage: supportsVision,
-        supportsFunctionCalls: false,
-        tools: [],
-        isThinking: false,
-        modelType: modelTypeEnum,
-      );
-      print('initializeGemmaModelAction: Chat session created successfully');
-    } on PlatformException catch (platformError) {
-      print(
-          'initializeGemmaModelAction: Platform error during chat creation: $platformError');
-      appState.isInitializing = false;
-      appState.downloadProgress = 'Chat creation failed: Platform error';
-      return false;
-    } catch (generalError) {
-      print(
-          'initializeGemmaModelAction: General error during chat creation: $generalError');
-      appState.isInitializing = false;
-      appState.downloadProgress =
-          'Chat creation failed: ${generalError.toString()}';
-      return false;
+    bool actualSupportsVision = false;
+
+    // Try to create chat with vision support if potentially supported
+    if (potentiallySupportsVision) {
+      try {
+        print(
+            'initializeGemmaModelAction: Attempting to create chat with vision support');
+        chat = await model.createChat(
+          temperature: temperature,
+          randomSeed: 1,
+          topK: 1,
+          topP: 0.95,
+          tokenBuffer: 256,
+          supportImage: true,
+          supportsFunctionCalls: false,
+          tools: [],
+          isThinking: false,
+          modelType: modelTypeEnum,
+        );
+        actualSupportsVision = true;
+        print(
+            'initializeGemmaModelAction: Chat session created successfully with vision support');
+      } catch (visionError) {
+        print(
+            'initializeGemmaModelAction: Vision chat creation failed, trying text-only: $visionError');
+        // Fall back to text-only chat
+        try {
+          chat = await model.createChat(
+            temperature: temperature,
+            randomSeed: 1,
+            topK: 1,
+            topP: 0.95,
+            tokenBuffer: 256,
+            supportImage: false,
+            supportsFunctionCalls: false,
+            tools: [],
+            isThinking: false,
+            modelType: modelTypeEnum,
+          );
+          actualSupportsVision = false;
+          print(
+              'initializeGemmaModelAction: Chat session created successfully (text-only fallback)');
+        } catch (fallbackError) {
+          print(
+              'initializeGemmaModelAction: Text-only chat creation also failed: $fallbackError');
+          appState.isInitializing = false;
+          appState.downloadProgress =
+              'Chat creation failed: ${fallbackError.toString()}';
+          return false;
+        }
+      }
+    } else {
+      // Create text-only chat directly for non-vision models
+      try {
+        chat = await model.createChat(
+          temperature: temperature,
+          randomSeed: 1,
+          topK: 1,
+          topP: 0.95,
+          tokenBuffer: 256,
+          supportImage: false,
+          supportsFunctionCalls: false,
+          tools: [],
+          isThinking: false,
+          modelType: modelTypeEnum,
+        );
+        actualSupportsVision = false;
+        print(
+            'initializeGemmaModelAction: Chat session created successfully (text-only)');
+      } catch (chatError) {
+        print('initializeGemmaModelAction: Chat creation failed: $chatError');
+        appState.isInitializing = false;
+        appState.downloadProgress =
+            'Chat creation failed: ${chatError.toString()}';
+        return false;
+      }
     }
 
     // Store initialization status for other actions to use
     await _storeModelResources(
-        model, chat, finalModelType, backend, supportsVision);
+        model, chat, finalModelType, backend, actualSupportsVision);
 
     // Update app state - successful completion
     appState.isInitializing = false;
@@ -256,7 +327,8 @@ Future<bool> initializeGemmaModelAction(
 
     print('initializeGemmaModelAction: Complete initialization successful');
     print('initializeGemmaModelAction: Model type: $finalModelType');
-    print('initializeGemmaModelAction: Supports vision: $supportsVision');
+    print(
+        'initializeGemmaModelAction: Actual vision support: $actualSupportsVision');
     print('initializeGemmaModelAction: Backend: $backend');
 
     return true;
@@ -291,7 +363,6 @@ Future<void> _storeModelResources(
     print('_storeModelResources: Supports vision: $supportsVision');
 
     // Update the FlutterGemmaLibrary instance with current model info
-    final library = FlutterGemmaLibrary.instance;
     // Note: In a production app, you might want to expose methods to store these
     // For now, other actions can create their own instances using the loaded model
 

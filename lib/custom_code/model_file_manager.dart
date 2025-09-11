@@ -74,6 +74,20 @@ class ModelFileManager {
         final fileSize = await file.length();
         print(
             'ModelFileManager: File already exists (${(fileSize / (1024 * 1024)).toStringAsFixed(1)} MB)');
+
+        // Ensure the model path is properly set for the flutter_gemma plugin
+        // when using an existing file
+        print(
+            'ModelFileManager: Setting model path for existing file: $filePath');
+        try {
+          await setModelPath(filePath);
+          print(
+              'ModelFileManager: Model path set successfully for existing file');
+        } catch (e) {
+          print(
+              'ModelFileManager: Warning - failed to set model path for existing file: $e');
+        }
+
         return filePath;
       }
 

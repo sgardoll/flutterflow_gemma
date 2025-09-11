@@ -7,6 +7,7 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'demo_model.dart';
 export 'demo_model.dart';
 
@@ -80,6 +81,8 @@ class _DemoWidgetState extends State<DemoWidget> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<FFAppState>();
+
     return GestureDetector(
       onTap: () {
         FocusScope.of(context).unfocus();
@@ -130,21 +133,22 @@ class _DemoWidgetState extends State<DemoWidget> {
                   color: FlutterFlowTheme.of(context).primaryBackground,
                 ),
                 child: Container(
-                  width: double.infinity,
-                  height: double.infinity,
+                  width: MediaQuery.sizeOf(context).width * 1.0,
+                  height: MediaQuery.sizeOf(context).height * 1.0,
                   child: custom_widgets.GemmaChatWidget(
-                    width: double.infinity,
-                    height: double.infinity,
-                    placeholder: 'Enter text here...',
+                    width: MediaQuery.sizeOf(context).width * 1.0,
+                    height: MediaQuery.sizeOf(context).height * 1.0,
+                    showImageButton: false,
                     onMessageSent: (message, response) async {},
                   ),
                 ),
               ),
-              wrapWithModel(
-                model: _model.initialzingModel,
-                updateCallback: () => safeSetState(() {}),
-                child: InitialzingWidget(),
-              ),
+              if (FFAppState().isDownloading || !FFAppState().isInitializing)
+                wrapWithModel(
+                  model: _model.initialzingModel,
+                  updateCallback: () => safeSetState(() {}),
+                  child: InitialzingWidget(),
+                ),
             ],
           ),
         ),
