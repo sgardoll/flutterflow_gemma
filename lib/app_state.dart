@@ -71,6 +71,18 @@ class FFAppState extends ChangeNotifier {
   set isInitializing(bool value) {
     _isInitializing = value;
   }
+
+  bool _modelSupportsVision = false;
+  bool get modelSupportsVision => _modelSupportsVision;
+  set modelSupportsVision(bool value) {
+    _modelSupportsVision = value;
+  }
+
+  bool _isModelInitialized = false;
+  bool get isModelInitialized => _isModelInitialized;
+  set isModelInitialized(bool value) {
+    _isModelInitialized = value;
+  }
 }
 
 void _safeInit(Function() initializeField) {

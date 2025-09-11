@@ -8,12 +8,17 @@ import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
+import 'index.dart'; // Imports other custom widgets
+
+import 'index.dart'; // Imports other custom widgets
+
 import '../actions/send_message_action.dart';
 import '../flutter_gemma_library.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
+import 'dart:async';
 
 /// Simplified Gemma chat widget for FlutterFlow integration This widget
 /// provides a clean chat interface for interacting with Gemma models.
@@ -69,6 +74,8 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
       if (mounted) {
         Provider.of<FFAppState>(context, listen: false)
             .addListener(_onAppStateChanged);
+
+        // FFAppState is now the single source of truth - no need for library monitoring
       }
     });
   }
@@ -125,7 +132,6 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
 
   /// Check if the model is ready and show appropriate status message
   void _checkModelStatus() {
-    final gemma = FlutterGemmaLibrary.instance;
     final appState = Provider.of<FFAppState>(context, listen: false);
 
     // Get download status from app state
@@ -151,21 +157,11 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
       return;
     }
 
-    if (!gemma.isInitialized) {
+    if (!appState.isModelInitialized) {
       setState(() {
         _messages.add(ChatMessage(
           text:
               'Please initialize the model first using the initializeModelAction.',
-          isUser: false,
-          isSystemMessage: true,
-        ));
-      });
-    } else if (!gemma.hasSession && !kIsWeb) {
-      // Only show session error on native platforms
-      setState(() {
-        _messages.add(ChatMessage(
-          text:
-              'Model initialized but no session available. This should not happen - please check your setup.',
           isUser: false,
           isSystemMessage: true,
         ));
@@ -175,7 +171,7 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
       setState(() {
         _messages.add(ChatMessage(
           text:
-              'Hello! I\'m ready to chat. ${gemma.supportsVision ? "You can send me text and images." : "Send me a message to get started."}',
+              'Hello! I\'m ready to chat. ${appState.modelSupportsVision ? "You can send me text and images." : "Send me a message to get started."}',
           isUser: false,
           isSystemMessage: true,
         ));
@@ -189,8 +185,9 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
       return widget.showImageButton!;
     }
 
-    // Auto-detect based on model capabilities
-    return FlutterGemmaLibrary.instance.supportsVision;
+    // Auto-detect based on FFAppState model capabilities
+    final appState = Provider.of<FFAppState>(context, listen: false);
+    return appState.modelSupportsVision;
   }
 
   /// Select image from gallery or camera

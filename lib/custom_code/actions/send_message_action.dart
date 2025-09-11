@@ -9,6 +9,8 @@ import 'package:flutter/material.dart';
 
 import 'index.dart'; // Imports other custom actions
 
+import 'index.dart'; // Imports other custom actions
+
 import '../flutter_gemma_library.dart';
 
 /// Send a message to the initialized Gemma model and get a response
@@ -58,9 +60,16 @@ Future<String?> sendMessageAction(
     final gemmaLibrary = FlutterGemmaLibrary.instance;
 
     // Check if model is ready
-    if (!gemmaLibrary.isInitialized || !gemmaLibrary.hasSession) {
+    if (!gemmaLibrary.isInitialized) {
       const error =
-          'Model not initialized or no session available. Please run initializeModelAction first.';
+          'Model not initialized. Please run initializeGemmaModelAction first.';
+      print('sendMessageAction: $error');
+      return 'Error: $error';
+    }
+
+    if (!gemmaLibrary.hasSession) {
+      const error =
+          'No chat session available. Please run initializeGemmaModelAction first.';
       print('sendMessageAction: $error');
       return 'Error: $error';
     }
@@ -75,10 +84,11 @@ Future<String?> sendMessageAction(
       if (!gemmaLibrary.supportsVision) {
         print(
             'sendMessageAction: Warning - Model does not support vision, image will be ignored');
+        imageBytes = null; // Don't send image to text-only models
       }
     }
 
-    // Send message to the model
+    // Send message to the model using the library
     final response = await gemmaLibrary.sendMessage(
       message.trim(),
       imageBytes: imageBytes,

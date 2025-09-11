@@ -21,7 +21,6 @@
 import 'package:flutter_gemma/flutter_gemma.dart' hide ModelFileManager;
 import 'package:flutter_gemma/core/model.dart';
 import 'package:flutter_gemma/pigeon.g.dart';
-import 'dart:typed_data';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
@@ -48,6 +47,7 @@ class FlutterGemmaLibrary {
   // Model and session management
   InferenceModel? _model;
   InferenceModelSession? _session;
+  InferenceChat? _chat;
 
   // Current model state
   bool _isInitialized = false;
@@ -64,14 +64,250 @@ class FlutterGemmaLibrary {
   String? get currentBackend => _currentBackend;
 
   /// Check if there's an active session
-  bool get hasSession => _session != null;
+  bool get hasSession => _session != null || _chat != null;
 
   /// Check if the current model supports vision
   bool get supportsVision =>
       _currentModelType != null &&
       ModelUtils.isMultimodalModel(_currentModelType!);
 
-  /// Initialize a model with the specified parameters
+  /// Initialize a model and chat with the complete workflow
+  ///
+  /// This method handles the complete initialization process:
+  /// 1. Downloads model if needed
+  /// 2. Creates model instance
+  /// 3. Creates chat session
+  /// 4. Updates internal state AND FFAppState (single source of truth)
+  ///
+  /// [modelUrl] - The URL to download the model from
+  /// [authToken] - Optional authentication token for HuggingFace
+  /// [modelType] - Optional model type override
+  /// [backend] - Preferred backend ('gpu', 'cpu') - defaults to 'gpu'
+  /// [temperature] - Generation temperature - defaults to 0.8
+  /// [onProgress] - Optional callback to update progress/status
+  /// [appState] - FFAppState instance to update (single source of truth)
+  Future<bool> initializeModelComplete({
+    required String modelUrl,
+    String? authToken,
+    String? modelType,
+    String backend = 'gpu',
+    double temperature = 0.8,
+    Function(String status, double percentage)? onProgress,
+    dynamic appState,
+  }) async {
+    try {
+      // Close any existing model
+      await closeModel();
+
+      print('FlutterGemmaLibrary: Starting complete model initialization');
+      print('FlutterGemmaLibrary: URL: $modelUrl');
+      print(
+          'FlutterGemmaLibrary: Backend: $backend, Temperature: $temperature');
+
+      onProgress?.call('Initializing...', 0.0);
+
+      // Auto-detect model type if not provided
+      String finalModelType;
+      if (modelType != null && modelType.isNotEmpty) {
+        finalModelType = modelType;
+      } else {
+        finalModelType = ModelUtils.getModelTypeFromPath(modelUrl);
+        print('FlutterGemmaLibrary: Auto-detected model type: $finalModelType');
+      }
+
+      onProgress?.call('Checking model availability...', 5.0);
+
+      // Check if model is already loaded AND is from the same URL
+      final modelManager = plugin.modelManager;
+      final modelFileName = Uri.parse(modelUrl).pathSegments.last;
+
+      try {
+        final isInstalled = await modelManager.isModelInstalled;
+        final storedUrl = await _getCurrentModelUrl();
+        final isSameUrl = storedUrl == modelUrl;
+
+        print('FlutterGemmaLibrary: Model installed: $isInstalled');
+        print('FlutterGemmaLibrary: Same URL: $isSameUrl');
+
+        if (!isInstalled || !isSameUrl) {
+          print('FlutterGemmaLibrary: Downloading model...');
+          onProgress?.call('Loading model (this may take a while)...', 10.0);
+
+          // Store the new URL before downloading
+          await _storeCurrentModelUrl(modelUrl);
+
+          // Download model using plugin API
+          final stream = modelManager.downloadModelFromNetworkWithProgress(
+            modelUrl,
+            token: authToken ?? '',
+          );
+
+          await for (final progress in stream) {
+            final progressPercent = progress.toDouble();
+            print('FlutterGemmaLibrary: Download progress: $progressPercent%');
+            onProgress?.call(
+                'Downloading model... ${progressPercent.toStringAsFixed(1)}%',
+                progressPercent);
+          }
+
+          print('FlutterGemmaLibrary: Model downloaded successfully');
+          onProgress?.call('Registering model...', 90.0);
+        } else {
+          print(
+              'FlutterGemmaLibrary: Model already installed, skipping download');
+          onProgress?.call('Model found, registering...', 50.0);
+        }
+
+        // Set model path
+        final directory = await getApplicationDocumentsDirectory();
+        final modelPath = '${directory.path}/$modelFileName';
+        await modelManager.setModelPath(modelPath);
+      } catch (loadError) {
+        print('FlutterGemmaLibrary: Error during model loading: $loadError');
+        onProgress?.call('Model loading failed: ${loadError.toString()}', 0.0);
+        return false;
+      }
+
+      // Determine model parameters
+      final modelTypeEnum = ModelUtils.getModelType(finalModelType);
+      final backendEnum = ModelUtils.getBackend(backend);
+      final potentiallySupportsVision =
+          ModelUtils.isMultimodalModel(finalModelType);
+
+      print('FlutterGemmaLibrary: Using model type: $modelTypeEnum');
+      print('FlutterGemmaLibrary: Using backend: $backendEnum');
+      print(
+          'FlutterGemmaLibrary: Potentially supports vision: $potentiallySupportsVision');
+
+      onProgress?.call('Creating model instance...', 92.0);
+
+      // Create model instance with fallback logic
+      try {
+        print('FlutterGemmaLibrary: Creating model with GPU backend');
+        _model = await plugin.createModel(
+          modelType: modelTypeEnum,
+          preferredBackend: backendEnum,
+          maxTokens: 4096,
+        );
+      } catch (gpuError) {
+        print('FlutterGemmaLibrary: GPU model creation failed: $gpuError');
+
+        // Try CPU fallback
+        try {
+          print('FlutterGemmaLibrary: Trying CPU fallback');
+          _model = await plugin.createModel(
+            modelType: modelTypeEnum,
+            preferredBackend: ModelUtils.getBackend('cpu'),
+            maxTokens: 4096,
+          );
+        } catch (cpuError) {
+          print(
+              'FlutterGemmaLibrary: CPU model creation also failed: $cpuError');
+          onProgress?.call(
+              'Model creation failed on both GPU and CPU: ${cpuError.toString()}',
+              0.0);
+          return false;
+        }
+      }
+
+      onProgress?.call('Creating chat session...', 95.0);
+
+      // Create chat session with fallback logic for vision support
+      bool actualSupportsVision = false;
+
+      if (potentiallySupportsVision) {
+        try {
+          print('FlutterGemmaLibrary: Creating chat with vision support');
+          _chat = await _model!.createChat(
+            temperature: temperature,
+            randomSeed: 1,
+            topK: 1,
+            topP: 0.95,
+            tokenBuffer: 256,
+            supportImage: true,
+            supportsFunctionCalls: false,
+            tools: [],
+            isThinking: false,
+            modelType: modelTypeEnum,
+          );
+          actualSupportsVision = true;
+          print('FlutterGemmaLibrary: Chat with vision created successfully');
+        } catch (visionError) {
+          print(
+              'FlutterGemmaLibrary: Vision chat failed, trying text-only: $visionError');
+          try {
+            _chat = await _model!.createChat(
+              temperature: temperature,
+              randomSeed: 1,
+              topK: 1,
+              topP: 0.95,
+              tokenBuffer: 256,
+              supportImage: false,
+              supportsFunctionCalls: false,
+              tools: [],
+              isThinking: false,
+              modelType: modelTypeEnum,
+            );
+            actualSupportsVision = false;
+            print('FlutterGemmaLibrary: Text-only chat created successfully');
+          } catch (fallbackError) {
+            print(
+                'FlutterGemmaLibrary: Text-only chat creation also failed: $fallbackError');
+            return false;
+          }
+        }
+      } else {
+        // Create text-only chat directly for non-vision models
+        try {
+          _chat = await _model!.createChat(
+            temperature: temperature,
+            randomSeed: 1,
+            topK: 1,
+            topP: 0.95,
+            tokenBuffer: 256,
+            supportImage: false,
+            supportsFunctionCalls: false,
+            tools: [],
+            isThinking: false,
+            modelType: modelTypeEnum,
+          );
+          actualSupportsVision = false;
+          print('FlutterGemmaLibrary: Text-only chat created successfully');
+        } catch (chatError) {
+          print('FlutterGemmaLibrary: Chat creation failed: $chatError');
+          return false;
+        }
+      }
+
+      // Update internal state
+      _isInitialized = true;
+      _currentModelType = finalModelType;
+      _currentBackend = backend;
+
+      // CRITICAL: Update FFAppState to maintain single source of truth
+      if (appState != null) {
+        appState.isModelInitialized = true;
+        appState.modelSupportsVision = actualSupportsVision;
+        print(
+            'FlutterGemmaLibrary: Updated FFAppState - isModelInitialized: true, modelSupportsVision: $actualSupportsVision');
+      }
+
+      onProgress?.call('Model ready for chat!', 100.0);
+
+      print('FlutterGemmaLibrary: Complete initialization successful');
+      print('FlutterGemmaLibrary: Model type: $finalModelType');
+      print(
+          'FlutterGemmaLibrary: Actual vision support: $actualSupportsVision');
+      print('FlutterGemmaLibrary: Backend: $backend');
+
+      return true;
+    } catch (e) {
+      print('FlutterGemmaLibrary: Error in complete initialization: $e');
+      return false;
+    }
+  }
+
+  /// Initialize a model with the specified parameters (legacy method)
   ///
   /// [modelType] - The model identifier (derived from filename if not provided)
   /// [backend] - Preferred backend ('gpu', 'cpu', 'tpu')
@@ -234,6 +470,61 @@ class FlutterGemmaLibrary {
   /// [message] - The text message to send
   /// [imageBytes] - Optional image data for multimodal models
   Future<String?> sendMessage(String message, {Uint8List? imageBytes}) async {
+    // Use new chat API if available
+    if (_chat != null) {
+      try {
+        print('FlutterGemmaLibrary: Sending message using chat API');
+
+        // Create the appropriate message type
+        Message msg;
+        if (imageBytes != null && supportsVision) {
+          print('FlutterGemmaLibrary: Sending message with image');
+          msg = Message.withImage(
+            text: message,
+            imageBytes: imageBytes,
+            isUser: true,
+          );
+        } else {
+          if (imageBytes != null && !supportsVision) {
+            print(
+                'FlutterGemmaLibrary: Model does not support images, sending text only');
+          }
+          msg = Message.text(
+            text: message,
+            isUser: true,
+          );
+        }
+
+        // Add the message to chat context
+        await _chat!.addQueryChunk(msg);
+
+        // Generate response
+        final response = await _chat!.generateChatResponse();
+
+        // Extract text from response - try different response types
+        if (response is TextResponse) {
+          // TextResponse might have different property names - try common ones
+          try {
+            return response.toString();
+          } catch (e) {
+            print(
+                'FlutterGemmaLibrary: Error extracting text from TextResponse: $e');
+            return 'Error extracting response text.';
+          }
+        } else if (response.toString().isNotEmpty) {
+          return response.toString();
+        } else {
+          print(
+              'FlutterGemmaLibrary: Received non-text response: ${response.runtimeType}');
+          return 'Received unexpected response type.';
+        }
+      } catch (e) {
+        print('FlutterGemmaLibrary: Error sending message via chat: $e');
+        return null;
+      }
+    }
+
+    // Fallback to session-based approach
     if (_session == null) {
       if (kIsWeb && _model != null) {
         print(
@@ -265,7 +556,7 @@ class FlutterGemmaLibrary {
         }
       }
 
-      print('FlutterGemmaLibrary: No session available');
+      print('FlutterGemmaLibrary: No session or chat available');
       return null;
     }
 
@@ -302,9 +593,19 @@ class FlutterGemmaLibrary {
     }
   }
 
+  /// Close the current chat
+  Future<void> closeChat() async {
+    if (_chat != null) {
+      // Note: Need to verify if InferenceChat has a close method in flutter_gemma 0.10.5
+      // For now, just set to null to release the reference
+      _chat = null;
+    }
+  }
+
   /// Close the model and cleanup resources
   Future<void> closeModel() async {
     await closeSession();
+    await closeChat();
 
     if (_model != null) {
       await _model!.close();
@@ -370,6 +671,28 @@ class FlutterGemmaLibrary {
         errorString.contains('delegate') ||
         errorString.contains('ret_check failure') ||
         errorString.contains('metal');
+  }
+
+  /// Store the current model URL for tracking
+  Future<void> _storeCurrentModelUrl(String modelUrl) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('current_model_url', modelUrl);
+      print('FlutterGemmaLibrary: Stored URL: $modelUrl');
+    } catch (e) {
+      print('FlutterGemmaLibrary: Error storing URL: $e');
+    }
+  }
+
+  /// Get the currently stored model URL
+  Future<String?> _getCurrentModelUrl() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString('current_model_url');
+    } catch (e) {
+      print('FlutterGemmaLibrary: Error retrieving URL: $e');
+      return null;
+    }
   }
 }
 

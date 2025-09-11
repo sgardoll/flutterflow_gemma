@@ -41,18 +41,7 @@ class _DemoWidgetState extends State<DemoWidget> {
         0.8,
       );
       if (_model.initAction!) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Initialized Successfully',
-              style: GoogleFonts.interTight(
-                color: FlutterFlowTheme.of(context).primaryText,
-              ),
-            ),
-            duration: Duration(milliseconds: 4000),
-            backgroundColor: FlutterFlowTheme.of(context).secondary,
-          ),
-        );
+        safeSetState(() {});
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -143,7 +132,10 @@ class _DemoWidgetState extends State<DemoWidget> {
                   ),
                 ),
               ),
-              if (FFAppState().downloadProgress != 'Model ready for chat!')
+              if (!valueOrDefault<bool>(
+                FFAppState().isModelInitialized,
+                true,
+              ))
                 wrapWithModel(
                   model: _model.initialzingModel,
                   updateCallback: () => safeSetState(() {}),

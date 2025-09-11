@@ -331,7 +331,7 @@ class _HfTokenWidgetState extends State<HfTokenWidget> {
                             padding: EdgeInsets.all(8.0),
                             iconPadding: EdgeInsetsDirectional.fromSTEB(
                                 0.0, 0.0, 0.0, 0.0),
-                            color: Color(0xFFFF9D00),
+                            color: FlutterFlowTheme.of(context).primary,
                             textStyle: FlutterFlowTheme.of(context)
                                 .bodyMedium
                                 .override(
