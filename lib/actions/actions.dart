@@ -1,3 +1,4 @@
+import '/flutter_flow/flutter_flow_util.dart';
 import '/custom_code/actions/index.dart' as actions;
 import '/custom_code/flutter_gemma_library.dart';
 import 'package:flutter/material.dart';
@@ -14,6 +15,9 @@ Future loadSetInitialiseModel(
   loadAction = await actions.downloadModelAction(
     hfToken,
     downloadUrl!,
+    (downloadProgress) async {
+      FFAppState().downloadProgress = downloadProgress;
+    },
   );
   setAction = await actions.setModelAction(
     loadAction!,

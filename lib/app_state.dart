@@ -41,6 +41,36 @@ class FFAppState extends ChangeNotifier {
   void deleteHfToken() {
     secureStorage.delete(key: 'ff_hfToken');
   }
+
+  String _downloadProgress = '';
+  String get downloadProgress => _downloadProgress;
+  set downloadProgress(String value) {
+    _downloadProgress = value;
+  }
+
+  double _downloadPercentage = 100.0;
+  double get downloadPercentage => _downloadPercentage;
+  set downloadPercentage(double value) {
+    _downloadPercentage = value;
+  }
+
+  String _fileName = '';
+  String get fileName => _fileName;
+  set fileName(String value) {
+    _fileName = value;
+  }
+
+  bool _isDownloading = false;
+  bool get isDownloading => _isDownloading;
+  set isDownloading(bool value) {
+    _isDownloading = value;
+  }
+
+  bool _isInitializing = false;
+  bool get isInitializing => _isInitializing;
+  set isInitializing(bool value) {
+    _isInitializing = value;
+  }
 }
 
 void _safeInit(Function() initializeField) {

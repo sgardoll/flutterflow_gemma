@@ -12,7 +12,8 @@ import '../actions/send_message_action.dart';
 import '../flutter_gemma_library.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/services.dart';
-import 'markdown_widget.dart';
+import 'package:flutter/foundation.dart';
+import 'package:provider/provider.dart';
 
 /// Simplified Gemma chat widget for FlutterFlow integration This widget
 /// provides a clean chat interface for interacting with Gemma models.
@@ -62,11 +63,93 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
   void initState() {
     super.initState();
     _checkModelStatus();
+
+    // Listen to app state changes for progress updates
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        Provider.of<FFAppState>(context, listen: false)
+            .addListener(_onAppStateChanged);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    Provider.of<FFAppState>(context, listen: false)
+        .removeListener(_onAppStateChanged);
+    _messageController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  /// Handle app state changes to update progress messages
+  void _onAppStateChanged() {
+    if (!mounted) return;
+
+    final appState = Provider.of<FFAppState>(context, listen: false);
+
+    // Get download status from app state
+    final isDownloading = appState.isDownloading;
+    final isInitializing = appState.isInitializing;
+    final downloadPercentage = appState.downloadPercentage;
+
+    // Update the last progress message if it exists
+    if (_messages.isNotEmpty && _messages.last.isProgress) {
+      setState(() {
+        _messages[_messages.length - 1] = ChatMessage(
+          text: appState.downloadProgress.isNotEmpty
+              ? appState.downloadProgress
+              : (isDownloading
+                  ? 'Downloading model...'
+                  : 'Initializing model...'),
+          isUser: false,
+          isSystemMessage: true,
+          isProgress: isDownloading || isInitializing,
+          progressPercentage: downloadPercentage,
+        );
+      });
+
+      // Remove progress message when done
+      if (!isDownloading && !isInitializing) {
+        Future.delayed(Duration(seconds: 2), () {
+          if (mounted) {
+            setState(() {
+              _messages.removeWhere((msg) => msg.isProgress);
+              _checkModelStatus(); // Check model status again
+            });
+          }
+        });
+      }
+    }
   }
 
   /// Check if the model is ready and show appropriate status message
   void _checkModelStatus() {
     final gemma = FlutterGemmaLibrary.instance;
+    final appState = Provider.of<FFAppState>(context, listen: false);
+
+    // Get download status from app state
+    final isDownloading = appState.isDownloading;
+    final isInitializing = appState.isInitializing;
+    final downloadPercentage = appState.downloadPercentage;
+
+    // Check if downloading or initializing
+    if (isDownloading || isInitializing) {
+      setState(() {
+        _messages.add(ChatMessage(
+          text: appState.downloadProgress.isNotEmpty
+              ? appState.downloadProgress
+              : (isDownloading
+                  ? 'Downloading model...'
+                  : 'Initializing model...'),
+          isUser: false,
+          isSystemMessage: true,
+          isProgress: true,
+          progressPercentage: downloadPercentage,
+        ));
+      });
+      return;
+    }
 
     if (!gemma.isInitialized) {
       setState(() {
@@ -77,7 +160,8 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
           isSystemMessage: true,
         ));
       });
-    } else if (!gemma.hasSession) {
+    } else if (!gemma.hasSession && !kIsWeb) {
+      // Only show session error on native platforms
       setState(() {
         _messages.add(ChatMessage(
           text:
@@ -473,8 +557,44 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
               if (message.text.isNotEmpty) const SizedBox(height: 8),
             ],
 
-            // Text message
-            if (message.text.isNotEmpty)
+            // Progress indicator for download/initialization messages
+            if (message.isProgress) ...[
+              Row(
+                children: [
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      value: message.progressPercentage > 0
+                          ? message.progressPercentage / 100
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      message.text,
+                      style: TextStyle(
+                        color: FlutterFlowTheme.of(context).primaryText,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (message.progressPercentage > 0) ...[
+                const SizedBox(height: 8),
+                LinearProgressIndicator(
+                  value: message.progressPercentage / 100,
+                  backgroundColor: FlutterFlowTheme.of(context).alternate,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    FlutterFlowTheme.of(context).primary,
+                  ),
+                ),
+              ],
+            ] else if (message.text.isNotEmpty)
+              // Regular text message
               message.isUser
                   ? Text(
                       message.text,
@@ -521,13 +641,6 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
 
     return bubble;
   }
-
-  @override
-  void dispose() {
-    _messageController.dispose();
-    _scrollController.dispose();
-    super.dispose();
-  }
 }
 
 /// Simple message class for chat messages
@@ -537,6 +650,8 @@ class ChatMessage {
   final DateTime timestamp;
   final Uint8List? imageBytes;
   final bool isSystemMessage;
+  final bool isProgress;
+  final double progressPercentage;
 
   ChatMessage({
     required this.text,
@@ -544,5 +659,7 @@ class ChatMessage {
     DateTime? timestamp,
     this.imageBytes,
     this.isSystemMessage = false,
+    this.isProgress = false,
+    this.progressPercentage = 0.0,
   }) : timestamp = timestamp ?? DateTime.now();
 }

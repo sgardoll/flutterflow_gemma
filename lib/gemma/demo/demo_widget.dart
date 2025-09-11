@@ -1,9 +1,9 @@
-import '/flutter_flow/flutter_flow_icon_button.dart';
+import '/components/initialzing_widget.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/custom_code/actions/index.dart' as actions;
-import '/custom_code/flutter_gemma_library.dart';
 import '/custom_code/widgets/index.dart' as custom_widgets;
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -32,21 +32,40 @@ class _DemoWidgetState extends State<DemoWidget> {
 
     // On page load action.
     SchedulerBinding.instance.addPostFrameCallback((_) async {
-      _model.downloadAction = await actions.downloadModelAction(
-        FFLibraryValues().huggingFaceToken,
+      _model.initAction = await actions.initializeGemmaModelAction(
         FFLibraryValues().modelDownloadUrl,
-      );
-      _model.setAction = await actions.setModelAction(
-        _model.downloadAction!,
-      );
-      _model.initAction = await actions.initializeModelAction(
-        null,
+        FFLibraryValues().huggingFaceToken,
+        '',
         'gpu',
-        FlutterGemmaLibrary.instance.plugin.initializedModel?.maxTokens,
         0.8,
-        1,
-        1,
       );
+      if (_model.initAction!) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Initialized Successfully',
+              style: GoogleFonts.interTight(
+                color: FlutterFlowTheme.of(context).primaryText,
+              ),
+            ),
+            duration: Duration(milliseconds: 4000),
+            backgroundColor: FlutterFlowTheme.of(context).secondary,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Initialization Error',
+              style: GoogleFonts.interTight(
+                color: FlutterFlowTheme.of(context).primaryText,
+              ),
+            ),
+            duration: Duration(milliseconds: 4000),
+            backgroundColor: FlutterFlowTheme.of(context).secondary,
+          ),
+        );
+      }
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) => safeSetState(() {}));
@@ -73,22 +92,11 @@ class _DemoWidgetState extends State<DemoWidget> {
           backgroundColor: FlutterFlowTheme.of(context).accent4,
           iconTheme: IconThemeData(color: FlutterFlowTheme.of(context).primary),
           automaticallyImplyLeading: false,
-          leading: FlutterFlowIconButton(
-            borderRadius: 8.0,
-            buttonSize: 40.0,
-            icon: Icon(
-              Icons.arrow_back,
-              color: FlutterFlowTheme.of(context).primary,
-              size: 24.0,
-            ),
-            onPressed: () async {
-              await actions.closeModel();
-            },
-          ),
           actions: [],
           flexibleSpace: FlexibleSpaceBar(
-            title: Text(
-              'Gemma 3n On-Device Demo',
+            title: AutoSizeText(
+              'Gemma 3n Demo',
+              textAlign: TextAlign.center,
               maxLines: 2,
               style: FlutterFlowTheme.of(context).titleLarge.override(
                     font: GoogleFonts.interTight(
@@ -113,22 +121,35 @@ class _DemoWidgetState extends State<DemoWidget> {
         ),
         body: SafeArea(
           top: true,
-          child: Container(
-            width: MediaQuery.sizeOf(context).width * 1.0,
-            height: MediaQuery.sizeOf(context).height * 1.0,
-            decoration: BoxDecoration(
-              color: FlutterFlowTheme.of(context).primaryBackground,
-            ),
-            child: Container(
-              width: double.infinity,
-              height: double.infinity,
-              child: custom_widgets.GemmaChatWidget(
-                width: double.infinity,
-                height: double.infinity,
-                placeholder: 'Enter text here...',
-                onMessageSent: (message, response) async {},
+          child: Stack(
+            children: [
+              Container(
+                width: MediaQuery.sizeOf(context).width * 1.0,
+                height: MediaQuery.sizeOf(context).height * 1.0,
+                decoration: BoxDecoration(
+                  color: FlutterFlowTheme.of(context).primaryBackground,
+                ),
+                child: Container(
+                  width: double.infinity,
+                  height: double.infinity,
+                  child: custom_widgets.GemmaChatWidget(
+                    width: double.infinity,
+                    height: double.infinity,
+                    placeholder: 'Enter text here...',
+                    onMessageSent: (message, response) async {},
+                  ),
+                ),
               ),
-            ),
+              if (!valueOrDefault<bool>(
+                _model.initAction,
+                true,
+              ))
+                wrapWithModel(
+                  model: _model.initialzingModel,
+                  updateCallback: () => safeSetState(() {}),
+                  child: InitialzingWidget(),
+                ),
+            ],
           ),
         ),
       ),
