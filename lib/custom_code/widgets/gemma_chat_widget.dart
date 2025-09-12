@@ -10,6 +10,8 @@ import 'package:flutter/material.dart';
 
 import 'index.dart'; // Imports other custom widgets
 
+import 'index.dart'; // Imports other custom widgets
+
 import '../actions/send_message_action.dart';
 import '../flutter_gemma_library.dart';
 import 'package:image_picker/image_picker.dart';
@@ -155,17 +157,7 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
       return;
     }
 
-    if (!appState.isModelInitialized) {
-      setState(() {
-        _messages.add(ChatMessage(
-          text:
-              'Please initialize the model first using the initializeModelAction.',
-          isUser: false,
-          isSystemMessage: true,
-        ));
-      });
-    } else {
-      // Model is ready
+    if (appState.isModelInitialized) {
       setState(() {
         _messages.add(ChatMessage(
           text:

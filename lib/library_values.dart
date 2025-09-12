@@ -12,6 +12,7 @@ class FFLibraryValues {
     _instance = FFLibraryValues._internal();
   }
 
-  late String modelDownloadUrl = '';
+  String modelDownloadUrl =
+      'https://huggingface.co/litert-community/gemma-3-270m-it/resolve/main/gemma3-270m-it-q8.task';
   String? huggingFaceToken = '';
 }

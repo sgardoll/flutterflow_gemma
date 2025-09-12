@@ -108,18 +108,27 @@ class _InitialzingWidgetState extends State<InitialzingWidget>
                   mainAxisSize: MainAxisSize.max,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      () {
-                        if (FFAppState().isDownloading) {
-                          return 'Downloading...';
-                        } else if (FFAppState().isInitializing) {
-                          return 'Initializing...';
-                        } else {
-                          return FFAppState().downloadProgress;
-                        }
-                      }(),
-                      style: FlutterFlowTheme.of(context).bodyMedium.override(
-                            font: GoogleFonts.inter(
+                    Flexible(
+                      child: Text(
+                        () {
+                          if (FFAppState().isDownloading) {
+                            return 'Downloading...';
+                          } else if (FFAppState().isInitializing) {
+                            return 'Initializing...';
+                          } else {
+                            return FFAppState().downloadProgress;
+                          }
+                        }(),
+                        style: FlutterFlowTheme.of(context).bodyMedium.override(
+                              font: GoogleFonts.inter(
+                                fontWeight: FlutterFlowTheme.of(context)
+                                    .bodyMedium
+                                    .fontWeight,
+                                fontStyle: FlutterFlowTheme.of(context)
+                                    .bodyMedium
+                                    .fontStyle,
+                              ),
+                              letterSpacing: 0.0,
                               fontWeight: FlutterFlowTheme.of(context)
                                   .bodyMedium
                                   .fontWeight,
@@ -127,14 +136,7 @@ class _InitialzingWidgetState extends State<InitialzingWidget>
                                   .bodyMedium
                                   .fontStyle,
                             ),
-                            letterSpacing: 0.0,
-                            fontWeight: FlutterFlowTheme.of(context)
-                                .bodyMedium
-                                .fontWeight,
-                            fontStyle: FlutterFlowTheme.of(context)
-                                .bodyMedium
-                                .fontStyle,
-                          ),
+                      ),
                     ),
                     Text(
                       valueOrDefault<String>(
@@ -195,10 +197,20 @@ class _InitialzingWidgetState extends State<InitialzingWidget>
                   ).animateOnPageLoad(
                       animationsMap['containerOnPageLoadAnimation']!),
                 ),
-                Text(
-                  FFAppState().downloadProgress,
-                  style: FlutterFlowTheme.of(context).labelMedium.override(
-                        font: GoogleFonts.inter(
+                Flexible(
+                  child: Text(
+                    FFAppState().downloadProgress,
+                    style: FlutterFlowTheme.of(context).labelMedium.override(
+                          font: GoogleFonts.inter(
+                            fontWeight: FlutterFlowTheme.of(context)
+                                .labelMedium
+                                .fontWeight,
+                            fontStyle: FlutterFlowTheme.of(context)
+                                .labelMedium
+                                .fontStyle,
+                          ),
+                          color: FlutterFlowTheme.of(context).secondaryText,
+                          letterSpacing: 0.0,
                           fontWeight: FlutterFlowTheme.of(context)
                               .labelMedium
                               .fontWeight,
@@ -206,13 +218,7 @@ class _InitialzingWidgetState extends State<InitialzingWidget>
                               .labelMedium
                               .fontStyle,
                         ),
-                        color: FlutterFlowTheme.of(context).secondaryText,
-                        letterSpacing: 0.0,
-                        fontWeight:
-                            FlutterFlowTheme.of(context).labelMedium.fontWeight,
-                        fontStyle:
-                            FlutterFlowTheme.of(context).labelMedium.fontStyle,
-                      ),
+                  ),
                 ),
               ].divide(SizedBox(height: 12.0)),
             ),

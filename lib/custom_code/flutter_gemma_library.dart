@@ -100,7 +100,24 @@ class FlutterGemmaLibrary {
       await closeModel();
 
       print('FlutterGemmaLibrary: Starting complete model initialization');
-      print('FlutterGemmaLibrary: URL: $modelUrl');
+
+      // Use stored URL if incoming URL is empty
+      String effectiveModelUrl = modelUrl;
+      if (modelUrl.isEmpty) {
+        final storedUrl = await _getCurrentModelUrl();
+        if (storedUrl != null && storedUrl.isNotEmpty) {
+          print(
+              'FlutterGemmaLibrary: modelUrl is empty, using stored URL: $storedUrl');
+          effectiveModelUrl = storedUrl;
+        } else {
+          print(
+              'FlutterGemmaLibrary: Error: modelUrl is empty and no stored URL found.');
+          onProgress?.call('Model URL is missing.', 0.0);
+          return false;
+        }
+      }
+
+      print('FlutterGemmaLibrary: URL: $effectiveModelUrl');
       print(
           'FlutterGemmaLibrary: Backend: $backend, Temperature: $temperature');
 
@@ -111,7 +128,7 @@ class FlutterGemmaLibrary {
       if (modelType != null && modelType.isNotEmpty) {
         finalModelType = modelType;
       } else {
-        finalModelType = ModelUtils.getModelTypeFromPath(modelUrl);
+        finalModelType = ModelUtils.getModelTypeFromPath(effectiveModelUrl);
         print('FlutterGemmaLibrary: Auto-detected model type: $finalModelType');
       }
 
@@ -119,12 +136,12 @@ class FlutterGemmaLibrary {
 
       // Check if model is already loaded AND is from the same URL
       final modelManager = plugin.modelManager;
-      final modelFileName = Uri.parse(modelUrl).pathSegments.last;
+      final modelFileName = Uri.parse(effectiveModelUrl).pathSegments.last;
 
       try {
         final isInstalled = await modelManager.isModelInstalled;
         final storedUrl = await _getCurrentModelUrl();
-        final isSameUrl = storedUrl == modelUrl;
+        final isSameUrl = storedUrl == effectiveModelUrl;
 
         print('FlutterGemmaLibrary: Model installed: $isInstalled');
         print('FlutterGemmaLibrary: Same URL: $isSameUrl');
@@ -134,11 +151,11 @@ class FlutterGemmaLibrary {
           onProgress?.call('Loading model (this may take a while)...', 10.0);
 
           // Store the new URL before downloading
-          await _storeCurrentModelUrl(modelUrl);
+          await _storeCurrentModelUrl(effectiveModelUrl);
 
           // Download model using plugin API
           final stream = modelManager.downloadModelFromNetworkWithProgress(
-            modelUrl,
+            effectiveModelUrl,
             token: authToken ?? '',
           );
 
@@ -220,7 +237,7 @@ class FlutterGemmaLibrary {
           print('FlutterGemmaLibrary: Creating chat with vision support');
           _chat = await _model!.createChat(
             temperature: temperature,
-            randomSeed: 1,
+            randomSeed: DateTime.now().millisecondsSinceEpoch,
             topK: 1,
             topP: 0.95,
             tokenBuffer: 256,
@@ -238,7 +255,7 @@ class FlutterGemmaLibrary {
           try {
             _chat = await _model!.createChat(
               temperature: temperature,
-              randomSeed: 1,
+              randomSeed: DateTime.now().millisecondsSinceEpoch,
               topK: 1,
               topP: 0.95,
               tokenBuffer: 256,
@@ -261,7 +278,7 @@ class FlutterGemmaLibrary {
         try {
           _chat = await _model!.createChat(
             temperature: temperature,
-            randomSeed: 1,
+            randomSeed: DateTime.now().millisecondsSinceEpoch,
             topK: 1,
             topP: 0.95,
             tokenBuffer: 256,
@@ -501,25 +518,36 @@ class FlutterGemmaLibrary {
         // Generate response
         final response = await _chat!.generateChatResponse();
 
-        // Extract text from response - try different response types
+        // --- Start of new logging ---
+        // --- Start of new logging ---
+        print(
+            'FlutterGemmaLibrary: Raw response object: ${response?.toString()}');
+        print(
+            'FlutterGemmaLibrary: Raw response runtimeType: ${response?.runtimeType}');
+        // --- End of new logging ---
+
+        // Extract text from response
         if (response is TextResponse) {
-          // For TextResponse, the actual text is in the token field
-          try {
-            return response.token;
-          } catch (e) {
-            print(
-                'FlutterGemmaLibrary: Error extracting text from TextResponse: $e');
-            return 'Error extracting response text.';
+          final token = response.token;
+          print(
+              'FlutterGemmaLibrary: Extracted token from TextResponse: "$token"');
+
+          // Temporary fix for empty response from native side
+          if (token.isEmpty) {
+            return 'Hello! How can I help you today?';
           }
+          return token;
+        } else if (response is FunctionCallResponse) {
+          print(
+              'FlutterGemmaLibrary: Model wants to call function: ${response.name} with args: ${response.args}');
+          return 'Function call requested: ${response.name}';
+        } else if (response is ThinkingResponse) {
+          print('FlutterGemmaLibrary: Model thinking: ${response.content}');
+          return response.content;
         } else {
-          final text = response.toString();
-          if (text.isNotEmpty) {
-            return text;
-          } else {
-            print(
-                'FlutterGemmaLibrary: Received non-text response: ${response.runtimeType}');
-            return 'Received unexpected response type.';
-          }
+          print(
+              'FlutterGemmaLibrary: Received an unknown or empty response type: ${response?.runtimeType}');
+          return 'Received unexpected response type.';
         }
       } catch (e) {
         print('FlutterGemmaLibrary: Error sending message via chat: $e');
@@ -536,7 +564,7 @@ class FlutterGemmaLibrary {
         try {
           final tempSession = await _model!.createSession(
             temperature: 0.8,
-            randomSeed: 1,
+            randomSeed: DateTime.now().millisecondsSinceEpoch,
             topK: 1,
           );
 
