@@ -79,14 +79,17 @@ class FlutterGemmaLibrary {
   /// [supportImage] - Enable image support for multimodal models
   /// [maxNumImages] - Maximum number of images to support
   /// [modelFileName] - The model file to use (should be in documents directory)
+  /// [backend] - Preferred backend ('gpu', 'cpu', 'tpu', 'auto'). Defaults to
+  /// 'auto' which tries to use GPU when available.
   Future<bool> initializeModel({
     required String modelType,
-    String backend = 'gpu',
+    String backend = 'auto',
     int maxTokens = 1024,
     bool? supportImage,
     int maxNumImages = 1,
     String? modelFileName,
   }) async {
+    var effectiveBackend = backend.toLowerCase();
     try {
       // Close any existing model
       await closeModel();
@@ -97,7 +100,7 @@ class FlutterGemmaLibrary {
               ModelUtils.isMultimodalModel(modelType);
 
       print(
-          'FlutterGemmaLibrary: Initializing model=$modelType, backend=$backend, vision=$actualSupportImage');
+          'FlutterGemmaLibrary: Initializing model=$modelType, requestedBackend=$effectiveBackend, vision=$actualSupportImage');
 
       // Check if model file exists if specified
       if (modelFileName != null) {
@@ -109,23 +112,29 @@ class FlutterGemmaLibrary {
       }
 
       // Determine effective backend before model creation
-      if (backend.toLowerCase().startsWith('gpu')) {
+      if (effectiveBackend == 'auto' || effectiveBackend.startsWith('gpu')) {
         try {
           if (await _isAndroidEmulator()) {
             print(
                 'FlutterGemmaLibrary: Android emulator detected, using CPU backend instead of GPU');
-            backend = 'cpu';
+            effectiveBackend = 'cpu';
           } else if (!await _hasAndroidGpu()) {
             print(
                 'FlutterGemmaLibrary: GPU support could not be confirmed, defaulting to CPU backend');
-            backend = 'cpu';
+            effectiveBackend = 'cpu';
+          } else {
+            if (effectiveBackend == 'auto') {
+              print(
+                  'FlutterGemmaLibrary: GPU support detected, using GPU backend');
+            }
+            effectiveBackend = 'gpu';
           }
         } catch (checkError) {
           print(
               'FlutterGemmaLibrary: Error checking GPU capability: $checkError');
           print(
               'FlutterGemmaLibrary: Falling back to CPU backend due to uncertain GPU support');
-          backend = 'cpu';
+          effectiveBackend = 'cpu';
         }
       }
 
@@ -133,7 +142,7 @@ class FlutterGemmaLibrary {
       try {
         _model = await plugin.createModel(
           modelType: ModelUtils.getModelType(modelType),
-          preferredBackend: ModelUtils.getBackend(backend),
+          preferredBackend: ModelUtils.getBackend(effectiveBackend),
           maxTokens: maxTokens,
           supportImage: actualSupportImage,
           maxNumImages: maxNumImages,
@@ -147,9 +156,10 @@ class FlutterGemmaLibrary {
 
       _isInitialized = true;
       _currentModelType = modelType;
-      _currentBackend = backend;
+      _currentBackend = effectiveBackend;
 
-      print('FlutterGemmaLibrary: Model initialized successfully');
+      print(
+          'FlutterGemmaLibrary: Model initialized successfully using $effectiveBackend backend');
       return true;
     } catch (e) {
       print('FlutterGemmaLibrary: Error initializing model: $e');
@@ -161,11 +171,12 @@ class FlutterGemmaLibrary {
             'FlutterGemmaLibrary: TensorFlow Lite model loading error detected');
         print(
             'FlutterGemmaLibrary: This usually indicates a model type/file mismatch');
-        print('FlutterGemmaLibrary: Model type: $modelType, Backend: $backend');
+        print(
+            'FlutterGemmaLibrary: Model type: $modelType, Backend: $effectiveBackend');
       }
 
       // Try CPU fallback for common issues
-      if (_shouldTryCpuFallback(e, backend)) {
+      if (_shouldTryCpuFallback(e, effectiveBackend)) {
         print('FlutterGemmaLibrary: Attempting CPU fallback...');
         return await initializeModel(
           modelType: modelType,
