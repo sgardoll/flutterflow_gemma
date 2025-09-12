@@ -503,20 +503,23 @@ class FlutterGemmaLibrary {
 
         // Extract text from response - try different response types
         if (response is TextResponse) {
-          // TextResponse might have different property names - try common ones
+          // For TextResponse, the actual text is in the token field
           try {
-            return response.toString();
+            return response.token;
           } catch (e) {
             print(
                 'FlutterGemmaLibrary: Error extracting text from TextResponse: $e');
             return 'Error extracting response text.';
           }
-        } else if (response.toString().isNotEmpty) {
-          return response.toString();
         } else {
-          print(
-              'FlutterGemmaLibrary: Received non-text response: ${response.runtimeType}');
-          return 'Received unexpected response type.';
+          final text = response.toString();
+          if (text.isNotEmpty) {
+            return text;
+          } else {
+            print(
+                'FlutterGemmaLibrary: Received non-text response: ${response.runtimeType}');
+            return 'Received unexpected response type.';
+          }
         }
       } catch (e) {
         print('FlutterGemmaLibrary: Error sending message via chat: $e');

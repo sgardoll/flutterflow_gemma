@@ -36,6 +36,7 @@ class FFAppState extends ChangeNotifier {
   set hfToken(String value) {
     _hfToken = value;
     secureStorage.setString('ff_hfToken', value);
+    notifyListeners();
   }
 
   void deleteHfToken() {
@@ -46,42 +47,49 @@ class FFAppState extends ChangeNotifier {
   String get downloadProgress => _downloadProgress;
   set downloadProgress(String value) {
     _downloadProgress = value;
+    notifyListeners();
   }
 
   double _downloadPercentage = 100.0;
   double get downloadPercentage => _downloadPercentage;
   set downloadPercentage(double value) {
     _downloadPercentage = value;
+    notifyListeners();
   }
 
   String _fileName = '';
   String get fileName => _fileName;
   set fileName(String value) {
     _fileName = value;
+    notifyListeners();
   }
 
   bool _isDownloading = false;
   bool get isDownloading => _isDownloading;
   set isDownloading(bool value) {
     _isDownloading = value;
+    notifyListeners();
   }
 
   bool _isInitializing = false;
   bool get isInitializing => _isInitializing;
   set isInitializing(bool value) {
     _isInitializing = value;
+    notifyListeners();
   }
 
   bool _modelSupportsVision = false;
   bool get modelSupportsVision => _modelSupportsVision;
   set modelSupportsVision(bool value) {
     _modelSupportsVision = value;
+    notifyListeners();
   }
 
   bool _isModelInitialized = false;
   bool get isModelInitialized => _isModelInitialized;
   set isModelInitialized(bool value) {
     _isModelInitialized = value;
+    notifyListeners();
   }
 }
 
