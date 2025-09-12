@@ -39,7 +39,9 @@ dependencies:
   csv: 6.0.0
   flutter_animate: 4.5.0
   flutter_cache_manager: 3.4.1
-  flutter_gemma: ^0.10.5
+  flutter_gemma:
+    git:
+      url: https://github.com/sgardoll/flutter_gemma.git
   flutter_md: ^0.0.7
   flutter_native_splash: 2.4.1
   flutter_secure_storage: ^10.0.0-beta.4
