@@ -12,7 +12,6 @@ class FFLibraryValues {
     _instance = FFLibraryValues._internal();
   }
 
-  String modelDownloadUrl =
-      'https://gemma.connectio.com.au/models/gemma-2b-it-gpu-int4.bin';
+  late String modelDownloadUrl = '';
   String? huggingFaceToken = '';
 }
