@@ -108,6 +108,27 @@ class FlutterGemmaLibrary {
         }
       }
 
+      // Determine effective backend before model creation
+      if (backend.toLowerCase().startsWith('gpu')) {
+        try {
+          if (await _isAndroidEmulator()) {
+            print(
+                'FlutterGemmaLibrary: Android emulator detected, using CPU backend instead of GPU');
+            backend = 'cpu';
+          } else if (!await _hasAndroidGpu()) {
+            print(
+                'FlutterGemmaLibrary: GPU support could not be confirmed, defaulting to CPU backend');
+            backend = 'cpu';
+          }
+        } catch (checkError) {
+          print(
+              'FlutterGemmaLibrary: Error checking GPU capability: $checkError');
+          print(
+              'FlutterGemmaLibrary: Falling back to CPU backend due to uncertain GPU support');
+          backend = 'cpu';
+        }
+      }
+
       // Create the model with additional error handling
       try {
         _model = await plugin.createModel(
@@ -359,6 +380,31 @@ class FlutterGemmaLibrary {
     }
 
     return exists;
+  }
+
+  /// Detect if the app is running on an Android emulator.
+  Future<bool> _isAndroidEmulator() async {
+    if (!Platform.isAndroid) return false;
+    try {
+      final cpuInfo = await File('/proc/cpuinfo').readAsString();
+      final lower = cpuInfo.toLowerCase();
+      return lower.contains('goldfish') || lower.contains('ranchu');
+    } catch (e) {
+      print(
+          'FlutterGemmaLibrary: Failed to read /proc/cpuinfo for emulator detection: $e');
+      return false;
+    }
+  }
+
+  /// Best-effort check for GPU support on Android devices.
+  Future<bool> _hasAndroidGpu() async {
+    if (!Platform.isAndroid) return true;
+    try {
+      return await File('/dev/kgsl-3d0').exists();
+    } catch (e) {
+      print('FlutterGemmaLibrary: Error checking GPU device: $e');
+      return false;
+    }
   }
 
   /// Determine if we should try CPU fallback for the given error
