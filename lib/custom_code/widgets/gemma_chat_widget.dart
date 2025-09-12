@@ -133,9 +133,12 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
     final isInitializing = appState.isInitializing;
     final downloadPercentage = appState.downloadPercentage;
 
-    // Check if downloading or initializing
-    if (isDownloading || isInitializing) {
-      setState(() {
+    setState(() {
+      // Remove outdated system messages so the latest status is shown
+      _messages.removeWhere(
+          (msg) => msg.isSystemMessage && !msg.isProgress);
+
+      if (isDownloading || isInitializing) {
         _messages.add(ChatMessage(
           text: appState.downloadProgress.isNotEmpty
               ? appState.downloadProgress
@@ -147,40 +150,31 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
           isProgress: true,
           progressPercentage: downloadPercentage,
         ));
-      });
-      return;
-    }
-
-    if (!gemma.isInitialized) {
-      setState(() {
+      } else if (!gemma.isInitialized) {
         _messages.add(ChatMessage(
           text:
               'Please initialize the model first using the initializeModelAction.',
           isUser: false,
           isSystemMessage: true,
         ));
-      });
-    } else if (!gemma.hasSession && !kIsWeb) {
-      // Only show session error on native platforms
-      setState(() {
+      } else if (!gemma.hasSession && !kIsWeb) {
+        // Only show session error on native platforms
         _messages.add(ChatMessage(
           text:
               'Model initialized but no session available. This should not happen - please check your setup.',
           isUser: false,
           isSystemMessage: true,
         ));
-      });
-    } else {
-      // Model is ready
-      setState(() {
+      } else {
+        // Model is ready
         _messages.add(ChatMessage(
           text:
               'Hello! I\'m ready to chat. ${gemma.supportsVision ? "You can send me text and images." : "Send me a message to get started."}',
           isUser: false,
           isSystemMessage: true,
         ));
-      });
-    }
+      }
+    });
   }
 
   /// Get whether to show the image button
