@@ -10,8 +10,6 @@ import 'package:flutter/material.dart';
 
 import 'index.dart'; // Imports other custom widgets
 
-import 'index.dart'; // Imports other custom widgets
-
 import '../actions/send_message_action.dart';
 import '../flutter_gemma_library.dart';
 import 'package:image_picker/image_picker.dart';
@@ -186,7 +184,7 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
     }
 
     // Auto-detect based on FFAppState model capabilities
-    final appState = Provider.of<FFAppState>(context, listen: false);
+    final appState = context.watch<FFAppState>();
     return appState.modelSupportsVision;
   }
 
@@ -268,6 +266,11 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
 
   /// Send message to the model
   Future<void> _sendMessage() async {
+    final appState = context.read<FFAppState>();
+    if (!appState.isModelInitialized) {
+      return;
+    }
+
     final messageText = _messageController.text.trim();
     final imageFile = _selectedImage;
 
@@ -445,6 +448,9 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
 
   /// Build input area widget
   Widget _buildInputArea() {
+    final appState = context.watch<FFAppState>();
+    final isInitialized = appState.isModelInitialized;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -459,10 +465,10 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
           // Image button (conditionally shown)
           if (_shouldShowImageButton) ...[
             IconButton(
-              onPressed: _isLoading ? null : _selectImage,
+              onPressed: (!isInitialized || _isLoading) ? null : _selectImage,
               icon: Icon(
                 Icons.image,
-                color: _isLoading
+                color: (!isInitialized || _isLoading)
                     ? Colors.grey
                     : FlutterFlowTheme.of(context).primary,
               ),
@@ -475,7 +481,7 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
           Expanded(
             child: TextField(
               controller: _messageController,
-              enabled: !_isLoading,
+              enabled: isInitialized && !_isLoading,
               maxLines: 3,
               minLines: 1,
               decoration: InputDecoration(
@@ -488,7 +494,7 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
                   vertical: 12,
                 ),
               ),
-              onSubmitted: (_) => _sendMessage(),
+              onSubmitted: (_) => isInitialized ? _sendMessage() : null,
             ),
           ),
 
@@ -496,7 +502,7 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
 
           // Send button
           ElevatedButton(
-            onPressed: _isLoading ? null : _sendMessage,
+            onPressed: (!isInitialized || _isLoading) ? null : _sendMessage,
             style: ElevatedButton.styleFrom(
               backgroundColor: FlutterFlowTheme.of(context).primary,
               shape: RoundedRectangleBorder(

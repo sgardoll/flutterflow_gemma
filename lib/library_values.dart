@@ -13,6 +13,6 @@ class FFLibraryValues {
   }
 
   String modelDownloadUrl =
-      'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task';
+      'https://gemma.connectio.com.au/models/gemma-2b-it-gpu-int4.bin';
   String? huggingFaceToken = '';
 }
