@@ -71,6 +71,9 @@ class FlutterGemmaLibrary {
       _currentModelType != null &&
       ModelUtils.isMultimodalModel(_currentModelType!);
 
+  /// Internal flag to track if chat was created with vision support
+  bool _chatSupportsVision = false;
+
   /// Initialize a model and chat with the complete workflow
   ///
   /// This method handles the complete initialization process:
@@ -229,29 +232,63 @@ class FlutterGemmaLibrary {
 
       onProgress?.call('Creating chat session...', 95.0);
 
-      // Create chat session with fallback logic for vision support
+      // Create chat session with improved vision support detection
       bool actualSupportsVision = false;
 
+      // First, try to create chat based on detected model capabilities
       if (potentiallySupportsVision) {
-        try {
-          print('FlutterGemmaLibrary: Creating chat with vision support');
-          _chat = await _model!.createChat(
-            temperature: temperature,
-            randomSeed: DateTime.now().millisecondsSinceEpoch,
-            topK: 1,
-            topP: 0.95,
-            tokenBuffer: 256,
-            supportImage: true,
-            supportsFunctionCalls: false,
-            tools: [],
-            isThinking: false,
-            modelType: modelTypeEnum,
-          );
-          actualSupportsVision = true;
-          print('FlutterGemmaLibrary: Chat with vision created successfully');
-        } catch (visionError) {
+        print(
+            'FlutterGemmaLibrary: Model potentially supports vision, attempting vision chat');
+
+        // Try different approaches for vision support
+        final visionApproaches = [
+          // Approach 1: Standard vision chat with all parameters
+          () async {
+            return await _model!.createChat(
+              temperature: temperature,
+              randomSeed: DateTime.now().millisecondsSinceEpoch,
+              topK: 1,
+              topP: 0.95,
+              tokenBuffer: 256,
+              supportImage: true,
+              supportsFunctionCalls: false,
+              tools: [],
+              isThinking: false,
+              modelType: modelTypeEnum,
+            );
+          },
+          // Approach 2: Simplified vision chat (some models might not support all parameters)
+          () async {
+            return await _model!.createChat(
+              temperature: temperature,
+              supportImage: true,
+              modelType: modelTypeEnum,
+            );
+          },
+        ];
+
+        bool visionChatCreated = false;
+        for (int i = 0;
+            i < visionApproaches.length && !visionChatCreated;
+            i++) {
+          try {
+            print('FlutterGemmaLibrary: Trying vision approach ${i + 1}');
+            _chat = await visionApproaches[i]();
+            actualSupportsVision = true;
+            _chatSupportsVision = true; // Track that chat supports vision
+            visionChatCreated = true;
+            print(
+                'FlutterGemmaLibrary: Vision chat created successfully with approach ${i + 1}');
+          } catch (visionError) {
+            print(
+                'FlutterGemmaLibrary: Vision approach ${i + 1} failed: $visionError');
+          }
+        }
+
+        // If vision chat failed, fall back to text-only
+        if (!visionChatCreated) {
           print(
-              'FlutterGemmaLibrary: Vision chat failed, trying text-only: $visionError');
+              'FlutterGemmaLibrary: All vision approaches failed, falling back to text-only');
           try {
             _chat = await _model!.createChat(
               temperature: temperature,
@@ -266,6 +303,7 @@ class FlutterGemmaLibrary {
               modelType: modelTypeEnum,
             );
             actualSupportsVision = false;
+            _chatSupportsVision = false; // Track that chat is text-only
             print('FlutterGemmaLibrary: Text-only chat created successfully');
           } catch (fallbackError) {
             print(
@@ -275,6 +313,8 @@ class FlutterGemmaLibrary {
         }
       } else {
         // Create text-only chat directly for non-vision models
+        print(
+            'FlutterGemmaLibrary: Model does not support vision, creating text-only chat');
         try {
           _chat = await _model!.createChat(
             temperature: temperature,
@@ -494,17 +534,26 @@ class FlutterGemmaLibrary {
 
         // Create the appropriate message type
         Message msg;
-        if (imageBytes != null && supportsVision) {
+        if (imageBytes != null && _chatSupportsVision) {
           print('FlutterGemmaLibrary: Sending message with image');
+          print('FlutterGemmaLibrary: Image size: ${imageBytes.length} bytes');
+          print(
+              'FlutterGemmaLibrary: Chat supports vision: $_chatSupportsVision');
           msg = Message.withImage(
             text: message,
             imageBytes: imageBytes,
             isUser: true,
           );
+          print('FlutterGemmaLibrary: Created Message.withImage successfully');
+          print('FlutterGemmaLibrary: Message text: ${msg.text}');
+          print(
+              'FlutterGemmaLibrary: Message has image: ${msg.imageBytes != null}');
+          print(
+              'FlutterGemmaLibrary: Message image size: ${msg.imageBytes?.length ?? 0}');
         } else {
-          if (imageBytes != null && !supportsVision) {
+          if (imageBytes != null && !_chatSupportsVision) {
             print(
-                'FlutterGemmaLibrary: Model does not support images, sending text only');
+                'FlutterGemmaLibrary: Chat does not support images (_chatSupportsVision=$_chatSupportsVision), sending text only');
           }
           msg = Message.text(
             text: message,
@@ -513,17 +562,18 @@ class FlutterGemmaLibrary {
         }
 
         // Add the message to chat context
+        print('FlutterGemmaLibrary: Adding message to chat context...');
         await _chat!.addQueryChunk(msg);
+        print('FlutterGemmaLibrary: Message added to chat successfully');
 
         // Generate response
         final response = await _chat!.generateChatResponse();
 
         // --- Start of new logging ---
-        // --- Start of new logging ---
         print(
-            'FlutterGemmaLibrary: Raw response object: ${response?.toString()}');
+            'FlutterGemmaLibrary: Raw response object: ${response.toString()}');
         print(
-            'FlutterGemmaLibrary: Raw response runtimeType: ${response?.runtimeType}');
+            'FlutterGemmaLibrary: Raw response runtimeType: ${response.runtimeType}');
         // --- End of new logging ---
 
         // Extract text from response
@@ -546,7 +596,7 @@ class FlutterGemmaLibrary {
           return response.content;
         } else {
           print(
-              'FlutterGemmaLibrary: Received an unknown or empty response type: ${response?.runtimeType}');
+              'FlutterGemmaLibrary: Received an unknown or empty response type: ${response.runtimeType}');
           return 'Received unexpected response type.';
         }
       } catch (e) {
@@ -569,7 +619,7 @@ class FlutterGemmaLibrary {
           );
 
           Message msg;
-          if (imageBytes != null && supportsVision) {
+          if (imageBytes != null && _chatSupportsVision) {
             msg = Message.withImage(
                 text: message, imageBytes: imageBytes, isUser: true);
           } else {
@@ -630,6 +680,7 @@ class FlutterGemmaLibrary {
       // Note: Need to verify if InferenceChat has a close method in flutter_gemma 0.10.5
       // For now, just set to null to release the reference
       _chat = null;
+      _chatSupportsVision = false;
     }
   }
 
@@ -738,9 +789,43 @@ class ModelUtils {
     final multimodalModels = [
       'gemma-3n-e4b-it',
       'gemma-3n-e2b-it',
+      'gemma3n-e4b-it', // Alternative naming
+      'gemma3n-e2b-it', // Alternative naming
+      'paligemma', // PaliGemma vision models
+      'gemma-vision', // Generic vision models
+      'gemma-multimodal', // Generic multimodal models
     ];
 
-    return multimodalModels.any((model) => normalizedType.contains(model));
+    // Check for multimodal indicators in the model name
+    final visionIndicators = [
+      'vision',
+      'multimodal',
+      'multi-modal',
+      'mm',
+      'vl', // vision-language
+      'image',
+    ];
+
+    // Check if model name contains any multimodal model
+    for (final model in multimodalModels) {
+      if (normalizedType.contains(model)) {
+        return true;
+      }
+    }
+
+    // Check for vision indicators
+    for (final indicator in visionIndicators) {
+      if (normalizedType.contains(indicator)) {
+        return true;
+      }
+    }
+
+    // Special check for E2B/E4B models which are multimodal
+    if (normalizedType.contains('e2b') || normalizedType.contains('e4b')) {
+      return true;
+    }
+
+    return false;
   }
 
   /// Convert string to ModelType enum

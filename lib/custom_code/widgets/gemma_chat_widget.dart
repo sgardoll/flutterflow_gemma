@@ -12,6 +12,8 @@ import 'index.dart'; // Imports other custom widgets
 
 import 'index.dart'; // Imports other custom widgets
 
+import 'index.dart'; // Imports other custom widgets
+
 import '../actions/send_message_action.dart';
 import '../flutter_gemma_library.dart';
 import 'package:image_picker/image_picker.dart';
@@ -76,6 +78,13 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
             .addListener(_onAppStateChanged);
 
         // FFAppState is now the single source of truth - no need for library monitoring
+
+        // Debug: Log current vision support status
+        final appState = Provider.of<FFAppState>(context, listen: false);
+        print(
+            'GemmaChatWidget: Initial vision support status: ${appState.modelSupportsVision}');
+        print(
+            'GemmaChatWidget: Model initialized: ${appState.isModelInitialized}');
       }
     });
   }
@@ -172,12 +181,17 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
   /// Get whether to show the image button
   bool get _shouldShowImageButton {
     if (widget.showImageButton != null) {
+      print(
+          'GemmaChatWidget: Using explicit showImageButton: ${widget.showImageButton}');
       return widget.showImageButton!;
     }
 
     // Auto-detect based on FFAppState model capabilities
     final appState = context.watch<FFAppState>();
-    return appState.modelSupportsVision;
+    final supportsVision = appState.modelSupportsVision;
+    print('GemmaChatWidget: Auto-detected vision support: $supportsVision');
+    print('GemmaChatWidget: Model initialized: ${appState.isModelInitialized}');
+    return supportsVision;
   }
 
   /// Select image from gallery or camera

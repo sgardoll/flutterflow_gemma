@@ -2,6 +2,7 @@ import '/components/initialzing_widget.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/custom_code/actions/index.dart' as actions;
+import '/custom_code/flutter_gemma_library.dart';
 import '/custom_code/widgets/index.dart' as custom_widgets;
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
@@ -127,7 +128,8 @@ class _DemoWidgetState extends State<DemoWidget> {
                   child: custom_widgets.GemmaChatWidget(
                     width: MediaQuery.sizeOf(context).width * 1.0,
                     height: MediaQuery.sizeOf(context).height * 1.0,
-                    showImageButton: false,
+                    showImageButton:
+                        FlutterGemmaLibrary.instance.supportsVision,
                     onMessageSent: (message, response) async {},
                   ),
                 ),

@@ -13,6 +13,6 @@ class FFLibraryValues {
   }
 
   String modelDownloadUrl =
-      'https://huggingface.co/litert-community/gemma-3-270m-it/resolve/main/gemma3-270m-it-q8.task';
+      'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task';
   String? huggingFaceToken = '';
 }
