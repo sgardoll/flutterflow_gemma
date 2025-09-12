@@ -79,11 +79,12 @@ class FlutterGemmaLibrary {
   /// [supportImage] - Enable image support for multimodal models
   /// [maxNumImages] - Maximum number of images to support
   /// [modelFileName] - The model file to use (should be in documents directory)
-  /// [backend] - Preferred backend ('gpu', 'cpu', 'tpu', 'auto'). Defaults to
-  /// 'auto' which tries to use GPU when available.
+  /// [backend] - Preferred backend ('gpu', 'cpu', 'tpu'). Defaults to
+  /// 'gpu' but automatically falls back to 'cpu' when GPU is unavailable
+  /// or when running on an Android emulator.
   Future<bool> initializeModel({
     required String modelType,
-    String backend = 'auto',
+    String backend = 'gpu',
     int maxTokens = 1024,
     bool? supportImage,
     int maxNumImages = 1,
@@ -112,22 +113,19 @@ class FlutterGemmaLibrary {
       }
 
       // Determine effective backend before model creation
-      if (effectiveBackend == 'auto' || effectiveBackend.startsWith('gpu')) {
+      if (effectiveBackend.startsWith('gpu')) {
         try {
           if (await _isAndroidEmulator()) {
             print(
-                'FlutterGemmaLibrary: Android emulator detected, using CPU backend instead of GPU');
+                'FlutterGemmaLibrary: Android emulator detected, using CPU backend instead of $effectiveBackend');
             effectiveBackend = 'cpu';
           } else if (!await _hasAndroidGpu()) {
             print(
                 'FlutterGemmaLibrary: GPU support could not be confirmed, defaulting to CPU backend');
             effectiveBackend = 'cpu';
           } else {
-            if (effectiveBackend == 'auto') {
-              print(
-                  'FlutterGemmaLibrary: GPU support detected, using GPU backend');
-            }
-            effectiveBackend = 'gpu';
+            print(
+                'FlutterGemmaLibrary: GPU support confirmed, using $effectiveBackend backend');
           }
         } catch (checkError) {
           print(
