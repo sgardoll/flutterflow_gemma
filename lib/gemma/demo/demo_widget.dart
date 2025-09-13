@@ -1,9 +1,11 @@
 import '/components/initialzing_widget.dart';
+import '/flutter_flow/flutter_flow_icon_button.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/custom_code/actions/index.dart' as actions;
 import '/custom_code/flutter_gemma_library.dart';
 import '/custom_code/widgets/index.dart' as custom_widgets;
+import '/index.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -85,7 +87,20 @@ class _DemoWidgetState extends State<DemoWidget> {
           backgroundColor: FlutterFlowTheme.of(context).accent4,
           iconTheme: IconThemeData(color: FlutterFlowTheme.of(context).primary),
           automaticallyImplyLeading: false,
-          actions: [],
+          actions: [
+            FlutterFlowIconButton(
+              borderRadius: 8.0,
+              buttonSize: 40.0,
+              icon: Icon(
+                Icons.info_outlined,
+                color: FlutterFlowTheme.of(context).secondaryText,
+                size: 24.0,
+              ),
+              onPressed: () async {
+                context.pushNamed(LicenseWidget.routeName);
+              },
+            ),
+          ],
           flexibleSpace: FlexibleSpaceBar(
             title: AutoSizeText(
               'Gemma 3n Demo',

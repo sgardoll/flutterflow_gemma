@@ -10,10 +10,6 @@ import 'package:flutter/material.dart';
 
 import 'index.dart'; // Imports other custom widgets
 
-import 'index.dart'; // Imports other custom widgets
-
-import 'index.dart'; // Imports other custom widgets
-
 import '../actions/send_message_action.dart';
 import '../flutter_gemma_library.dart';
 import 'package:image_picker/image_picker.dart';

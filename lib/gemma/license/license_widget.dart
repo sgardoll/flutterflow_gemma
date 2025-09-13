@@ -118,7 +118,8 @@ class _LicenseWidgetState extends State<LicenseWidget>
                                   FlutterFlowTheme.of(context).accent1,
                               unselectedBackgroundColor:
                                   FlutterFlowTheme.of(context).accent4,
-                              borderColor: FlutterFlowTheme.of(context).primary,
+                              borderColor:
+                                  FlutterFlowTheme.of(context).secondaryText,
                               unselectedBorderColor:
                                   FlutterFlowTheme.of(context).alternate,
                               borderWidth: 2.0,
@@ -271,10 +272,9 @@ class _LicenseWidgetState extends State<LicenseWidget>
                       child: FlutterFlowIconButton(
                         borderRadius: 8.0,
                         buttonSize: 40.0,
-                        fillColor: FlutterFlowTheme.of(context).primary,
                         icon: Icon(
                           Icons.arrow_back,
-                          color: FlutterFlowTheme.of(context).info,
+                          color: FlutterFlowTheme.of(context).secondaryText,
                           size: 24.0,
                         ),
                         onPressed: () async {

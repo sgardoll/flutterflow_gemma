@@ -4,4 +4,3 @@ export 'download_model_action.dart' show downloadModelAction;
 export 'initialize_model_action.dart' show initializeModelAction;
 export 'initialize_gemma_model_action.dart' show initializeGemmaModelAction;
 export 'send_message_action.dart' show sendMessageAction;
-export 'set_vision_support.dart' show setVisionSupport;

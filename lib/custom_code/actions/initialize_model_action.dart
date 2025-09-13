@@ -9,8 +9,6 @@ import 'package:flutter/material.dart';
 
 import 'index.dart'; // Imports other custom actions
 
-import 'index.dart'; // Imports other custom actions
-
 import '../flutter_gemma_library.dart';
 import '/app_state.dart';
 import 'package:flutter/services.dart';
