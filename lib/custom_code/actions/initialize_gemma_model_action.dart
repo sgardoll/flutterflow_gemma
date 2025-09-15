@@ -7,8 +7,6 @@ import 'package:flutter/material.dart';
 // Begin custom action code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-import 'index.dart'; // Imports other custom actions
-
 import '/app_state.dart';
 import '../flutter_gemma_library.dart';
 
@@ -63,9 +61,6 @@ Future<bool> initializeGemmaModelAction(
     appState.isInitializing = true;
     appState.downloadProgress = 'Initializing...';
 
-    // Get the FlutterGemmaLibrary singleton
-    final gemmaLibrary = FlutterGemmaLibrary.instance;
-
     // Smart URL and token validation
     appState.downloadProgress = 'Validating configuration...';
     final isHuggingFaceUrl = _isHuggingFaceUrl(modelUrl);
@@ -77,51 +72,62 @@ Future<bool> initializeGemmaModelAction(
       return false;
     }
 
-    // Use the complete initialization method from the library
-    // This will handle all the heavy lifting and update the internal state
-    print('initializeGemmaModelAction: Delegating to library singleton');
+    // Use the FlutterGemmaLibrary's complete initialization method
+    final gemmaLibrary = FlutterGemmaLibrary.instance;
 
-    final success = await gemmaLibrary.initializeModelComplete(
-      modelUrl: modelUrl,
-      authToken: authToken,
-      modelType: modelType,
-      backend: backend,
-      temperature: temperature,
-      appState: appState,
-      onProgress: (status, percentage) {
-        // Update app state with progress
-        appState.downloadProgress = status;
-        appState.downloadPercentage = percentage;
-        if (status.contains('Downloading')) {
-          appState.isDownloading = true;
-          appState.fileName = Uri.parse(modelUrl).pathSegments.last;
-        } else {
-          appState.isDownloading = false;
-        }
-      },
-    );
+    // Step 1: Load the model using the plugin's proper API
+    appState.downloadProgress = 'Loading model...';
+    appState.isDownloading = true;
+    appState.fileName = Uri.parse(modelUrl).pathSegments.last;
 
-    if (success) {
-      // Update app state - successful completion
-      appState.isInitializing = false;
-      appState.downloadProgress = 'Model ready for chat!';
+    print('initializeGemmaModelAction: Loading model from: $modelUrl');
 
-      print('initializeGemmaModelAction: Complete initialization successful');
-      print(
-          'initializeGemmaModelAction: Model type: ${gemmaLibrary.currentModelType}');
-      print(
-          'initializeGemmaModelAction: Vision support: ${gemmaLibrary.supportsVision}');
-      print(
-          'initializeGemmaModelAction: Backend: ${gemmaLibrary.currentBackend}');
-    } else {
-      // Update app state - failed
+    try {
+      // Use the library's complete initialization method which handles everything
+      final success = await gemmaLibrary.initializeModelComplete(
+        modelUrl: modelUrl,
+        authToken: authToken,
+        modelType: modelType,
+        backend: backend,
+        temperature: temperature,
+        onProgress: (status, percentage) {
+          appState.downloadProgress = status;
+          appState.downloadPercentage = percentage;
+        },
+        appState: appState,
+      );
+
+      if (!success) {
+        print('initializeGemmaModelAction: Model initialization failed');
+        appState.isInitializing = false;
+        appState.downloadProgress = 'Model initialization failed';
+        return false;
+      }
+
+      print('initializeGemmaModelAction: Model loaded successfully');
+      appState.isDownloading = false;
+    } catch (loadError) {
+      print('initializeGemmaModelAction: Model loading failed: $loadError');
       appState.isInitializing = false;
       appState.downloadProgress =
-          'Initialization failed. Check logs for details.';
-      print('initializeGemmaModelAction: Initialization failed');
+          'Model loading failed: ${loadError.toString()}';
+      return false;
     }
 
-    return success;
+    // The initializeModelComplete method handles everything including:
+    // - Model downloading and loading
+    // - Model instance creation
+    // - Chat session creation
+    // - Resource storage in the library
+
+    // Update final app state
+    appState.isInitializing = false;
+    appState.isModelInitialized = true;
+    appState.modelSupportsVision = gemmaLibrary.supportsVision;
+    appState.downloadProgress = 'Model ready for chat!';
+
+    print('initializeGemmaModelAction: Initialization completed successfully');
+    return true;
   } catch (e) {
     // Global error handler
     print('initializeGemmaModelAction: Unexpected error: $e');

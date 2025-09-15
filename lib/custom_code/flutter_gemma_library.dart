@@ -67,9 +67,8 @@ class FlutterGemmaLibrary {
   bool get hasSession => _session != null || _chat != null;
 
   /// Check if the current model supports vision
-  bool get supportsVision =>
-      _currentModelType != null &&
-      ModelUtils.isMultimodalModel(_currentModelType!);
+  /// Only specific Gemma models support vision - not all of them
+  bool get supportsVision => _chatSupportsVision;
 
   /// Internal flag to track if chat was created with vision support
   bool _chatSupportsVision = false;
@@ -110,11 +109,13 @@ class FlutterGemmaLibrary {
         final storedUrl = await _getCurrentModelUrl();
         if (storedUrl != null && storedUrl.isNotEmpty) {
           print(
-              'FlutterGemmaLibrary: modelUrl is empty, using stored URL: $storedUrl');
+            'FlutterGemmaLibrary: modelUrl is empty, using stored URL: $storedUrl',
+          );
           effectiveModelUrl = storedUrl;
         } else {
           print(
-              'FlutterGemmaLibrary: Error: modelUrl is empty and no stored URL found.');
+            'FlutterGemmaLibrary: Error: modelUrl is empty and no stored URL found.',
+          );
           onProgress?.call('Model URL is missing.', 0.0);
           return false;
         }
@@ -122,7 +123,8 @@ class FlutterGemmaLibrary {
 
       print('FlutterGemmaLibrary: URL: $effectiveModelUrl');
       print(
-          'FlutterGemmaLibrary: Backend: $backend, Temperature: $temperature');
+        'FlutterGemmaLibrary: Backend: $backend, Temperature: $temperature',
+      );
 
       onProgress?.call('Initializing...', 0.0);
 
@@ -130,6 +132,8 @@ class FlutterGemmaLibrary {
       String finalModelType;
       if (modelType != null && modelType.isNotEmpty) {
         finalModelType = modelType;
+        print(
+            'FlutterGemmaLibrary: Using provided model type: $finalModelType');
       } else {
         finalModelType = ModelUtils.getModelTypeFromPath(effectiveModelUrl);
         print('FlutterGemmaLibrary: Auto-detected model type: $finalModelType');
@@ -139,7 +143,6 @@ class FlutterGemmaLibrary {
 
       // Check if model is already loaded AND is from the same URL
       final modelManager = plugin.modelManager;
-      final modelFileName = Uri.parse(effectiveModelUrl).pathSegments.last;
 
       try {
         final isInstalled = await modelManager.isModelInstalled;
@@ -156,32 +159,41 @@ class FlutterGemmaLibrary {
           // Store the new URL before downloading
           await _storeCurrentModelUrl(effectiveModelUrl);
 
-          // Download model using plugin API
-          final stream = modelManager.downloadModelFromNetworkWithProgress(
+          // Download model using the custom file manager (which handles path setting)
+          final filePath = await _modelManager.downloadModelFromNetwork(
             effectiveModelUrl,
-            token: authToken ?? '',
+            huggingFaceToken: authToken,
+            onProgress: (downloaded, total, percentage) {
+              if (total > 0) {
+                final progressPercent = (downloaded / total) * 100;
+                print(
+                    'FlutterGemmaLibrary: Download progress: $progressPercent%');
+                onProgress?.call(
+                  'Downloading model... ${progressPercent.toStringAsFixed(1)}%',
+                  progressPercent,
+                );
+              }
+            },
           );
 
-          await for (final progress in stream) {
-            final progressPercent = progress.toDouble();
-            print('FlutterGemmaLibrary: Download progress: $progressPercent%');
-            onProgress?.call(
-                'Downloading model... ${progressPercent.toStringAsFixed(1)}%',
-                progressPercent);
+          if (filePath == null) {
+            throw Exception('Model download failed');
           }
 
-          print('FlutterGemmaLibrary: Model downloaded successfully');
+          print(
+              'FlutterGemmaLibrary: Model downloaded successfully to: $filePath');
+
+          // Set the model path for the plugin
+          await modelManager.setModelPath(filePath);
+          print('FlutterGemmaLibrary: Model path set to: $filePath');
+
           onProgress?.call('Registering model...', 90.0);
         } else {
           print(
-              'FlutterGemmaLibrary: Model already installed, skipping download');
+            'FlutterGemmaLibrary: Model already installed, skipping download',
+          );
           onProgress?.call('Model found, registering...', 50.0);
         }
-
-        // Set model path
-        final directory = await getApplicationDocumentsDirectory();
-        final modelPath = '${directory.path}/$modelFileName';
-        await modelManager.setModelPath(modelPath);
       } catch (loadError) {
         print('FlutterGemmaLibrary: Error during model loading: $loadError');
         onProgress?.call('Model loading failed: ${loadError.toString()}', 0.0);
@@ -191,13 +203,21 @@ class FlutterGemmaLibrary {
       // Determine model parameters
       final modelTypeEnum = ModelUtils.getModelType(finalModelType);
       final backendEnum = ModelUtils.getBackend(backend);
-      final potentiallySupportsVision =
-          ModelUtils.isMultimodalModel(finalModelType);
+      final potentiallySupportsVision = ModelUtils.isMultimodalModel(
+        finalModelType,
+      );
+
+      // Determine appropriate max tokens based on model size
+      final maxTokens = _getMaxTokensForModel(finalModelType);
 
       print('FlutterGemmaLibrary: Using model type: $modelTypeEnum');
       print('FlutterGemmaLibrary: Using backend: $backendEnum');
       print(
-          'FlutterGemmaLibrary: Potentially supports vision: $potentiallySupportsVision');
+          'FlutterGemmaLibrary: Final model type for vision check: $finalModelType');
+      print('FlutterGemmaLibrary: Max tokens: $maxTokens');
+      print(
+        'FlutterGemmaLibrary: Potentially supports vision: $potentiallySupportsVision',
+      );
 
       onProgress?.call('Creating model instance...', 92.0);
 
@@ -207,7 +227,11 @@ class FlutterGemmaLibrary {
         _model = await plugin.createModel(
           modelType: modelTypeEnum,
           preferredBackend: backendEnum,
-          maxTokens: 4096,
+          maxTokens: maxTokens,
+          supportImage: potentiallySupportsVision, // Enable vision support
+          maxNumImages: potentiallySupportsVision
+              ? 1
+              : 0, // Set max images for vision models
         );
       } catch (gpuError) {
         print('FlutterGemmaLibrary: GPU model creation failed: $gpuError');
@@ -218,14 +242,20 @@ class FlutterGemmaLibrary {
           _model = await plugin.createModel(
             modelType: modelTypeEnum,
             preferredBackend: ModelUtils.getBackend('cpu'),
-            maxTokens: 4096,
+            maxTokens: maxTokens,
+            supportImage: potentiallySupportsVision, // Enable vision support
+            maxNumImages: potentiallySupportsVision
+                ? 1
+                : 0, // Set max images for vision models
           );
         } catch (cpuError) {
           print(
-              'FlutterGemmaLibrary: CPU model creation also failed: $cpuError');
+            'FlutterGemmaLibrary: CPU model creation also failed: $cpuError',
+          );
           onProgress?.call(
-              'Model creation failed on both GPU and CPU: ${cpuError.toString()}',
-              0.0);
+            'Model creation failed on both GPU and CPU: ${cpuError.toString()}',
+            0.0,
+          );
           return false;
         }
       }
@@ -238,7 +268,8 @@ class FlutterGemmaLibrary {
       // First, try to create chat based on detected model capabilities
       if (potentiallySupportsVision) {
         print(
-            'FlutterGemmaLibrary: Model potentially supports vision, attempting vision chat');
+          'FlutterGemmaLibrary: Model potentially supports vision, attempting vision chat',
+        );
 
         // Try different approaches for vision support
         final visionApproaches = [
@@ -278,17 +309,20 @@ class FlutterGemmaLibrary {
             _chatSupportsVision = true; // Track that chat supports vision
             visionChatCreated = true;
             print(
-                'FlutterGemmaLibrary: Vision chat created successfully with approach ${i + 1}');
+              'FlutterGemmaLibrary: Vision chat created successfully with approach ${i + 1}',
+            );
           } catch (visionError) {
             print(
-                'FlutterGemmaLibrary: Vision approach ${i + 1} failed: $visionError');
+              'FlutterGemmaLibrary: Vision approach ${i + 1} failed: $visionError',
+            );
           }
         }
 
         // If vision chat failed, fall back to text-only
         if (!visionChatCreated) {
           print(
-              'FlutterGemmaLibrary: All vision approaches failed, falling back to text-only');
+            'FlutterGemmaLibrary: All vision approaches failed, falling back to text-only',
+          );
           try {
             _chat = await _model!.createChat(
               temperature: temperature,
@@ -307,14 +341,16 @@ class FlutterGemmaLibrary {
             print('FlutterGemmaLibrary: Text-only chat created successfully');
           } catch (fallbackError) {
             print(
-                'FlutterGemmaLibrary: Text-only chat creation also failed: $fallbackError');
+              'FlutterGemmaLibrary: Text-only chat creation also failed: $fallbackError',
+            );
             return false;
           }
         }
       } else {
         // Create text-only chat directly for non-vision models
         print(
-            'FlutterGemmaLibrary: Model does not support vision, creating text-only chat');
+          'FlutterGemmaLibrary: Model does not support vision, creating text-only chat',
+        );
         try {
           _chat = await _model!.createChat(
             temperature: temperature,
@@ -346,7 +382,8 @@ class FlutterGemmaLibrary {
         appState.isModelInitialized = true;
         appState.modelSupportsVision = actualSupportsVision;
         print(
-            'FlutterGemmaLibrary: Updated FFAppState - isModelInitialized: true, modelSupportsVision: $actualSupportsVision');
+          'FlutterGemmaLibrary: Updated FFAppState - isModelInitialized: true, modelSupportsVision: $actualSupportsVision',
+        );
       }
 
       onProgress?.call('Model ready for chat!', 100.0);
@@ -354,7 +391,8 @@ class FlutterGemmaLibrary {
       print('FlutterGemmaLibrary: Complete initialization successful');
       print('FlutterGemmaLibrary: Model type: $finalModelType');
       print(
-          'FlutterGemmaLibrary: Actual vision support: $actualSupportsVision');
+        'FlutterGemmaLibrary: Actual vision support: $actualSupportsVision',
+      );
       print('FlutterGemmaLibrary: Backend: $backend');
 
       return true;
@@ -390,7 +428,8 @@ class FlutterGemmaLibrary {
               ModelUtils.isMultimodalModel(modelType);
 
       print(
-          'FlutterGemmaLibrary: Initializing model=$modelType, backend=$backend, vision=$actualSupportImage');
+        'FlutterGemmaLibrary: Initializing model=$modelType, backend=$backend, vision=$actualSupportImage',
+      );
 
       // Check if model file exists if specified
       if (modelFileName != null) {
@@ -412,7 +451,8 @@ class FlutterGemmaLibrary {
         );
       } catch (modelCreationError) {
         print(
-            'FlutterGemmaLibrary: Model creation failed: $modelCreationError');
+          'FlutterGemmaLibrary: Model creation failed: $modelCreationError',
+        );
         // Rethrow to be handled by the outer catch block
         throw modelCreationError;
       }
@@ -430,9 +470,11 @@ class FlutterGemmaLibrary {
       final errorString = e.toString();
       if (errorString.contains('RET_CHECK failure')) {
         print(
-            'FlutterGemmaLibrary: TensorFlow Lite model loading error detected');
+          'FlutterGemmaLibrary: TensorFlow Lite model loading error detected',
+        );
         print(
-            'FlutterGemmaLibrary: This usually indicates a model type/file mismatch');
+          'FlutterGemmaLibrary: This usually indicates a model type/file mismatch',
+        );
         print('FlutterGemmaLibrary: Model type: $modelType, Backend: $backend');
       }
 
@@ -478,12 +520,14 @@ class FlutterGemmaLibrary {
 
       // Additional validation before creating session
       print(
-          'FlutterGemmaLibrary: Creating session with model: $_currentModelType, backend: $_currentBackend');
+        'FlutterGemmaLibrary: Creating session with model: $_currentModelType, backend: $_currentBackend',
+      );
 
       // Check if we're on web platform and handle differently if needed
       if (kIsWeb) {
         print(
-            'FlutterGemmaLibrary: Web platform detected, attempting session creation');
+          'FlutterGemmaLibrary: Web platform detected, attempting session creation',
+        );
         try {
           _session = await _model!.createSession(
             temperature: temperature,
@@ -495,7 +539,8 @@ class FlutterGemmaLibrary {
           // On web, sometimes we can still use the model without a session
           // Mark as successful but with no session
           print(
-              'FlutterGemmaLibrary: Continuing without session for web platform');
+            'FlutterGemmaLibrary: Continuing without session for web platform',
+          );
           return true;
         }
       } else {
@@ -538,7 +583,8 @@ class FlutterGemmaLibrary {
           print('FlutterGemmaLibrary: Sending message with image');
           print('FlutterGemmaLibrary: Image size: ${imageBytes.length} bytes');
           print(
-              'FlutterGemmaLibrary: Chat supports vision: $_chatSupportsVision');
+            'FlutterGemmaLibrary: Chat supports vision: $_chatSupportsVision',
+          );
           msg = Message.withImage(
             text: message,
             imageBytes: imageBytes,
@@ -547,18 +593,18 @@ class FlutterGemmaLibrary {
           print('FlutterGemmaLibrary: Created Message.withImage successfully');
           print('FlutterGemmaLibrary: Message text: ${msg.text}');
           print(
-              'FlutterGemmaLibrary: Message has image: ${msg.imageBytes != null}');
+            'FlutterGemmaLibrary: Message has image: ${msg.imageBytes != null}',
+          );
           print(
-              'FlutterGemmaLibrary: Message image size: ${msg.imageBytes?.length ?? 0}');
+            'FlutterGemmaLibrary: Message image size: ${msg.imageBytes?.length ?? 0}',
+          );
         } else {
           if (imageBytes != null && !_chatSupportsVision) {
             print(
-                'FlutterGemmaLibrary: Chat does not support images (_chatSupportsVision=$_chatSupportsVision), sending text only');
+              'FlutterGemmaLibrary: Chat does not support images (_chatSupportsVision=$_chatSupportsVision), sending text only',
+            );
           }
-          msg = Message.text(
-            text: message,
-            isUser: true,
-          );
+          msg = Message.text(text: message, isUser: true);
         }
 
         // Add the message to chat context
@@ -566,38 +612,46 @@ class FlutterGemmaLibrary {
         await _chat!.addQueryChunk(msg);
         print('FlutterGemmaLibrary: Message added to chat successfully');
 
-        // Generate response
-        final response = await _chat!.generateChatResponse();
+        // Generate response using streaming for better image processing
+        print('FlutterGemmaLibrary: Generating response...');
 
-        // --- Start of new logging ---
-        print(
-            'FlutterGemmaLibrary: Raw response object: ${response.toString()}');
-        print(
-            'FlutterGemmaLibrary: Raw response runtimeType: ${response.runtimeType}');
-        // --- End of new logging ---
+        // Use streaming response for better image processing (Context7 approach)
+        String fullResponse = '';
+        bool hasResponse = false;
 
-        // Extract text from response
-        if (response is TextResponse) {
-          final token = response.token;
-          print(
-              'FlutterGemmaLibrary: Extracted token from TextResponse: "$token"');
+        await for (final response in _chat!.generateChatResponseAsync()) {
+          hasResponse = true;
 
-          // Temporary fix for empty response from native side
-          if (token.isEmpty) {
-            return 'Hello! How can I help you today?';
+          if (response is TextResponse) {
+            final token = response.token;
+            print('FlutterGemmaLibrary: Received token: "$token"');
+
+            if (token.isNotEmpty) {
+              fullResponse += token;
+            }
+          } else if (response is FunctionCallResponse) {
+            print(
+                'FlutterGemmaLibrary: Model wants to call function: ${response.name} with args: ${response.args}');
+            fullResponse = 'Function call requested: ${response.name}';
+            break; // Function calls are complete responses
+          } else if (response is ThinkingResponse) {
+            print('FlutterGemmaLibrary: Model thinking: ${response.content}');
+            // Continue to get the final response after thinking
+          } else {
+            print(
+                'FlutterGemmaLibrary: Unknown response type: ${response.runtimeType}');
           }
-          return token;
-        } else if (response is FunctionCallResponse) {
-          print(
-              'FlutterGemmaLibrary: Model wants to call function: ${response.name} with args: ${response.args}');
-          return 'Function call requested: ${response.name}';
-        } else if (response is ThinkingResponse) {
-          print('FlutterGemmaLibrary: Model thinking: ${response.content}');
-          return response.content;
+        }
+
+        print('FlutterGemmaLibrary: Full response: "$fullResponse"');
+
+        // Return the accumulated response or a fallback
+        if (fullResponse.isNotEmpty) {
+          return fullResponse;
+        } else if (hasResponse) {
+          return 'I received your message but could not generate a proper response. Please try again.';
         } else {
-          print(
-              'FlutterGemmaLibrary: Received an unknown or empty response type: ${response.runtimeType}');
-          return 'Received unexpected response type.';
+          return 'Hello! How can I help you today?';
         }
       } catch (e) {
         print('FlutterGemmaLibrary: Error sending message via chat: $e');
@@ -609,7 +663,8 @@ class FlutterGemmaLibrary {
     if (_session == null) {
       if (kIsWeb && _model != null) {
         print(
-            'FlutterGemmaLibrary: No session on web, attempting direct model inference');
+          'FlutterGemmaLibrary: No session on web, attempting direct model inference',
+        );
         // For web, try to create a temporary session for this message
         try {
           final tempSession = await _model!.createSession(
@@ -621,7 +676,10 @@ class FlutterGemmaLibrary {
           Message msg;
           if (imageBytes != null && _chatSupportsVision) {
             msg = Message.withImage(
-                text: message, imageBytes: imageBytes, isUser: true);
+              text: message,
+              imageBytes: imageBytes,
+              isUser: true,
+            );
           } else {
             msg = Message.text(text: message, isUser: true);
           }
@@ -647,11 +705,15 @@ class FlutterGemmaLibrary {
       // Use image if provided and model supports it
       if (imageBytes != null && supportsVision) {
         msg = Message.withImage(
-            text: message, imageBytes: imageBytes, isUser: true);
+          text: message,
+          imageBytes: imageBytes,
+          isUser: true,
+        );
       } else {
         if (imageBytes != null && !supportsVision) {
           print(
-              'FlutterGemmaLibrary: Model does not support images, sending text only');
+            'FlutterGemmaLibrary: Model does not support images, sending text only',
+          );
         }
         msg = Message.text(text: message, isUser: true);
       }
@@ -682,6 +744,27 @@ class FlutterGemmaLibrary {
       _chat = null;
       _chatSupportsVision = false;
     }
+  }
+
+  /// Store initialized model and chat resources
+  void storeInitializedResources(
+    InferenceModel model,
+    InferenceChat chat,
+    String modelType,
+    String backend,
+    bool supportsVision,
+  ) {
+    _model = model;
+    _chat = chat;
+    _isInitialized = true;
+    _currentModelType = modelType;
+    _currentBackend = backend;
+    _chatSupportsVision = supportsVision;
+
+    print('FlutterGemmaLibrary: Stored initialized resources');
+    print('FlutterGemmaLibrary: Model type: $modelType');
+    print('FlutterGemmaLibrary: Backend: $backend');
+    print('FlutterGemmaLibrary: Supports vision: $supportsVision');
   }
 
   /// Close the model and cleanup resources
@@ -722,7 +805,8 @@ class FlutterGemmaLibrary {
     if (exists) {
       final size = await File(modelPath).length();
       print(
-          'FlutterGemmaLibrary: Model file exists: $fileName (${(size / (1024 * 1024)).toStringAsFixed(1)} MB)');
+        'FlutterGemmaLibrary: Model file exists: $fileName (${(size / (1024 * 1024)).toStringAsFixed(1)} MB)',
+      );
     }
 
     return exists;
@@ -737,7 +821,8 @@ class FlutterGemmaLibrary {
     if (exists) {
       final size = prefs.getInt('model_${fileName}_size') ?? 0;
       print(
-          'FlutterGemmaLibrary: Web model registered: $fileName (${(size / (1024 * 1024)).toStringAsFixed(1)} MB)');
+        'FlutterGemmaLibrary: Web model registered: $fileName (${(size / (1024 * 1024)).toStringAsFixed(1)} MB)',
+      );
       print('FlutterGemmaLibrary: Model URL: $modelUrl');
     }
 
@@ -776,55 +861,81 @@ class FlutterGemmaLibrary {
       return null;
     }
   }
+
+  /// Determine appropriate max tokens based on model size
+  int _getMaxTokensForModel(String modelType) {
+    final normalizedType = modelType.toLowerCase().trim();
+
+    // Smaller models have lower token limits
+    if (normalizedType.contains('1b') || normalizedType.contains('1-b')) {
+      return 2048; // 1B models typically support 2048 tokens
+    } else if (normalizedType.contains('2b') ||
+        normalizedType.contains('2-b')) {
+      return 4096; // 2B models typically support 4096 tokens
+    } else if (normalizedType.contains('7b') ||
+        normalizedType.contains('7-b')) {
+      return 8192; // 7B models typically support 8192 tokens
+    } else if (normalizedType.contains('13b') ||
+        normalizedType.contains('13-b')) {
+      return 16384; // 13B models typically support 16384 tokens
+    } else {
+      return 4096; // Default fallback
+    }
+  }
 }
 
 /// Utility class for model-related helper functions
 class ModelUtils {
   /// Determine if a model supports multimodal (vision) capabilities
+  /// Only specific Gemma models support vision - not all of them
   static bool isMultimodalModel(String modelType) {
-    final normalizedType =
-        modelType.toLowerCase().trim().replaceAll(RegExp(r'[-_\s]+'), '-');
+    final normalizedType = modelType.toLowerCase().trim().replaceAll(
+          RegExp(r'[-_\s]+'),
+          '-',
+        );
 
-    // Gemma models that support vision
-    final multimodalModels = [
-      'gemma-3n-e4b-it',
-      'gemma-3n-e2b-it',
-      'gemma3n-e4b-it', // Alternative naming
-      'gemma3n-e2b-it', // Alternative naming
-      'paligemma', // PaliGemma vision models
-      'gemma-vision', // Generic vision models
-      'gemma-multimodal', // Generic multimodal models
+    print('ModelUtils: Checking vision support for model type: "$modelType"');
+    print('ModelUtils: Normalized type: "$normalizedType"');
+
+    // Only specific Gemma models support vision
+    final visionCapableModels = [
+      'gemma-3n-e2b-it', // Gemma 3N E2B IT supports vision
+      'gemma-3n-e4b-it', // Gemma 3N E4B IT supports vision
+      'gemma-2b-it', // Some Gemma 2B models support vision
+      'gemma-7b-it', // Some Gemma 7B models support vision
     ];
 
-    // Check for multimodal indicators in the model name
+    // Check if this is a vision-capable model
+    for (final visionModel in visionCapableModels) {
+      if (normalizedType.contains(visionModel)) {
+        print('ModelUtils: Found vision-capable model: $visionModel');
+        return true;
+      }
+    }
+
+    // Check for explicit vision indicators (with word boundaries to avoid false matches)
     final visionIndicators = [
       'vision',
       'multimodal',
       'multi-modal',
-      'mm',
       'vl', // vision-language
       'image',
     ];
 
-    // Check if model name contains any multimodal model
-    for (final model in multimodalModels) {
-      if (normalizedType.contains(model)) {
-        return true;
-      }
-    }
-
-    // Check for vision indicators
     for (final indicator in visionIndicators) {
       if (normalizedType.contains(indicator)) {
+        print('ModelUtils: Found vision indicator: $indicator');
         return true;
       }
     }
 
-    // Special check for E2B/E4B models which are multimodal
-    if (normalizedType.contains('e2b') || normalizedType.contains('e4b')) {
+    // Check for 'mm' as a standalone indicator (not part of 'gemma')
+    if (normalizedType.contains('mm') && !normalizedType.contains('gemma')) {
+      print('ModelUtils: Found vision indicator: mm (standalone)');
       return true;
     }
 
+    print('ModelUtils: No vision support detected for: $normalizedType');
     return false;
   }
 
@@ -832,7 +943,7 @@ class ModelUtils {
   static ModelType getModelType(String modelType) {
     final normalized = modelType.toLowerCase().replaceAll('_', '-');
 
-    // Most Gemma models use gemmaIt type
+    // All Gemma models (including Gemma3) use gemmaIt type
     if (normalized.contains('gemma')) {
       return ModelType.gemmaIt;
     }
@@ -885,7 +996,9 @@ class ModelUtils {
           .toLowerCase() // Handle case variations (E2B -> e2b)
           .trim()
           .replaceAll(
-              RegExp(r'-int\d+$'), '') // Remove quantization suffix (-int4)
+            RegExp(r'-int\d+$'),
+            '',
+          ) // Remove quantization suffix (-int4)
           .replaceAll(RegExp(r'\.litertlm$'), '') // Remove .litertlm extension
           .replaceAll(RegExp(r'\.task$'), ''); // Remove .task extension
 
@@ -894,14 +1007,24 @@ class ModelUtils {
           normalized.contains('gemma3n-e4b')) {
         return 'gemma-3n-e4b-it';
       } else if (normalized.contains('gemma-3n-e2b') ||
-          normalized.contains('gemma3n-e2b')) {
+          normalized.contains('gemma3n-e2b') ||
+          normalized.contains('gemma-3n-e2b-it-litert-preview')) {
         return 'gemma-3n-e2b-it';
+      } else if (normalized.contains('gemma3-1b') ||
+          normalized.contains('gemma-3-1b')) {
+        return 'gemma3-1b-it';
+      } else if (normalized.contains('gemma3-2b') ||
+          normalized.contains('gemma-3-2b')) {
+        return 'gemma3-2b-it';
+      } else if (normalized.contains('gemma3-7b') ||
+          normalized.contains('gemma-3-7b')) {
+        return 'gemma3-7b-it';
       } else if (normalized.contains('gemma-3n') ||
           normalized.contains('gemma3n')) {
-        return 'gemma3n-1b'; // Generic Gemma 3 Nano fallback
+        return 'gemma-3n-e2b-it'; // Default to E2B for vision support
       } else if (normalized.contains('gemma-3') ||
           normalized.contains('gemma3')) {
-        return 'gemma3-1b-it'; // Generic Gemma 3 fallback
+        return 'gemma3-1b-it'; // Default to 1B for Gemma3 models
       }
 
       // Return the normalized name if no specific pattern matches

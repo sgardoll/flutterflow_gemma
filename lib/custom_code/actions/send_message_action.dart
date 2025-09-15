@@ -7,10 +7,6 @@ import 'package:flutter/material.dart';
 // Begin custom action code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-import 'index.dart'; // Imports other custom actions
-
-import 'index.dart'; // Imports other custom actions
-
 import '../flutter_gemma_library.dart';
 
 /// Send a message to the initialized Gemma model and get a response
@@ -80,8 +76,21 @@ Future<String?> sendMessageAction(
       imageBytes = image.bytes;
       print('sendMessageAction: Image provided (${imageBytes!.length} bytes)');
 
+      // Validate image size and format
+      if (imageBytes.length == 0) {
+        print('sendMessageAction: Warning - Image is empty, ignoring');
+        imageBytes = null;
+      } else if (imageBytes.length > 10 * 1024 * 1024) {
+        // 10MB limit
+        print(
+            'sendMessageAction: Warning - Image too large (${imageBytes.length} bytes), ignoring');
+        imageBytes = null;
+      } else {
+        print('sendMessageAction: Image validated successfully');
+      }
+
       // Check if model supports vision
-      if (!gemmaLibrary.supportsVision) {
+      if (imageBytes != null && !gemmaLibrary.supportsVision) {
         print(
             'sendMessageAction: Warning - Model does not support vision, image will be ignored');
         imageBytes = null; // Don't send image to text-only models
@@ -89,6 +98,16 @@ Future<String?> sendMessageAction(
     }
 
     // Send message to the model using the library
+    print('sendMessageAction: ===== SENDING MESSAGE =====');
+    print('sendMessageAction: Message: "${message.trim()}"');
+    print('sendMessageAction: Has image: ${imageBytes != null}');
+    if (imageBytes != null) {
+      print('sendMessageAction: Image size: ${imageBytes.length} bytes');
+    }
+    print(
+        'sendMessageAction: Model supports vision: ${gemmaLibrary.supportsVision}');
+    print('sendMessageAction: ===========================');
+
     final response = await gemmaLibrary.sendMessage(
       message.trim(),
       imageBytes: imageBytes,
