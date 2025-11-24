@@ -36,6 +36,9 @@ class _DemoWidgetState extends State<DemoWidget> {
 
     // On page load action.
     SchedulerBinding.instance.addPostFrameCallback((_) async {
+      FFAppState().hfToken = FFLibraryValues().huggingFaceToken!;
+      FFAppState().downloadUrl = FFLibraryValues().modelDownloadUrl;
+      safeSetState(() {});
       _model.initAction = await actions.initializeGemmaModelAction(
         FFLibraryValues().modelDownloadUrl,
         FFLibraryValues().huggingFaceToken,

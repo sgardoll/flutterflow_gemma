@@ -22,6 +22,10 @@ class FFAppState extends ChangeNotifier {
     await _safeInitAsync(() async {
       _hfToken = await secureStorage.getString('ff_hfToken') ?? _hfToken;
     });
+    await _safeInitAsync(() async {
+      _downloadUrl =
+          await secureStorage.getString('ff_downloadUrl') ?? _downloadUrl;
+    });
   }
 
   void update(VoidCallback callback) {
@@ -40,6 +44,17 @@ class FFAppState extends ChangeNotifier {
 
   void deleteHfToken() {
     secureStorage.delete(key: 'ff_hfToken');
+  }
+
+  String _downloadUrl = '';
+  String get downloadUrl => _downloadUrl;
+  set downloadUrl(String value) {
+    _downloadUrl = value;
+    secureStorage.setString('ff_downloadUrl', value);
+  }
+
+  void deleteDownloadUrl() {
+    secureStorage.delete(key: 'ff_downloadUrl');
   }
 
   String _downloadProgress = '';
