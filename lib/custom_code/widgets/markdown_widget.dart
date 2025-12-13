@@ -86,71 +86,76 @@ class _MarkdownWidgetState extends State<MarkdownWidget> {
 
   @override
   Widget build(BuildContext context) {
+    // Only wrap in SingleChildScrollView if a specific height is provided.
+    // Otherwise, let the widget expand naturally (e.g., in a ListView).
+    final content = md.MarkdownTheme(
+      data: md.MarkdownThemeData(
+        // Base text style
+        textStyle: TextStyle(
+          color: widget.mdcolor,
+          fontFamily: widget.fontFamily,
+          fontSize: widget.fontSize,
+        ),
+        // Header styles
+        h1Style: TextStyle(
+          color: widget.mdcolor,
+          fontFamily: widget.fontFamily,
+          fontSize: widget.fontSize * 2,
+          fontWeight: FontWeight.bold,
+        ),
+        h2Style: TextStyle(
+          color: widget.mdcolor,
+          fontFamily: widget.fontFamily,
+          fontSize: widget.fontSize * 1.75,
+          fontWeight: FontWeight.bold,
+        ),
+        h3Style: TextStyle(
+          color: widget.mdcolor,
+          fontFamily: widget.fontFamily,
+          fontSize: widget.fontSize * 1.5,
+          fontWeight: FontWeight.bold,
+        ),
+        h4Style: TextStyle(
+          color: widget.mdcolor,
+          fontFamily: widget.fontFamily,
+          fontSize: widget.fontSize * 1.25,
+          fontWeight: FontWeight.bold,
+        ),
+        h5Style: TextStyle(
+          color: widget.mdcolor,
+          fontFamily: widget.fontFamily,
+          fontSize: widget.fontSize * 1.1,
+          fontWeight: FontWeight.bold,
+        ),
+        h6Style: TextStyle(
+          color: widget.mdcolor,
+          fontFamily: widget.fontFamily,
+          fontSize: widget.fontSize,
+          fontWeight: FontWeight.bold,
+        ),
+        // Quote style
+        quoteStyle: TextStyle(
+          fontFamily: widget.fontFamily,
+          fontSize: widget.fontSize,
+          fontStyle: FontStyle.italic,
+          color: widget.mdcolor.withOpacity(0.8),
+        ),
+        // Future callback link handler
+        onLinkTap: (title, url) => _handleLinkTap(title, url),
+      ),
+      child: md.MarkdownWidget(
+        markdown: _markdown,
+      ),
+    );
+
     return Container(
       width: widget.width,
       height: widget.height,
-      child: SingleChildScrollView(
-        // Added for scrolling
-        child: md.MarkdownTheme(
-          data: md.MarkdownThemeData(
-            // Base text style
-            textStyle: TextStyle(
-              color: widget.mdcolor,
-              fontFamily: widget.fontFamily,
-              fontSize: widget.fontSize,
-            ),
-            // Header styles
-            h1Style: TextStyle(
-              color: widget.mdcolor,
-              fontFamily: widget.fontFamily,
-              fontSize: widget.fontSize * 2,
-              fontWeight: FontWeight.bold,
-            ),
-            h2Style: TextStyle(
-              color: widget.mdcolor,
-              fontFamily: widget.fontFamily,
-              fontSize: widget.fontSize * 1.75,
-              fontWeight: FontWeight.bold,
-            ),
-            h3Style: TextStyle(
-              color: widget.mdcolor,
-              fontFamily: widget.fontFamily,
-              fontSize: widget.fontSize * 1.5,
-              fontWeight: FontWeight.bold,
-            ),
-            h4Style: TextStyle(
-              color: widget.mdcolor,
-              fontFamily: widget.fontFamily,
-              fontSize: widget.fontSize * 1.25,
-              fontWeight: FontWeight.bold,
-            ),
-            h5Style: TextStyle(
-              color: widget.mdcolor,
-              fontFamily: widget.fontFamily,
-              fontSize: widget.fontSize * 1.1,
-              fontWeight: FontWeight.bold,
-            ),
-            h6Style: TextStyle(
-              color: widget.mdcolor,
-              fontFamily: widget.fontFamily,
-              fontSize: widget.fontSize,
-              fontWeight: FontWeight.bold,
-            ),
-            // Quote style
-            quoteStyle: TextStyle(
-              fontFamily: widget.fontFamily,
-              fontSize: widget.fontSize,
-              fontStyle: FontStyle.italic,
-              color: widget.mdcolor.withOpacity(0.8),
-            ),
-            // Future callback link handler
-            onLinkTap: (title, url) => _handleLinkTap(title, url),
-          ),
-          child: md.MarkdownWidget(
-            markdown: _markdown,
-          ),
-        ),
-      ),
+      child: widget.height != null
+          ? SingleChildScrollView(
+              child: content,
+            )
+          : content,
     );
   }
 }
