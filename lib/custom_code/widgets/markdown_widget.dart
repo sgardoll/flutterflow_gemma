@@ -38,12 +38,14 @@ class MarkdownWidget extends StatefulWidget {
 
 class _MarkdownWidgetState extends State<MarkdownWidget> {
   late md.Markdown _markdown;
+  late md.MarkdownThemeData _themeData;
 
   @override
   void initState() {
     super.initState();
     // Parse markdown once during initialization for better performance
     _markdown = md.Markdown.fromString(widget.data);
+    _createThemeData();
   }
 
   @override
@@ -53,6 +55,71 @@ class _MarkdownWidgetState extends State<MarkdownWidget> {
     if (oldWidget.data != widget.data) {
       _markdown = md.Markdown.fromString(widget.data);
     }
+
+    // Update theme data only if style properties change
+    if (oldWidget.mdcolor != widget.mdcolor ||
+        oldWidget.fontFamily != widget.fontFamily ||
+        oldWidget.fontSize != widget.fontSize ||
+        oldWidget.onLinkTap != widget.onLinkTap) {
+      _createThemeData();
+    }
+  }
+
+  void _createThemeData() {
+    _themeData = md.MarkdownThemeData(
+      // Base text style
+      textStyle: TextStyle(
+        color: widget.mdcolor,
+        fontFamily: widget.fontFamily,
+        fontSize: widget.fontSize,
+      ),
+      // Header styles
+      h1Style: TextStyle(
+        color: widget.mdcolor,
+        fontFamily: widget.fontFamily,
+        fontSize: widget.fontSize * 2,
+        fontWeight: FontWeight.bold,
+      ),
+      h2Style: TextStyle(
+        color: widget.mdcolor,
+        fontFamily: widget.fontFamily,
+        fontSize: widget.fontSize * 1.75,
+        fontWeight: FontWeight.bold,
+      ),
+      h3Style: TextStyle(
+        color: widget.mdcolor,
+        fontFamily: widget.fontFamily,
+        fontSize: widget.fontSize * 1.5,
+        fontWeight: FontWeight.bold,
+      ),
+      h4Style: TextStyle(
+        color: widget.mdcolor,
+        fontFamily: widget.fontFamily,
+        fontSize: widget.fontSize * 1.25,
+        fontWeight: FontWeight.bold,
+      ),
+      h5Style: TextStyle(
+        color: widget.mdcolor,
+        fontFamily: widget.fontFamily,
+        fontSize: widget.fontSize * 1.1,
+        fontWeight: FontWeight.bold,
+      ),
+      h6Style: TextStyle(
+        color: widget.mdcolor,
+        fontFamily: widget.fontFamily,
+        fontSize: widget.fontSize,
+        fontWeight: FontWeight.bold,
+      ),
+      // Quote style
+      quoteStyle: TextStyle(
+        fontFamily: widget.fontFamily,
+        fontSize: widget.fontSize,
+        fontStyle: FontStyle.italic,
+        color: widget.mdcolor.withOpacity(0.8),
+      ),
+      // Future callback link handler
+      onLinkTap: (title, url) => _handleLinkTap(title, url),
+    );
   }
 
   // Default link handler if none provided
@@ -87,60 +154,7 @@ class _MarkdownWidgetState extends State<MarkdownWidget> {
     // Only wrap in SingleChildScrollView if a specific height is provided.
     // Otherwise, let the widget expand naturally (e.g., in a ListView).
     final content = md.MarkdownTheme(
-      data: md.MarkdownThemeData(
-        // Base text style
-        textStyle: TextStyle(
-          color: widget.mdcolor,
-          fontFamily: widget.fontFamily,
-          fontSize: widget.fontSize,
-        ),
-        // Header styles
-        h1Style: TextStyle(
-          color: widget.mdcolor,
-          fontFamily: widget.fontFamily,
-          fontSize: widget.fontSize * 2,
-          fontWeight: FontWeight.bold,
-        ),
-        h2Style: TextStyle(
-          color: widget.mdcolor,
-          fontFamily: widget.fontFamily,
-          fontSize: widget.fontSize * 1.75,
-          fontWeight: FontWeight.bold,
-        ),
-        h3Style: TextStyle(
-          color: widget.mdcolor,
-          fontFamily: widget.fontFamily,
-          fontSize: widget.fontSize * 1.5,
-          fontWeight: FontWeight.bold,
-        ),
-        h4Style: TextStyle(
-          color: widget.mdcolor,
-          fontFamily: widget.fontFamily,
-          fontSize: widget.fontSize * 1.25,
-          fontWeight: FontWeight.bold,
-        ),
-        h5Style: TextStyle(
-          color: widget.mdcolor,
-          fontFamily: widget.fontFamily,
-          fontSize: widget.fontSize * 1.1,
-          fontWeight: FontWeight.bold,
-        ),
-        h6Style: TextStyle(
-          color: widget.mdcolor,
-          fontFamily: widget.fontFamily,
-          fontSize: widget.fontSize,
-          fontWeight: FontWeight.bold,
-        ),
-        // Quote style
-        quoteStyle: TextStyle(
-          fontFamily: widget.fontFamily,
-          fontSize: widget.fontSize,
-          fontStyle: FontStyle.italic,
-          color: widget.mdcolor.withOpacity(0.8),
-        ),
-        // Future callback link handler
-        onLinkTap: (title, url) => _handleLinkTap(title, url),
-      ),
+      data: _themeData,
       child: md.MarkdownWidget(
         markdown: _markdown,
       ),
@@ -151,9 +165,10 @@ class _MarkdownWidgetState extends State<MarkdownWidget> {
       height: widget.height,
       child: widget.height != null
           ? SingleChildScrollView(
-              child: content,
+              // Wrap with RepaintBoundary to isolate markdown painting
+              child: RepaintBoundary(child: content),
             )
-          : content,
+          : RepaintBoundary(child: content),
     );
   }
 }
