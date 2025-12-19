@@ -103,23 +103,11 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
     // Get download status from app state
     final isDownloading = appState.isDownloading;
     final isInitializing = appState.isInitializing;
-    final downloadPercentage = appState.downloadPercentage;
 
-    // Update the last progress message if it exists
+    // Check if the last message is a progress message
     if (_messages.isNotEmpty && _messages.last.isProgress) {
-      setState(() {
-        _messages[_messages.length - 1] = ChatMessage(
-          text: appState.downloadProgress.isNotEmpty
-              ? appState.downloadProgress
-              : (isDownloading
-                  ? 'Downloading model...'
-                  : 'Initializing model...'),
-          isUser: false,
-          isSystemMessage: true,
-          isProgress: isDownloading || isInitializing,
-          progressPercentage: downloadPercentage,
-        );
-      });
+      // NOTE: We no longer update the message text via setState here.
+      // The _GemmaProgressIndicator widget handles the UI updates efficiently.
 
       // Remove progress message when done
       if (!isDownloading && !isInitializing) {
@@ -172,22 +160,6 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
         ));
       });
     }
-  }
-
-  /// Get whether to show the image button
-  bool get _shouldShowImageButton {
-    if (widget.showImageButton != null) {
-      print(
-          'GemmaChatWidget: Using explicit showImageButton: ${widget.showImageButton}');
-      return widget.showImageButton!;
-    }
-
-    // Auto-detect based on FFAppState model capabilities
-    final appState = context.watch<FFAppState>();
-    final supportsVision = appState.modelSupportsVision;
-    print('GemmaChatWidget: Auto-detected vision support: $supportsVision');
-    print('GemmaChatWidget: Model initialized: ${appState.isModelInitialized}');
-    return supportsVision;
   }
 
   /// Select image from gallery or camera
@@ -450,8 +422,13 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
 
   /// Build input area widget
   Widget _buildInputArea() {
-    final appState = context.watch<FFAppState>();
-    final isInitialized = appState.isModelInitialized;
+    // Optimization: Use select instead of watch to prevent rebuilds on unrelated AppState changes
+    final isInitialized =
+        context.select<FFAppState, bool>((s) => s.isModelInitialized);
+    final supportsVision =
+        context.select<FFAppState, bool>((s) => s.modelSupportsVision);
+
+    final showImageButton = widget.showImageButton ?? supportsVision;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -465,7 +442,7 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
       child: Row(
         children: [
           // Image button (conditionally shown)
-          if (_shouldShowImageButton) ...[
+          if (showImageButton) ...[
             IconButton(
               onPressed: (!isInitialized || _isLoading) ? null : _selectImage,
               icon: Icon(
@@ -563,42 +540,9 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
             ],
 
             // Progress indicator for download/initialization messages
-            if (message.isProgress) ...[
-              Row(
-                children: [
-                  SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      value: message.progressPercentage > 0
-                          ? message.progressPercentage / 100
-                          : null,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      message.text,
-                      style: TextStyle(
-                        color: FlutterFlowTheme.of(context).primaryText,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              if (message.progressPercentage > 0) ...[
-                const SizedBox(height: 8),
-                LinearProgressIndicator(
-                  value: message.progressPercentage / 100,
-                  backgroundColor: FlutterFlowTheme.of(context).alternate,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    FlutterFlowTheme.of(context).primary,
-                  ),
-                ),
-              ],
-            ] else if (message.text.isNotEmpty)
+            if (message.isProgress)
+              const _GemmaProgressIndicator()
+            else if (message.text.isNotEmpty)
               // Regular text message
               message.isUser
                   ? Text(
@@ -627,7 +571,8 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
     // Add copy functionality for non-user messages
     if (!message.isUser &&
         !message.isSystemMessage &&
-        message.text.isNotEmpty) {
+        message.text.isNotEmpty &&
+        !message.isProgress) {
       bubble = GestureDetector(
         onLongPress: () async {
           await Clipboard.setData(ClipboardData(text: message.text));
@@ -667,4 +612,63 @@ class ChatMessage {
     this.isProgress = false,
     this.progressPercentage = 0.0,
   }) : timestamp = timestamp ?? DateTime.now();
+}
+
+/// Private widget to handle progress updates efficiently
+/// This isolates the high-frequency rebuilds caused by download progress
+class _GemmaProgressIndicator extends StatelessWidget {
+  const _GemmaProgressIndicator();
+
+  @override
+  Widget build(BuildContext context) {
+    // Select only specific fields to rebuild this widget
+    final percentage =
+        context.select<FFAppState, double>((s) => s.downloadPercentage);
+    final progressText =
+        context.select<FFAppState, String>((s) => s.downloadProgress);
+    final isDownloading =
+        context.select<FFAppState, bool>((s) => s.isDownloading);
+
+    final text = progressText.isNotEmpty
+        ? progressText
+        : (isDownloading ? 'Downloading model...' : 'Initializing model...');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                value: percentage > 0 ? percentage / 100 : null,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                text,
+                style: TextStyle(
+                  color: FlutterFlowTheme.of(context).primaryText,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+          ],
+        ),
+        if (percentage > 0) ...[
+          const SizedBox(height: 8),
+          LinearProgressIndicator(
+            value: percentage / 100,
+            backgroundColor: FlutterFlowTheme.of(context).alternate,
+            valueColor: AlwaysStoppedAnimation<Color>(
+              FlutterFlowTheme.of(context).primary,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
 }
