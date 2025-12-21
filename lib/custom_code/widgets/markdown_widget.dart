@@ -141,8 +141,10 @@ class _MarkdownWidgetState extends State<MarkdownWidget> {
         // Future callback link handler
         onLinkTap: (title, url) => _handleLinkTap(title, url),
       ),
-      child: md.MarkdownWidget(
-        markdown: _markdown,
+      child: RepaintBoundary(
+        child: md.MarkdownWidget(
+          markdown: _markdown,
+        ),
       ),
     );
 
