@@ -939,6 +939,46 @@ class ModelUtils {
     return false;
   }
 
+  /// Determine if a model supports function calling capabilities
+  /// FunctionGemma models are specifically designed for function calling
+  static bool isFunctionCallingModel(String modelType) {
+    final normalizedType = modelType.toLowerCase().trim().replaceAll(
+          RegExp(r'[-_\s]+'),
+          '-',
+        );
+
+    print(
+        'ModelUtils: Checking function calling support for model type: "$modelType"');
+    print('ModelUtils: Normalized type: "$normalizedType"');
+
+    // FunctionGemma models support function calling
+    final functionCallingModels = [
+      'functiongemma',
+      'function-gemma',
+      'functiongemma-270m',
+      'functiongemma-270m-it',
+    ];
+
+    for (final fcModel in functionCallingModels) {
+      if (normalizedType.contains(fcModel)) {
+        print('ModelUtils: Found function-calling model: $fcModel');
+        return true;
+      }
+    }
+
+    // Check for explicit function calling indicators
+    if (normalizedType.contains('function') ||
+        normalizedType.contains('tool-use') ||
+        normalizedType.contains('tooluse')) {
+      print('ModelUtils: Found function calling indicator in model name');
+      return true;
+    }
+
+    print(
+        'ModelUtils: No function calling support detected for: $normalizedType');
+    return false;
+  }
+
   /// Convert string to ModelType enum
   static ModelType getModelType(String modelType) {
     final normalized = modelType.toLowerCase().replaceAll('_', '-');
@@ -1001,6 +1041,16 @@ class ModelUtils {
           ) // Remove quantization suffix (-int4)
           .replaceAll(RegExp(r'\.litertlm$'), '') // Remove .litertlm extension
           .replaceAll(RegExp(r'\.task$'), ''); // Remove .task extension
+
+      // FunctionGemma model detection (check first as it's a specialized model)
+      if (normalized.contains('functiongemma') ||
+          normalized.contains('function-gemma') ||
+          normalized.contains('function_gemma')) {
+        if (normalized.contains('270m')) {
+          return 'functiongemma-270m-it';
+        }
+        return 'functiongemma-270m-it'; // Default FunctionGemma variant
+      }
 
       // Special handling for common model naming patterns
       if (normalized.contains('gemma-3n-e4b') ||

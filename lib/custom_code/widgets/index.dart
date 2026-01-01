@@ -1,2 +1,3 @@
 export 'gemma_chat_widget.dart' show GemmaChatWidget;
 export 'markdown_widget.dart' show MarkdownWidget;
+export 'function_gemma_chat_widget.dart' show FunctionGemmaChatWidget;

@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'demo_model.dart';
 export 'demo_model.dart';
 
@@ -36,7 +37,42 @@ class _DemoWidgetState extends State<DemoWidget> {
 
     // On page load action.
     SchedulerBinding.instance.addPostFrameCallback((_) async {
-      FFAppState().hfToken = FFLibraryValues().huggingFaceToken!;
+      // Check if library values are configured
+      final modelUrl = FFLibraryValues().modelDownloadUrl;
+      final hfToken = FFLibraryValues().huggingFaceToken;
+
+      final needsModelUrl = modelUrl.isEmpty;
+      final needsToken = hfToken == null || hfToken.isEmpty;
+
+      // If values are missing, show configuration modal
+      if (needsModelUrl || needsToken) {
+        final result = await _showConfigurationModal(
+          context,
+          needsModelUrl: needsModelUrl,
+          needsToken: needsToken,
+          currentModelUrl: modelUrl,
+          currentToken: hfToken,
+        );
+
+        if (result == null) {
+          // User cancelled - go back
+          if (mounted) {
+            context.safePop();
+          }
+          return;
+        }
+
+        // Update library values with user input
+        if (result['modelUrl'] != null && result['modelUrl']!.isNotEmpty) {
+          FFLibraryValues().modelDownloadUrl = result['modelUrl']!;
+        }
+        if (result['token'] != null && result['token']!.isNotEmpty) {
+          FFLibraryValues().huggingFaceToken = result['token']!;
+        }
+      }
+
+      // Now proceed with initialization
+      FFAppState().hfToken = FFLibraryValues().huggingFaceToken ?? '';
       FFAppState().downloadUrl = FFLibraryValues().modelDownloadUrl;
       safeSetState(() {});
       _model.initAction = await actions.initializeGemmaModelAction(
@@ -72,6 +108,248 @@ class _DemoWidgetState extends State<DemoWidget> {
     _model.dispose();
 
     super.dispose();
+  }
+
+  /// Show configuration modal for missing library values
+  Future<Map<String, String>?> _showConfigurationModal(
+    BuildContext context, {
+    required bool needsModelUrl,
+    required bool needsToken,
+    String? currentModelUrl,
+    String? currentToken,
+  }) async {
+    final modelUrlController = TextEditingController(text: currentModelUrl ?? '');
+    final tokenController = TextEditingController(text: currentToken ?? '');
+    String? selectedModel;
+
+    // Default models from README
+    final defaultModels = {
+      'Gemma 3n E4B (4B, Vision)': 'https://huggingface.co/google/gemma-3n-E4B-it-litert-lm/resolve/main/gemma-3n-E4B-it-int4.litertlm',
+      'Gemma 3n E2B (2B, Vision)': 'https://huggingface.co/google/gemma-3n-E2B-it-litert-lm/resolve/main/gemma-3n-E2B-it-int4.litertlm',
+      'Gemma 3 1B (Text-only)': 'https://huggingface.co/google/gemma-3-1b-it-litert-lm/resolve/main/gemma-3-1b-it-int4.litertlm',
+      'FunctionGemma 270M': 'https://huggingface.co/nickschu/functiongemma-270m-it-litert/resolve/main/functiongemma-270m-it-int4.litertlm',
+    };
+
+    return showDialog<Map<String, String>?>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Text(
+                'Configure Gemma Model',
+                style: GoogleFonts.interTight(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (needsModelUrl) ...[
+                      Text(
+                        'Select a model or enter a custom URL:',
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          color: FlutterFlowTheme.of(context).secondaryText,
+                        ),
+                      ),
+                      SizedBox(height: 12),
+                      // Default model selection
+                      ...defaultModels.entries.map((entry) {
+                        final isSelected = selectedModel == entry.key;
+                        return Padding(
+                          padding: EdgeInsets.only(bottom: 8),
+                          child: InkWell(
+                            onTap: () {
+                              setDialogState(() {
+                                selectedModel = entry.key;
+                                modelUrlController.text = entry.value;
+                              });
+                            },
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? FlutterFlowTheme.of(context).primary.withAlpha(25)
+                                    : FlutterFlowTheme.of(context).secondaryBackground,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? FlutterFlowTheme.of(context).primary
+                                      : FlutterFlowTheme.of(context).alternate,
+                                  width: isSelected ? 2 : 1,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
+                                    color: isSelected
+                                        ? FlutterFlowTheme.of(context).primary
+                                        : FlutterFlowTheme.of(context).secondaryText,
+                                    size: 20,
+                                  ),
+                                  SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      entry.key,
+                                      style: GoogleFonts.inter(
+                                        fontSize: 14,
+                                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                      SizedBox(height: 8),
+                      // Custom URL option
+                      InkWell(
+                        onTap: () {
+                          setDialogState(() {
+                            selectedModel = 'custom';
+                            modelUrlController.clear();
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: selectedModel == 'custom'
+                                ? FlutterFlowTheme.of(context).primary.withAlpha(25)
+                                : FlutterFlowTheme.of(context).secondaryBackground,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: selectedModel == 'custom'
+                                  ? FlutterFlowTheme.of(context).primary
+                                  : FlutterFlowTheme.of(context).alternate,
+                              width: selectedModel == 'custom' ? 2 : 1,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                selectedModel == 'custom' ? Icons.radio_button_checked : Icons.radio_button_off,
+                                color: selectedModel == 'custom'
+                                    ? FlutterFlowTheme.of(context).primary
+                                    : FlutterFlowTheme.of(context).secondaryText,
+                                size: 20,
+                              ),
+                              SizedBox(width: 10),
+                              Text(
+                                'Custom URL',
+                                style: GoogleFonts.inter(
+                                  fontSize: 14,
+                                  fontWeight: selectedModel == 'custom' ? FontWeight.w600 : FontWeight.normal,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      if (selectedModel == 'custom') ...[
+                        SizedBox(height: 12),
+                        TextField(
+                          controller: modelUrlController,
+                          decoration: InputDecoration(
+                            labelText: 'Model URL',
+                            hintText: 'https://huggingface.co/...',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          style: GoogleFonts.inter(fontSize: 14),
+                        ),
+                      ],
+                      SizedBox(height: 16),
+                    ],
+                    if (needsToken) ...[
+                      Text(
+                        'HuggingFace Token (required for download):',
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          color: FlutterFlowTheme.of(context).secondaryText,
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      TextField(
+                        controller: tokenController,
+                        obscureText: true,
+                        decoration: InputDecoration(
+                          labelText: 'HuggingFace Token',
+                          hintText: 'hf_...',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          suffixIcon: IconButton(
+                            icon: Icon(Icons.open_in_new, size: 20),
+                            onPressed: () {
+                              launchUrl(Uri.parse('https://huggingface.co/settings/tokens'));
+                            },
+                          ),
+                        ),
+                        style: GoogleFonts.inter(fontSize: 14),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'Get your token at huggingface.co/settings/tokens',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: FlutterFlowTheme.of(context).secondaryText,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(null),
+                  child: Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    final modelUrl = modelUrlController.text.trim();
+                    final token = tokenController.text.trim();
+
+                    // Validate required fields
+                    if (needsModelUrl && modelUrl.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Please select or enter a model URL')),
+                      );
+                      return;
+                    }
+                    if (needsToken && token.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Please enter your HuggingFace token')),
+                      );
+                      return;
+                    }
+
+                    Navigator.of(dialogContext).pop({
+                      'modelUrl': modelUrl,
+                      'token': token,
+                    });
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: FlutterFlowTheme.of(context).primary,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: Text('Continue'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   @override

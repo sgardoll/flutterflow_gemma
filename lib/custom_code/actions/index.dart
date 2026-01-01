@@ -5,3 +5,9 @@ export 'initialize_model_action.dart' show initializeModelAction;
 export 'initialize_gemma_model_action.dart' show initializeGemmaModelAction;
 export 'send_message_action.dart' show sendMessageAction;
 export 'sanitize_image_for_gemma.dart' show sanitizeImageForGemma;
+export 'send_function_gemma_message.dart'
+    show
+        sendFunctionGemmaMessage,
+        continueFunctionGemmaConversation,
+        FunctionGemmaResponse,
+        FunctionCallHandler;

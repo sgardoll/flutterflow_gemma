@@ -7,6 +7,7 @@ An integration of Google's Gemma 3n AI models, providing offline/local on-device
 ### 🤖 AI Model Support
 - **Gemma 3 Text Models**: 1B parameters (text-only)
 - **Gemma 3 Nano Models**: 2B, 4B parameters (vision + text)
+- **FunctionGemma**: 270M parameters (function calling for smart actions)
 - **On-device Processing**: Complete offline AI capabilities
 - **Mobile Optimized**: iOS & Android Support (Web coming soon)
 
@@ -36,6 +37,7 @@ An integration of Google's Gemma 3n AI models, providing offline/local on-device
 #### Custom Widgets
 - **GemmaSimpleSetupWidget**: Complete setup wizard with progress tracking
 - **GemmaChatWidget**: Real-time chat interface with image support
+- **FunctionGemmaChatWidget**: Chat interface with function calling visualization
 - **GemmaVisualModelSelector**: Visual model selection with expandable categories
 - **MarkdownDisplayWidget**: Rich text rendering for AI responses
 
@@ -43,6 +45,7 @@ An integration of Google's Gemma 3n AI models, providing offline/local on-device
 - **downloadAuthenticatedModel**: Secure model downloads with progress tracking
 - **installLocalModelFile**: Optimized model installation with validation
 - **validateAndRepairModel**: File integrity checking and repair
+- **sendFunctionGemmaMessage**: Function calling with tool definitions
 - **closeModel**: Proper cleanup and state reset
 
 ## 📱 Supported Models
@@ -57,6 +60,11 @@ An integration of Google's Gemma 3n AI models, providing offline/local on-device
 |-------|------------|--------|--------------|
 | gemma-3n-e2b-it | 2B | 2GB | Vision + text |
 | gemma-3n-e4b-it | 4B | 3GB | Advanced vision |
+
+### Function Calling Models (FunctionGemma)
+| Model | Parameters | Memory | Capabilities |
+|-------|------------|--------|--------------|
+| functiongemma-270m-it | 270M | 288MB | Function calling, tool use |
 
 ## 🛠️ Installation & Setup
 
@@ -126,6 +134,34 @@ await installLocalModelFile(modelPath, null);
 
 // Proper cleanup
 await closeModel();
+```
+
+### FunctionGemma (Function Calling)
+```dart
+// Use FunctionGemmaChatWidget for automatic tool execution
+FunctionGemmaChatWidget(
+  width: double.infinity,
+  height: double.infinity,
+  enableCommonFunctions: true, // Calendar, weather, reminders, etc.
+  onFunctionCall: (functionName, args) async {
+    // Handle function execution
+    if (functionName == 'create_calendar_event') {
+      // Create the event...
+      return {'success': true, 'event_id': '123'};
+    }
+    return null;
+  },
+)
+
+// Or use the action directly for custom implementations
+final response = await sendFunctionGemmaMessage(
+  'Set a reminder for my meeting at 3pm',
+  functions: [
+    CommonFunctionDefinitions.setReminder(),
+    CommonFunctionDefinitions.createCalendarEvent(),
+  ],
+  functionHandler: myFunctionHandler,
+);
 ```
 
 ## 📁 Project Structure
@@ -201,6 +237,8 @@ This project integrates with Google's Gemma models. Please review the Gemma lice
 
 - [FlutterFlow Documentation](https://docs.flutterflow.io)
 - [Gemma Models](https://huggingface.co/collections/google/gemma-3-665f2f5b4b0a10a9e5d6be9d)
+- [FunctionGemma Model](https://huggingface.co/google/functiongemma-270m-it)
+- [FunctionGemma Documentation](https://ai.google.dev/gemma/docs/functiongemma)
 - [Flutter Gemma Plugin](https://pub.dev/packages/flutter_gemma)
 - [HuggingFace Tokens](https://huggingface.co/settings/tokens)
 
