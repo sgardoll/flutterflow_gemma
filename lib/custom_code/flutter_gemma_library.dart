@@ -1043,9 +1043,13 @@ class ModelUtils {
           .replaceAll(RegExp(r'\.task$'), ''); // Remove .task extension
 
       // FunctionGemma model detection (check first as it's a specialized model)
+      // tiny_garden is the official FunctionGemma demo model
       if (normalized.contains('functiongemma') ||
           normalized.contains('function-gemma') ||
-          normalized.contains('function_gemma')) {
+          normalized.contains('function_gemma') ||
+          normalized.contains('tiny_garden') ||
+          normalized.contains('tiny-garden') ||
+          normalized.contains('tinygarden')) {
         if (normalized.contains('270m')) {
           return 'functiongemma-270m-it';
         }

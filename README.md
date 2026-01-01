@@ -64,7 +64,17 @@ An integration of Google's Gemma 3n AI models, providing offline/local on-device
 ### Function Calling Models (FunctionGemma)
 | Model | Parameters | Memory | Capabilities |
 |-------|------------|--------|--------------|
-| functiongemma-270m-it | 270M | 288MB | Function calling, tool use |
+| functiongemma-270m-it (Tiny Garden) | 270M | 288MB | Function calling, tool use |
+
+#### FunctionGemma Use Cases
+
+**Tiny Garden**: A model fine-tuned to power a voice-controlled interactive game. It handles game logic to manage a virtual plot of land, decomposing commands like "Plant sunflowers in the top row" and "Water the flowers in plots 1 and 2" into app-specific functions (e.g., `plant_seed`, `water_plots`) and coordinate targets. This demonstrates the model's capacity to drive custom app mechanics without server connectivity.
+
+**Mobile Actions**: To empower developers to build their own expert agents, Google has published a dataset and fine-tuning recipe. It translates user inputs (e.g., "Create a calendar event for lunch," "Turn on the flashlight") into function calls that trigger Android OS system tools. This use case demonstrates the model's ability to act as an offline, private agent for personal device tasks.
+
+#### FunctionGemma Specifications
+- **Input**: Text string (question, prompt, or document) - 32K token context
+- **Output**: Generated function calls or text responses - up to 32K tokens
 
 ## 🛠️ Installation & Setup
 

@@ -64,13 +64,21 @@ Future<bool> initializeGemmaModelAction(
     // Smart URL and token validation
     appState.downloadProgress = 'Validating configuration...';
     final isHuggingFaceUrl = _isHuggingFaceUrl(modelUrl);
-    if (isHuggingFaceUrl && (authToken == null || authToken.isEmpty)) {
-      final error = 'HuggingFace URLs require authentication token';
-      print('initializeGemmaModelAction: Error - $error');
-      appState.isInitializing = false;
-      appState.downloadProgress = 'Error: $error';
-      return false;
-    }
+  if (isHuggingFaceUrl && (authToken == null || authToken.isEmpty)) {
+    final error = 'HuggingFace URLs require authentication token';
+    print('initializeGemmaModelAction: Error - $error');
+    appState.isInitializing = false;
+    appState.downloadProgress = 'Error: $error';
+    return false;
+  }
+  if (!_isSupportedModelFile(modelUrl)) {
+    final error =
+        'Unsupported model file. Use a .task, .tflite, or .bin LiteRT model.';
+    print('initializeGemmaModelAction: Error - $error');
+    appState.isInitializing = false;
+    appState.downloadProgress = 'Error: $error';
+    return false;
+  }
 
     // Use the FlutterGemmaLibrary's complete initialization method
     final gemmaLibrary = FlutterGemmaLibrary.instance;
@@ -142,4 +150,14 @@ bool _isHuggingFaceUrl(String url) {
   final uri = Uri.tryParse(url);
   if (uri == null) return false;
   return uri.host.contains('huggingface.co') || uri.host.contains('hf.co');
+}
+
+/// Check for supported LiteRT/MediaPipe model formats.
+bool _isSupportedModelFile(String url) {
+  final uri = Uri.tryParse(url);
+  if (uri == null) return false;
+  final path = uri.path.toLowerCase();
+  return path.endsWith('.task') ||
+      path.endsWith('.tflite') ||
+      path.endsWith('.bin');
 }

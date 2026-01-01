@@ -122,12 +122,12 @@ class _DemoWidgetState extends State<DemoWidget> {
     final tokenController = TextEditingController(text: currentToken ?? '');
     String? selectedModel;
 
-    // Default models from README
+    // Default models from flutter_gemma supported list (.task/.tflite)
     final defaultModels = {
-      'Gemma 3n E4B (4B, Vision)': 'https://huggingface.co/google/gemma-3n-E4B-it-litert-lm/resolve/main/gemma-3n-E4B-it-int4.litertlm',
-      'Gemma 3n E2B (2B, Vision)': 'https://huggingface.co/google/gemma-3n-E2B-it-litert-lm/resolve/main/gemma-3n-E2B-it-int4.litertlm',
-      'Gemma 3 1B (Text-only)': 'https://huggingface.co/google/gemma-3-1b-it-litert-lm/resolve/main/gemma-3-1b-it-int4.litertlm',
-      'FunctionGemma 270M': 'https://huggingface.co/nickschu/functiongemma-270m-it-litert/resolve/main/functiongemma-270m-it-int4.litertlm',
+      'Gemma 3n E4B (4B, Vision)': 'https://huggingface.co/google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-3n-E4B-it-int4.task',
+      'Gemma 3n E2B (2B, Vision)': 'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task',
+      'Gemma 3 1B (Text-only)': 'https://huggingface.co/litert-community/Gemma3-1B-IT/resolve/main/Gemma3-1B-IT_multi-prefill-seq_q4_ekv2048.task',
+      'Hammer 2.1 0.5B (Function Calling)': 'https://huggingface.co/litert-community/Hammer2.1-0.5b/resolve/main/hammer2p1_05b_.task',
     };
 
     return showDialog<Map<String, String>?>(

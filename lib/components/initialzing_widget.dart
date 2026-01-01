@@ -341,6 +341,8 @@ class _InitialzingWidgetState extends State<InitialzingWidget>
       return 'Gemma 3n E2B (2B, Vision)';
     } else if (urlLower.contains('gemma-3-1b') || urlLower.contains('gemma3-1b')) {
       return 'Gemma 3 1B (Text-only)';
+    } else if (urlLower.contains('tiny_garden') || urlLower.contains('tinygarden')) {
+      return 'FunctionGemma 270M (Tiny Garden)';
     } else if (urlLower.contains('functiongemma')) {
       return 'FunctionGemma 270M';
     } else if (urlLower.contains('gemma')) {

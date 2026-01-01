@@ -1,4 +1,3 @@
-
 class FFLibraryValues {
   static FFLibraryValues _instance = FFLibraryValues._internal();
 
@@ -12,7 +11,6 @@ class FFLibraryValues {
     _instance = FFLibraryValues._internal();
   }
 
-  String modelDownloadUrl =
-      'https://huggingface.co/google/gemma-3n-E4B-it-litert-lm/resolve/main/gemma-3n-E4B-it-int4.litertlm';
+  String modelDownloadUrl = '';
   String? huggingFaceToken = '';
 }

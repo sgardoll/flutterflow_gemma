@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import 'flutter_flow/flutter_flow_util.dart';
 
@@ -13,6 +14,9 @@ void main() async {
   usePathUrlStrategy();
 
   await FlutterFlowTheme.initialize();
+
+  // Allow google_fonts to fetch from network, skip local asset check
+  GoogleFonts.config.allowRuntimeFetching = true;
 
   final appState = FFAppState(); // Initialize FFAppState
   await appState.initializePersistedState();
