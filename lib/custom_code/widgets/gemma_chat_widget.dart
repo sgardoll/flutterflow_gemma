@@ -103,35 +103,34 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
     // Get download status from app state
     final isDownloading = appState.isDownloading;
     final isInitializing = appState.isInitializing;
-    final downloadPercentage = appState.downloadPercentage;
+    // Note: We deliberately do NOT read downloadPercentage here to avoid
+    // triggering rebuilds on every percentage tick. The GemmaProgressIndicator
+    // widget handles live updates via context.select.
 
-    // Update the last progress message if it exists
-    if (_messages.isNotEmpty && _messages.last.isProgress) {
+    final shouldShowProgress = isDownloading || isInitializing;
+    final hasProgressMessage =
+        _messages.isNotEmpty && _messages.last.isProgress;
+
+    // Only setState when we need to add or remove the bubble
+    if (shouldShowProgress && !hasProgressMessage) {
       setState(() {
-        _messages[_messages.length - 1] = ChatMessage(
-          text: appState.downloadProgress.isNotEmpty
-              ? appState.downloadProgress
-              : (isDownloading
-                  ? 'Downloading model...'
-                  : 'Initializing model...'),
+        _messages.add(ChatMessage(
+          text: 'Loading...', // Text is ignored by GemmaProgressIndicator
           isUser: false,
           isSystemMessage: true,
-          isProgress: isDownloading || isInitializing,
-          progressPercentage: downloadPercentage,
-        );
+          isProgress: true,
+        ));
       });
-
+    } else if (!shouldShowProgress && hasProgressMessage) {
       // Remove progress message when done
-      if (!isDownloading && !isInitializing) {
-        Future.delayed(Duration(seconds: 2), () {
-          if (mounted) {
-            setState(() {
-              _messages.removeWhere((msg) => msg.isProgress);
-              _checkModelStatus(); // Check model status again
-            });
-          }
-        });
-      }
+      Future.delayed(Duration(seconds: 2), () {
+        if (mounted) {
+          setState(() {
+            _messages.removeWhere((msg) => msg.isProgress);
+            _checkModelStatus(); // Check model status again
+          });
+        }
+      });
     }
   }
 
@@ -183,10 +182,12 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
     }
 
     // Auto-detect based on FFAppState model capabilities
-    final appState = context.watch<FFAppState>();
-    final supportsVision = appState.modelSupportsVision;
-    print('GemmaChatWidget: Auto-detected vision support: $supportsVision');
-    print('GemmaChatWidget: Model initialized: ${appState.isModelInitialized}');
+    // Optimization: Use select to only rebuild when modelSupportsVision changes
+    final supportsVision =
+        context.select<FFAppState, bool>((s) => s.modelSupportsVision);
+
+    // Note: We can't log here easily without triggering side effects during build,
+    // but the optimization is verified by the use of select.
     return supportsVision;
   }
 
@@ -450,8 +451,9 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
 
   /// Build input area widget
   Widget _buildInputArea() {
-    final appState = context.watch<FFAppState>();
-    final isInitialized = appState.isModelInitialized;
+    // Optimization: Use select instead of watch to avoid rebuilding on every AppState change
+    final isInitialized =
+        context.select<FFAppState, bool>((s) => s.isModelInitialized);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -564,40 +566,8 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
 
             // Progress indicator for download/initialization messages
             if (message.isProgress) ...[
-              Row(
-                children: [
-                  SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      value: message.progressPercentage > 0
-                          ? message.progressPercentage / 100
-                          : null,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      message.text,
-                      style: TextStyle(
-                        color: FlutterFlowTheme.of(context).primaryText,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              if (message.progressPercentage > 0) ...[
-                const SizedBox(height: 8),
-                LinearProgressIndicator(
-                  value: message.progressPercentage / 100,
-                  backgroundColor: FlutterFlowTheme.of(context).alternate,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    FlutterFlowTheme.of(context).primary,
-                  ),
-                ),
-              ],
+              // Use the isolated progress widget to prevent full parent rebuilds
+              const GemmaProgressIndicator(),
             ] else if (message.text.isNotEmpty)
               // Regular text message
               message.isUser
@@ -667,4 +637,65 @@ class ChatMessage {
     this.isProgress = false,
     this.progressPercentage = 0.0,
   }) : timestamp = timestamp ?? DateTime.now();
+}
+
+/// A specialized widget to handle progress updates efficiently.
+/// It listens directly to FFAppState fields via select, preventing
+/// the parent GemmaChatWidget from rebuilding on every percentage tick.
+class GemmaProgressIndicator extends StatelessWidget {
+  const GemmaProgressIndicator({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final isDownloading =
+        context.select<FFAppState, bool>((s) => s.isDownloading);
+    final isInitializing =
+        context.select<FFAppState, bool>((s) => s.isInitializing);
+    final downloadProgress =
+        context.select<FFAppState, String>((s) => s.downloadProgress);
+    final downloadPercentage =
+        context.select<FFAppState, double>((s) => s.downloadPercentage);
+
+    final text = downloadProgress.isNotEmpty
+        ? downloadProgress
+        : (isDownloading ? 'Downloading model...' : 'Initializing model...');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                value: downloadPercentage > 0 ? downloadPercentage / 100 : null,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                text,
+                style: TextStyle(
+                  color: FlutterFlowTheme.of(context).primaryText,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+          ],
+        ),
+        if (downloadPercentage > 0) ...[
+          const SizedBox(height: 8),
+          LinearProgressIndicator(
+            value: downloadPercentage / 100,
+            backgroundColor: FlutterFlowTheme.of(context).alternate,
+            valueColor: AlwaysStoppedAnimation<Color>(
+              FlutterFlowTheme.of(context).primary,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
 }
