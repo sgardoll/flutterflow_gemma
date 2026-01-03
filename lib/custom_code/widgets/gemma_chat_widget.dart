@@ -65,15 +65,14 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
   @override
   void initState() {
     super.initState();
-    _checkModelStatus();
-
-    // Listen to app state changes for progress updates
+    // Check initial status
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
+        _checkModelStatus();
+
+        // Listen to app state changes for progress updates (start/stop only)
         Provider.of<FFAppState>(context, listen: false)
             .addListener(_onAppStateChanged);
-
-        // FFAppState is now the single source of truth - no need for library monitoring
 
         // Debug: Log current vision support status
         final appState = Provider.of<FFAppState>(context, listen: false);
@@ -103,35 +102,40 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
     // Get download status from app state
     final isDownloading = appState.isDownloading;
     final isInitializing = appState.isInitializing;
-    final downloadPercentage = appState.downloadPercentage;
 
-    // Update the last progress message if it exists
-    if (_messages.isNotEmpty && _messages.last.isProgress) {
-      setState(() {
-        _messages[_messages.length - 1] = ChatMessage(
-          text: appState.downloadProgress.isNotEmpty
-              ? appState.downloadProgress
-              : (isDownloading
-                  ? 'Downloading model...'
-                  : 'Initializing model...'),
-          isUser: false,
-          isSystemMessage: true,
-          isProgress: isDownloading || isInitializing,
-          progressPercentage: downloadPercentage,
-        );
-      });
+    // We only care if we need to show or hide the progress message.
+    // The CONTENT of the progress message is handled by GemmaProgressIndicator.
 
-      // Remove progress message when done
-      if (!isDownloading && !isInitializing) {
-        Future.delayed(Duration(seconds: 2), () {
+    final hasProgressMessage = _messages.isNotEmpty && _messages.last.isProgress;
+    final shouldShowProgress = isDownloading || isInitializing;
+
+    if (shouldShowProgress && !hasProgressMessage) {
+       setState(() {
+         _messages.add(ChatMessage(
+           text: 'Progress...', // Placeholder text, actual content in widget
+           isUser: false,
+           isSystemMessage: true,
+           isProgress: true
+         ));
+       });
+       _scrollToBottom();
+    } else if (!shouldShowProgress && hasProgressMessage) {
+        // Remove progress message when done
+        // We use a small delay to ensure the user sees completion state if needed,
+        // but since the progress widget handles its own display, we can just remove it.
+        // The original code had a 2s delay. We'll keep it for UX smoothness.
+        Future.delayed(const Duration(seconds: 1), () {
           if (mounted) {
-            setState(() {
-              _messages.removeWhere((msg) => msg.isProgress);
-              _checkModelStatus(); // Check model status again
-            });
+            // Check again to be sure
+            final currentAppState = Provider.of<FFAppState>(context, listen: false);
+            if (!currentAppState.isDownloading && !currentAppState.isInitializing) {
+               setState(() {
+                  _messages.removeWhere((msg) => msg.isProgress);
+                  _checkModelStatus(); // Check if we should show "Ready" message
+               });
+            }
           }
         });
-      }
     }
   }
 
@@ -142,52 +146,53 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
     // Get download status from app state
     final isDownloading = appState.isDownloading;
     final isInitializing = appState.isInitializing;
-    final downloadPercentage = appState.downloadPercentage;
 
     // Check if downloading or initializing
     if (isDownloading || isInitializing) {
-      setState(() {
-        _messages.add(ChatMessage(
-          text: appState.downloadProgress.isNotEmpty
-              ? appState.downloadProgress
-              : (isDownloading
-                  ? 'Downloading model...'
-                  : 'Initializing model...'),
-          isUser: false,
-          isSystemMessage: true,
-          isProgress: true,
-          progressPercentage: downloadPercentage,
-        ));
-      });
+      if (!_messages.any((m) => m.isProgress)) {
+        setState(() {
+          _messages.add(ChatMessage(
+            text: 'Progress...',
+            isUser: false,
+            isSystemMessage: true,
+            isProgress: true,
+          ));
+        });
+      }
       return;
     }
 
     if (appState.isModelInitialized) {
-      setState(() {
-        _messages.add(ChatMessage(
-          text:
-              'Hello! I\'m ready to chat. ${appState.modelSupportsVision ? "You can send me text and images." : "Send me a message to get started."}',
-          isUser: false,
-          isSystemMessage: true,
-        ));
-      });
+       // Only add "Ready" message if we haven't already shown it or if list is empty
+       // (Simple logic: if last message is not "Ready", add it.
+       // But we don't want to duplicate it on every rebuild.
+       // The original logic was unconditional add if initialized.
+       // We'll stick to original behavior but prevent duplicates).
+
+       final readyText = 'Hello! I\'m ready to chat. ${appState.modelSupportsVision ? "You can send me text and images." : "Send me a message to get started."}';
+
+       bool alreadyShowsReady = _messages.isNotEmpty && _messages.last.text == readyText;
+
+       if (!alreadyShowsReady) {
+          setState(() {
+            _messages.add(ChatMessage(
+              text: readyText,
+              isUser: false,
+              isSystemMessage: true,
+            ));
+          });
+       }
     }
   }
 
   /// Get whether to show the image button
   bool get _shouldShowImageButton {
     if (widget.showImageButton != null) {
-      print(
-          'GemmaChatWidget: Using explicit showImageButton: ${widget.showImageButton}');
       return widget.showImageButton!;
     }
 
-    // Auto-detect based on FFAppState model capabilities
-    final appState = context.watch<FFAppState>();
-    final supportsVision = appState.modelSupportsVision;
-    print('GemmaChatWidget: Auto-detected vision support: $supportsVision');
-    print('GemmaChatWidget: Model initialized: ${appState.isModelInitialized}');
-    return supportsVision;
+    // Optimized: Use select to only rebuild when modelSupportsVision changes
+    return context.select<FFAppState, bool>((s) => s.modelSupportsVision);
   }
 
   /// Select image from gallery or camera
@@ -450,8 +455,8 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
 
   /// Build input area widget
   Widget _buildInputArea() {
-    final appState = context.watch<FFAppState>();
-    final isInitialized = appState.isModelInitialized;
+    // Optimized: Use select to only rebuild when isModelInitialized changes
+    final isInitialized = context.select<FFAppState, bool>((s) => s.isModelInitialized);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -563,42 +568,9 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
             ],
 
             // Progress indicator for download/initialization messages
-            if (message.isProgress) ...[
-              Row(
-                children: [
-                  SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      value: message.progressPercentage > 0
-                          ? message.progressPercentage / 100
-                          : null,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      message.text,
-                      style: TextStyle(
-                        color: FlutterFlowTheme.of(context).primaryText,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              if (message.progressPercentage > 0) ...[
-                const SizedBox(height: 8),
-                LinearProgressIndicator(
-                  value: message.progressPercentage / 100,
-                  backgroundColor: FlutterFlowTheme.of(context).alternate,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    FlutterFlowTheme.of(context).primary,
-                  ),
-                ),
-              ],
-            ] else if (message.text.isNotEmpty)
+            if (message.isProgress)
+              const GemmaProgressIndicator()
+            else if (message.text.isNotEmpty)
               // Regular text message
               message.isUser
                   ? Text(
@@ -627,7 +599,7 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
     // Add copy functionality for non-user messages
     if (!message.isUser &&
         !message.isSystemMessage &&
-        message.text.isNotEmpty) {
+        message.text.isNotEmpty && !message.isProgress) {
       bubble = GestureDetector(
         onLongPress: () async {
           await Clipboard.setData(ClipboardData(text: message.text));
@@ -648,6 +620,65 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
   }
 }
 
+/// A dedicated widget for displaying progress to avoid rebuilding the entire chat
+class GemmaProgressIndicator extends StatelessWidget {
+  const GemmaProgressIndicator({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    // Watch specific fields to update only this widget on progress
+    final appState = context.watch<FFAppState>();
+    final isDownloading = appState.isDownloading;
+    final downloadPercentage = appState.downloadPercentage;
+    final downloadProgress = appState.downloadProgress;
+
+    // Determine text
+    final text = downloadProgress.isNotEmpty
+        ? downloadProgress
+        : (isDownloading ? 'Downloading model...' : 'Initializing model...');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                value: downloadPercentage > 0
+                    ? downloadPercentage / 100
+                    : null,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                text,
+                style: TextStyle(
+                  color: FlutterFlowTheme.of(context).primaryText,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+          ],
+        ),
+        if (downloadPercentage > 0) ...[
+          const SizedBox(height: 8),
+          LinearProgressIndicator(
+            value: downloadPercentage / 100,
+            backgroundColor: FlutterFlowTheme.of(context).alternate,
+            valueColor: AlwaysStoppedAnimation<Color>(
+              FlutterFlowTheme.of(context).primary,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
 /// Simple message class for chat messages
 class ChatMessage {
   final String text;
@@ -656,7 +687,7 @@ class ChatMessage {
   final Uint8List? imageBytes;
   final bool isSystemMessage;
   final bool isProgress;
-  final double progressPercentage;
+  final double progressPercentage; // Deprecated, used by old code but kept for compat
 
   ChatMessage({
     required this.text,
