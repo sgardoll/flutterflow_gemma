@@ -11,7 +11,6 @@ import 'package:flutter/material.dart';
 import 'index.dart'; // Imports other custom widgets
 
 import '../flutter_gemma_library.dart';
-import '../flutter_gemma_helper.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'dart:async';
@@ -37,7 +36,6 @@ class FunctionGemmaChatWidget extends StatefulWidget {
     this.onMessageSent,
     this.onFunctionCall,
     this.enableCommonFunctions,
-    this.customFunctions,
     this.showFunctionDetails,
   });
 
@@ -56,10 +54,6 @@ class FunctionGemmaChatWidget extends StatefulWidget {
 
   /// Enable built-in common function definitions (calendar, weather, etc.)
   final bool? enableCommonFunctions;
-
-  /// Custom function definitions to register with the model
-  /// Use FunctionDefinition from function_gemma_helper.dart
-  final List<Map<String, dynamic>>? customFunctions;
 
   /// Show detailed function call information in the chat
   final bool? showFunctionDetails;
@@ -100,56 +94,6 @@ class _FunctionGemmaChatWidgetState extends State<FunctionGemmaChatWidget> {
       _functionHelper.addFunction(CommonFunctionDefinitions.getTodayDate());
       _functionHelper.addFunction(CommonFunctionDefinitions.playMedia());
       _functionHelper.addFunction(CommonFunctionDefinitions.setAlarm());
-    }
-
-    // Add custom functions if provided
-    if (widget.customFunctions != null) {
-      for (final funcMap in widget.customFunctions!) {
-        try {
-          final func = _parseCustomFunction(funcMap);
-          if (func != null) {
-            _functionHelper.addFunction(func);
-          }
-        } catch (e) {
-          print('FunctionGemmaChatWidget: Error parsing custom function: $e');
-        }
-      }
-    }
-  }
-
-  FunctionDefinition? _parseCustomFunction(Map<String, dynamic> funcMap) {
-    try {
-      final name = funcMap['name'] as String?;
-      final description = funcMap['description'] as String?;
-      final parameters = funcMap['parameters'] as Map<String, dynamic>?;
-
-      if (name == null || description == null) return null;
-
-      final params = <String, ParameterDefinition>{};
-      if (parameters != null) {
-        for (final entry in parameters.entries) {
-          final paramData = entry.value as Map<String, dynamic>?;
-          if (paramData != null) {
-            params[entry.key] = ParameterDefinition(
-              type: (paramData['type'] as String?) ?? 'STRING',
-              description: paramData['description'] as String?,
-              enumValues: (paramData['enum'] as List?)?.cast<String>(),
-            );
-          }
-        }
-      }
-
-      final required = (funcMap['required'] as List?)?.cast<String>() ?? [];
-
-      return FunctionDefinition(
-        name: name,
-        description: description,
-        parameters: params,
-        required: required,
-      );
-    } catch (e) {
-      print('_parseCustomFunction error: $e');
-      return null;
     }
   }
 
