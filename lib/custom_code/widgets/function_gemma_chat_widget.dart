@@ -1,32 +1,33 @@
 // Automatic FlutterFlow imports
+import '/actions/actions.dart' as action_blocks;
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
-import 'index.dart'; // Imports other custom widgets
+import '/custom_code/widgets/index.dart'; // Imports other custom widgets
 import '/custom_code/actions/index.dart'; // Imports custom actions
+import '/flutter_flow/custom_functions.dart'; // Imports custom functions
 import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
+import 'index.dart'; // Imports other custom widgets
+
 import '../flutter_gemma_library.dart';
-import '../function_gemma_helper.dart';
-import '../actions/send_function_gemma_message.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'dart:async';
 
 /// FunctionGemma Chat Widget for FlutterFlow
-///
-/// This widget provides a chat interface specifically designed for FunctionGemma
-/// models with function calling capabilities. It includes:
-/// - Visual display of function calls and their results
-/// - Support for custom function handlers
-/// - Built-in common function definitions
-/// - Tool execution status indicators
-///
-/// ## Usage:
-/// 1. Download and initialize a FunctionGemma model (functiongemma-270m-it)
-/// 2. Add this widget to your FlutterFlow page
-/// 3. Optionally provide custom functions via onFunctionCall callback
+/// 
+/// This widget provides a chat interface specifically designed for
+/// FunctionGemma models with function calling capabilities.
+/// 
+/// It includes: - Visual display of function calls and their results -
+/// Support for custom function handlers - Built-in common function
+/// definitions - Tool execution status indicators
+/// 
+/// ## Usage: 1. Download and initialize a FunctionGemma model
+/// (functiongemma-270m-it) 2. Add this widget to your FlutterFlow page 3.
+/// Optionally provide custom functions via onFunctionCall callback
 class FunctionGemmaChatWidget extends StatefulWidget {
   const FunctionGemmaChatWidget({
     super.key,
@@ -43,15 +44,14 @@ class FunctionGemmaChatWidget extends StatefulWidget {
   final double? width;
   final double? height;
   final String? placeholder;
-
   /// Callback when a message is sent and response received
   final Future Function(String message, String response)? onMessageSent;
 
   /// Callback when FunctionGemma requests a function call
   /// Return the result of executing the function
   /// If null, function calls will be displayed but not executed
-  final Future<dynamic> Function(String functionName, Map<String, dynamic> args)?
-      onFunctionCall;
+  final Future<dynamic> Function(
+      String functionName, Map<String, dynamic> args)? onFunctionCall;
 
   /// Enable built-in common function definitions (calendar, weather, etc.)
   final bool? enableCommonFunctions;
@@ -64,7 +64,8 @@ class FunctionGemmaChatWidget extends StatefulWidget {
   final bool? showFunctionDetails;
 
   @override
-  State<FunctionGemmaChatWidget> createState() => _FunctionGemmaChatWidgetState();
+  State<FunctionGemmaChatWidget> createState() =>
+      _FunctionGemmaChatWidgetState();
 }
 
 class _FunctionGemmaChatWidgetState extends State<FunctionGemmaChatWidget> {
@@ -87,10 +88,13 @@ class _FunctionGemmaChatWidgetState extends State<FunctionGemmaChatWidget> {
 
     // Add common functions if enabled
     if (widget.enableCommonFunctions ?? true) {
-      _functionHelper.addFunction(CommonFunctionDefinitions.createCalendarEvent());
+      _functionHelper
+          .addFunction(CommonFunctionDefinitions.createCalendarEvent());
       _functionHelper.addFunction(CommonFunctionDefinitions.setReminder());
-      _functionHelper.addFunction(CommonFunctionDefinitions.getCurrentWeather());
-      _functionHelper.addFunction(CommonFunctionDefinitions.controlSmartLight());
+      _functionHelper
+          .addFunction(CommonFunctionDefinitions.getCurrentWeather());
+      _functionHelper
+          .addFunction(CommonFunctionDefinitions.controlSmartLight());
       _functionHelper.addFunction(CommonFunctionDefinitions.sendMessage());
       _functionHelper.addFunction(CommonFunctionDefinitions.getTodayDate());
       _functionHelper.addFunction(CommonFunctionDefinitions.playMedia());
@@ -668,29 +672,4 @@ class _FunctionGemmaChatWidgetState extends State<FunctionGemmaChatWidget> {
       ),
     );
   }
-}
-
-/// Message class for FunctionGemma chat
-class FunctionChatMessage {
-  final String text;
-  final bool isUser;
-  final bool isSystemMessage;
-  final bool isError;
-  final bool isFunctionCall;
-  final bool isFunctionResult;
-  final String? functionName;
-  final Map<String, dynamic>? functionArgs;
-  final DateTime timestamp;
-
-  FunctionChatMessage({
-    required this.text,
-    required this.isUser,
-    this.isSystemMessage = false,
-    this.isError = false,
-    this.isFunctionCall = false,
-    this.isFunctionResult = false,
-    this.functionName,
-    this.functionArgs,
-    DateTime? timestamp,
-  }) : timestamp = timestamp ?? DateTime.now();
 }
