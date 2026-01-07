@@ -8,9 +8,8 @@ import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-import 'index.dart'; // Imports other custom widgets
-
 import '../flutter_gemma_library.dart';
+import '../flutter_gemma_helper.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'dart:async';
@@ -27,6 +26,29 @@ import 'dart:async';
 /// ## Usage: 1. Download and initialize a FunctionGemma model
 /// (functiongemma-270m-it) 2. Add this widget to your FlutterFlow page 3.
 /// Optionally provide custom functions via onFunctionCall callback
+/// Represents a message in the FunctionGemma chat
+class FunctionChatMessage {
+  const FunctionChatMessage({
+    required this.text,
+    this.isUser = false,
+    this.isSystemMessage = false,
+    this.isError = false,
+    this.isFunctionCall = false,
+    this.isFunctionResult = false,
+    this.functionName,
+    this.functionArgs,
+  });
+
+  final String text;
+  final bool isUser;
+  final bool isSystemMessage;
+  final bool isError;
+  final bool isFunctionCall;
+  final bool isFunctionResult;
+  final String? functionName;
+  final Map<String, dynamic>? functionArgs;
+}
+
 class FunctionGemmaChatWidget extends StatefulWidget {
   const FunctionGemmaChatWidget({
     super.key,
