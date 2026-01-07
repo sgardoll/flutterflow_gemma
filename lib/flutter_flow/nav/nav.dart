@@ -40,7 +40,7 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
                 color: FlutterFlowTheme.of(context).primaryText,
                 child: Center(
                   child: Image.asset(
-                    'assets/images/gemma_sq.png',
+                    'assets/gemma_sq.png',
                     width: MediaQuery.sizeOf(context).width * 0.4,
                     fit: BoxFit.cover,
                   ),
@@ -58,7 +58,7 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
                     color: FlutterFlowTheme.of(context).primaryText,
                     child: Center(
                       child: Image.asset(
-                        'assets/images/gemma_sq.png',
+                        'assets/gemma_sq.png',
                         width: MediaQuery.sizeOf(context).width * 0.4,
                         fit: BoxFit.cover,
                       ),
