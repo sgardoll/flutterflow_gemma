@@ -1,30 +1,63 @@
 // Automatic FlutterFlow imports
-import '/actions/actions.dart' as action_blocks;
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/custom_code/widgets/index.dart'; // Imports other custom widgets
 import '/custom_code/actions/index.dart'; // Imports custom actions
-import '/flutter_flow/custom_functions.dart'; // Imports custom functions
 import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-import 'index.dart'; // Imports other custom widgets
-
 import '../flutter_gemma_library.dart';
+import '../function_gemma_helper.dart';
+import '../function_chat_message.dart' show FunctionChatMessage;
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'dart:async';
+import 'dart:convert';
+
+/// Response from a FunctionGemma message (local to widget)
+class _WidgetFunctionGemmaResponse {
+  final String text;
+  final bool isError;
+  final bool hasFunctionCall;
+  final String? functionName;
+  final Map<String, dynamic>? functionArguments;
+  final dynamic functionResult;
+  final bool wasAutoExecuted;
+
+  const _WidgetFunctionGemmaResponse({
+    required this.text,
+    this.isError = false,
+    this.hasFunctionCall = false,
+    this.functionName,
+    this.functionArguments,
+    this.functionResult,
+    this.wasAutoExecuted = false,
+  });
+
+  static _WidgetFunctionGemmaResponse fromJson(String jsonStr) {
+    final data = jsonDecode(jsonStr) as Map<String, dynamic>;
+    return _WidgetFunctionGemmaResponse(
+      text: data['text'] as String? ?? '',
+      isError: data['isError'] as bool? ?? false,
+      hasFunctionCall: data['hasFunctionCall'] as bool? ?? false,
+      functionName: data['functionName'] as String?,
+      functionArguments: data['functionArguments'] as Map<String, dynamic>?,
+      functionResult: data['functionResult'],
+      wasAutoExecuted: data['wasAutoExecuted'] as bool? ?? false,
+    );
+  }
+}
 
 /// FunctionGemma Chat Widget for FlutterFlow
-/// 
+///
 /// This widget provides a chat interface specifically designed for
 /// FunctionGemma models with function calling capabilities.
-/// 
+///
 /// It includes: - Visual display of function calls and their results -
 /// Support for custom function handlers - Built-in common function
 /// definitions - Tool execution status indicators
-/// 
+///
 /// ## Usage: 1. Download and initialize a FunctionGemma model
 /// (functiongemma-270m-it) 2. Add this widget to your FlutterFlow page 3.
 /// Optionally provide custom functions via onFunctionCall callback
@@ -37,28 +70,23 @@ class FunctionGemmaChatWidget extends StatefulWidget {
     this.onMessageSent,
     this.onFunctionCall,
     this.enableCommonFunctions,
-    this.customFunctions,
     this.showFunctionDetails,
   });
 
   final double? width;
   final double? height;
   final String? placeholder;
+
   /// Callback when a message is sent and response received
   final Future Function(String message, String response)? onMessageSent;
 
   /// Callback when FunctionGemma requests a function call
-  /// Return the result of executing the function
-  /// If null, function calls will be displayed but not executed
-  final Future<dynamic> Function(
-      String functionName, Map<String, dynamic> args)? onFunctionCall;
+  /// Receives JSON string: {"name":"function_name","args":{...}}
+  /// Return the result as JSON string (or empty string if no result)
+  final Future<String> Function(String requestJson)? onFunctionCall;
 
   /// Enable built-in common function definitions (calendar, weather, etc.)
   final bool? enableCommonFunctions;
-
-  /// Custom function definitions to register with the model
-  /// Use FunctionDefinition from function_gemma_helper.dart
-  final List<Map<String, dynamic>>? customFunctions;
 
   /// Show detailed function call information in the chat
   final bool? showFunctionDetails;
@@ -99,56 +127,6 @@ class _FunctionGemmaChatWidgetState extends State<FunctionGemmaChatWidget> {
       _functionHelper.addFunction(CommonFunctionDefinitions.getTodayDate());
       _functionHelper.addFunction(CommonFunctionDefinitions.playMedia());
       _functionHelper.addFunction(CommonFunctionDefinitions.setAlarm());
-    }
-
-    // Add custom functions if provided
-    if (widget.customFunctions != null) {
-      for (final funcMap in widget.customFunctions!) {
-        try {
-          final func = _parseCustomFunction(funcMap);
-          if (func != null) {
-            _functionHelper.addFunction(func);
-          }
-        } catch (e) {
-          print('FunctionGemmaChatWidget: Error parsing custom function: $e');
-        }
-      }
-    }
-  }
-
-  FunctionDefinition? _parseCustomFunction(Map<String, dynamic> funcMap) {
-    try {
-      final name = funcMap['name'] as String?;
-      final description = funcMap['description'] as String?;
-      final parameters = funcMap['parameters'] as Map<String, dynamic>?;
-
-      if (name == null || description == null) return null;
-
-      final params = <String, ParameterDefinition>{};
-      if (parameters != null) {
-        for (final entry in parameters.entries) {
-          final paramData = entry.value as Map<String, dynamic>?;
-          if (paramData != null) {
-            params[entry.key] = ParameterDefinition(
-              type: (paramData['type'] as String?) ?? 'STRING',
-              description: paramData['description'] as String?,
-              enumValues: (paramData['enum'] as List?)?.cast<String>(),
-            );
-          }
-        }
-      }
-
-      final required = (funcMap['required'] as List?)?.cast<String>() ?? [];
-
-      return FunctionDefinition(
-        name: name,
-        description: description,
-        parameters: params,
-        required: required,
-      );
-    } catch (e) {
-      print('_parseCustomFunction error: $e');
-      return null;
     }
   }
 
@@ -216,13 +194,24 @@ class _FunctionGemmaChatWidgetState extends State<FunctionGemmaChatWidget> {
 
     try {
       // Send message with function calling support
-      final response = await sendFunctionGemmaMessage(
+      final response = await _sendFunctionGemmaMessage(
         messageText,
         functions: _functionHelper.functions,
         functionHandler: widget.onFunctionCall != null
-            ? (name, args) => widget.onFunctionCall!(name, args)
+            ? (name, args) async {
+                final requestData = jsonEncode({
+                  'name': name,
+                  'args': args,
+                });
+                final resultJson = await widget.onFunctionCall!(requestData);
+                if (resultJson.isEmpty) return null;
+                try {
+                  return jsonDecode(resultJson);
+                } catch (_) {
+                  return resultJson;
+                }
+              }
             : _defaultFunctionHandler,
-        autoExecuteFunctions: true,
       );
 
       // Add the response
@@ -279,6 +268,95 @@ class _FunctionGemmaChatWidgetState extends State<FunctionGemmaChatWidget> {
       _isLoading = false;
     });
     _scrollToBottom();
+  }
+
+  /// Send a message to a FunctionGemma model with function calling support
+  Future<_WidgetFunctionGemmaResponse> _sendFunctionGemmaMessage(
+    String message, {
+    List<FunctionDefinition>? functions,
+    Future<dynamic> Function(String, Map<String, dynamic>)? functionHandler,
+    bool autoExecuteFunctions = true,
+  }) async {
+    try {
+      final gemma = FlutterGemmaLibrary.instance;
+
+      if (!gemma.isInitialized) {
+        return const _WidgetFunctionGemmaResponse(
+          text: 'Model not initialized. Please initialize the model first.',
+          isError: true,
+        );
+      }
+
+      final helper = FunctionGemmaHelper(functions: functions ?? []);
+      final formattedPrompt = helper.buildFormattedPrompt(message);
+
+      final response = await gemma.sendMessage(formattedPrompt);
+
+      if (response == null || response.isEmpty) {
+        return const _WidgetFunctionGemmaResponse(
+          text: 'No response received from the model.',
+          isError: true,
+        );
+      }
+
+      if (helper.containsFunctionCall(response)) {
+        final parsedCall = helper.parseFunctionCall(response);
+
+        if (parsedCall != null) {
+          if (autoExecuteFunctions && functionHandler != null) {
+            try {
+              final result = await functionHandler(
+                parsedCall.functionName,
+                parsedCall.arguments,
+              );
+
+              final followUpPrompt = helper.buildFollowUpPrompt(
+                formattedPrompt,
+                response,
+                parsedCall.functionName,
+                result,
+              );
+
+              final finalResponse = await gemma.sendMessage(followUpPrompt);
+
+              return _WidgetFunctionGemmaResponse(
+                text: finalResponse ?? 'Function executed successfully.',
+                hasFunctionCall: true,
+                functionName: parsedCall.functionName,
+                functionArguments: parsedCall.arguments,
+                functionResult: result,
+                wasAutoExecuted: true,
+              );
+            } catch (e) {
+              return _WidgetFunctionGemmaResponse(
+                text: 'Error executing function ${parsedCall.functionName}: $e',
+                hasFunctionCall: true,
+                functionName: parsedCall.functionName,
+                functionArguments: parsedCall.arguments,
+                isError: true,
+              );
+            }
+          }
+
+          return _WidgetFunctionGemmaResponse(
+            text: response,
+            hasFunctionCall: true,
+            functionName: parsedCall.functionName,
+            functionArguments: parsedCall.arguments,
+            wasAutoExecuted: false,
+          );
+        }
+      }
+
+      final cleanResponse = helper.extractFinalResponse(response) ?? response;
+
+      return _WidgetFunctionGemmaResponse(text: cleanResponse);
+    } catch (e) {
+      return _WidgetFunctionGemmaResponse(
+        text: 'Error processing message: $e',
+        isError: true,
+      );
+    }
   }
 
   /// Default function handler for common functions

@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 
 import '../flutter_gemma_library.dart';
 import '../function_gemma_helper.dart';
+import 'dart:convert';
 
 /// Callback type for when FunctionGemma requests a function call
 /// Return the result of executing the function
@@ -31,8 +32,8 @@ typedef FunctionCallHandler = Future<dynamic> Function(
 /// [functionHandler] - Optional callback to execute function calls
 /// [autoExecuteFunctions] - If true and handler provided, automatically executes functions
 ///
-/// Returns the model's response (or function call details if not auto-executing)
-Future<FunctionGemmaResponse> sendFunctionGemmaMessage(
+/// Returns JSON string with response data: {"text":"...","isError":false,"hasFunctionCall":false,"functionName":null,"functionResult":null,"wasAutoExecuted":false}
+Future<String> sendFunctionGemmaMessage(
   String message, {
   List<FunctionDefinition>? functions,
   FunctionCallHandler? functionHandler,
@@ -43,51 +44,46 @@ Future<FunctionGemmaResponse> sendFunctionGemmaMessage(
 
     if (!gemma.isInitialized) {
       print('sendFunctionGemmaMessage: Model not initialized');
-      return FunctionGemmaResponse(
-        text: 'Model not initialized. Please initialize the model first.',
-        isError: true,
-      );
+      return jsonEncode({
+        'text': 'Model not initialized. Please initialize the model first.',
+        'isError': true,
+        'hasFunctionCall': false,
+        'functionName': null,
+        'functionResult': null,
+        'wasAutoExecuted': false,
+      });
     }
 
-    // Check if this is a FunctionGemma model
-    final isFunctionModel =
-        ModelUtils.isFunctionCallingModel(gemma.currentModelType ?? '');
-
-    if (!isFunctionModel) {
-      print(
-          'sendFunctionGemmaMessage: Warning - Model may not support function calling');
-    }
-
-    // Build the FunctionGemma helper with registered functions
     final helper = FunctionGemmaHelper(functions: functions ?? []);
-
-    // Build the formatted prompt with function declarations
     final formattedPrompt = helper.buildFormattedPrompt(message);
 
     print('sendFunctionGemmaMessage: Sending formatted prompt');
-    print('sendFunctionGemmaMessage: Functions registered: ${functions?.length ?? 0}');
+    print(
+        'sendFunctionGemmaMessage: Functions registered: ${functions?.length ?? 0}');
 
-    // Send the message to the model
     final response = await gemma.sendMessage(formattedPrompt);
 
     if (response == null || response.isEmpty) {
-      return FunctionGemmaResponse(
-        text: 'No response received from the model.',
-        isError: true,
-      );
+      return jsonEncode({
+        'text': 'No response received from the model.',
+        'isError': true,
+        'hasFunctionCall': false,
+        'functionName': null,
+        'functionResult': null,
+        'wasAutoExecuted': false,
+      });
     }
 
     print('sendFunctionGemmaMessage: Received response: $response');
 
-    // Check if the response contains a function call
     if (helper.containsFunctionCall(response)) {
       final parsedCall = helper.parseFunctionCall(response);
 
       if (parsedCall != null) {
-        print('sendFunctionGemmaMessage: Parsed function call: ${parsedCall.functionName}');
+        print(
+            'sendFunctionGemmaMessage: Parsed function call: ${parsedCall.functionName}');
         print('sendFunctionGemmaMessage: Arguments: ${parsedCall.arguments}');
 
-        // If auto-execute is enabled and we have a handler, execute the function
         if (autoExecuteFunctions && functionHandler != null) {
           try {
             final result = await functionHandler(
@@ -95,9 +91,9 @@ Future<FunctionGemmaResponse> sendFunctionGemmaMessage(
               parsedCall.arguments,
             );
 
-            print('sendFunctionGemmaMessage: Function executed, result: $result');
+            print(
+                'sendFunctionGemmaMessage: Function executed, result: $result');
 
-            // Build follow-up prompt with the function result
             final followUpPrompt = helper.buildFollowUpPrompt(
               formattedPrompt,
               response,
@@ -105,46 +101,60 @@ Future<FunctionGemmaResponse> sendFunctionGemmaMessage(
               result,
             );
 
-            // Get the final response from the model
             final finalResponse = await gemma.sendMessage(followUpPrompt);
 
-            return FunctionGemmaResponse(
-              text: finalResponse ?? 'Function executed successfully.',
-              functionCall: parsedCall,
-              functionResult: result,
-              wasAutoExecuted: true,
-            );
+            return jsonEncode({
+              'text': finalResponse ?? 'Function executed successfully.',
+              'isError': false,
+              'hasFunctionCall': true,
+              'functionName': parsedCall.functionName,
+              'functionResult': result,
+              'wasAutoExecuted': true,
+            });
           } catch (e) {
             print('sendFunctionGemmaMessage: Error executing function: $e');
-            return FunctionGemmaResponse(
-              text: 'Error executing function ${parsedCall.functionName}: $e',
-              functionCall: parsedCall,
-              isError: true,
-            );
+            return jsonEncode({
+              'text': 'Error executing function ${parsedCall.functionName}: $e',
+              'isError': true,
+              'hasFunctionCall': true,
+              'functionName': parsedCall.functionName,
+              'functionResult': null,
+              'wasAutoExecuted': false,
+            });
           }
         }
 
-        // Return the function call for manual handling
-        return FunctionGemmaResponse(
-          text: response,
-          functionCall: parsedCall,
-          wasAutoExecuted: false,
-        );
+        return jsonEncode({
+          'text': response,
+          'isError': false,
+          'hasFunctionCall': true,
+          'functionName': parsedCall.functionName,
+          'functionResult': null,
+          'wasAutoExecuted': false,
+        });
       }
     }
 
-    // No function call, return the text response
     final cleanResponse = helper.extractFinalResponse(response) ?? response;
 
-    return FunctionGemmaResponse(
-      text: cleanResponse,
-    );
+    return jsonEncode({
+      'text': cleanResponse,
+      'isError': false,
+      'hasFunctionCall': false,
+      'functionName': null,
+      'functionResult': null,
+      'wasAutoExecuted': false,
+    });
   } catch (e) {
     print('sendFunctionGemmaMessage: Error: $e');
-    return FunctionGemmaResponse(
-      text: 'Error processing message: $e',
-      isError: true,
-    );
+    return jsonEncode({
+      'text': 'Error processing message: $e',
+      'isError': true,
+      'hasFunctionCall': false,
+      'functionName': null,
+      'functionResult': null,
+      'wasAutoExecuted': false,
+    });
   }
 }
 
@@ -157,25 +167,29 @@ Future<FunctionGemmaResponse> sendFunctionGemmaMessage(
 /// [functionCallResponse] - The model's response containing the function call
 /// [functionName] - Name of the executed function
 /// [functionResult] - Result of the function execution
-Future<FunctionGemmaResponse> continueFunctionGemmaConversation(
+Future<String> continueFunctionGemmaConversation(
   String previousPrompt,
   String functionCallResponse,
   String functionName,
-  dynamic functionResult,
+  String functionResultJson,
 ) async {
   try {
     final gemma = FlutterGemmaLibrary.instance;
 
     if (!gemma.isInitialized) {
-      return FunctionGemmaResponse(
-        text: 'Model not initialized.',
-        isError: true,
-      );
+      return jsonEncode({
+        'text': 'Model not initialized.',
+        'isError': true,
+        'hasFunctionCall': false,
+        'functionName': null,
+        'functionResult': null,
+        'wasAutoExecuted': false,
+      });
     }
 
     final helper = FunctionGemmaHelper();
+    final functionResult = jsonDecode(functionResultJson);
 
-    // Build the follow-up prompt
     final followUpPrompt = helper.buildFollowUpPrompt(
       previousPrompt,
       functionCallResponse,
@@ -183,78 +197,48 @@ Future<FunctionGemmaResponse> continueFunctionGemmaConversation(
       functionResult,
     );
 
-    // Get the final response
     final response = await gemma.sendMessage(followUpPrompt);
 
     if (response == null) {
-      return FunctionGemmaResponse(
-        text: 'No response received.',
-        isError: true,
-      );
+      return jsonEncode({
+        'text': 'No response received.',
+        'isError': true,
+        'hasFunctionCall': false,
+        'functionName': null,
+        'functionResult': null,
+        'wasAutoExecuted': false,
+      });
     }
 
-    // Check if model wants to call another function (chained calls)
     if (helper.containsFunctionCall(response)) {
       final parsedCall = helper.parseFunctionCall(response);
-      return FunctionGemmaResponse(
-        text: response,
-        functionCall: parsedCall,
-        wasAutoExecuted: false,
-      );
+      return jsonEncode({
+        'text': response,
+        'isError': false,
+        'hasFunctionCall': true,
+        'functionName': parsedCall?.functionName,
+        'functionResult': null,
+        'wasAutoExecuted': false,
+      });
     }
 
-    return FunctionGemmaResponse(
-      text: helper.extractFinalResponse(response) ?? response,
-    );
+    return jsonEncode({
+      'text': helper.extractFinalResponse(response) ?? response,
+      'isError': false,
+      'hasFunctionCall': false,
+      'functionName': null,
+      'functionResult': null,
+      'wasAutoExecuted': false,
+    });
   } catch (e) {
     print('continueFunctionGemmaConversation: Error: $e');
-    return FunctionGemmaResponse(
-      text: 'Error continuing conversation: $e',
-      isError: true,
-    );
-  }
-}
-
-/// Response from FunctionGemma message
-class FunctionGemmaResponse {
-  /// The text response from the model
-  final String text;
-
-  /// Parsed function call (if the model requested one)
-  final ParsedFunctionCall? functionCall;
-
-  /// Result of function execution (if auto-executed)
-  final dynamic functionResult;
-
-  /// Whether the function was automatically executed
-  final bool wasAutoExecuted;
-
-  /// Whether an error occurred
-  final bool isError;
-
-  FunctionGemmaResponse({
-    required this.text,
-    this.functionCall,
-    this.functionResult,
-    this.wasAutoExecuted = false,
-    this.isError = false,
-  });
-
-  /// Check if the response contains a function call request
-  bool get hasFunctionCall => functionCall != null;
-
-  /// Get the function name if a function call was requested
-  String? get functionName => functionCall?.functionName;
-
-  /// Get the function arguments if a function call was requested
-  Map<String, dynamic>? get functionArguments => functionCall?.arguments;
-
-  @override
-  String toString() {
-    if (hasFunctionCall) {
-      return 'FunctionGemmaResponse(functionCall: ${functionCall!.functionName}, '
-          'autoExecuted: $wasAutoExecuted, error: $isError)';
-    }
-    return 'FunctionGemmaResponse(text: ${text.substring(0, text.length > 50 ? 50 : text.length)}..., error: $isError)';
+    return jsonEncode({
+      'text': 'Error continuing conversation: $e',
+      'isError': true,
+      'hasFunctionCall': false,
+      'functionName': null,
+      'functionResult': null,
+      'wasAutoExecuted': false,
+    });
   }
 }
