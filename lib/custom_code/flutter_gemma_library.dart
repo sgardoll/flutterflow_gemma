@@ -262,114 +262,119 @@ class FlutterGemmaLibrary {
 
       onProgress?.call('Creating chat session...', 95.0);
 
-      // Create chat session with improved vision support detection
+      // Create chat session with improved error handling for "forGenAiTasks" issue
       bool actualSupportsVision = false;
+      String? lastError;
 
-      // First, try to create chat based on detected model capabilities
+// Enhanced chat creation with multiple fallback strategies
+      final chatCreationStrategies = <Future<InferenceChat> Function()>[];
+      final visionStrategyIndices = <int>[];
+
+      // Strategy 1: Full vision chat (if model supports vision)
       if (potentiallySupportsVision) {
-        print(
-          'FlutterGemmaLibrary: Model potentially supports vision, attempting vision chat',
-        );
-
-        // Try different approaches for vision support
-        final visionApproaches = [
-          // Approach 1: Standard vision chat with all parameters
-          () async {
-            return await _model!.createChat(
-              temperature: temperature,
-              randomSeed: DateTime.now().millisecondsSinceEpoch,
-              topK: 1,
-              topP: 0.95,
-              tokenBuffer: 256,
-              supportImage: true,
-              supportsFunctionCalls: false,
-              tools: [],
-              isThinking: false,
-              modelType: modelTypeEnum,
-            );
-          },
-          // Approach 2: Simplified vision chat (some models might not support all parameters)
-          () async {
-            return await _model!.createChat(
-              temperature: temperature,
-              supportImage: true,
-              modelType: modelTypeEnum,
-            );
-          },
-        ];
-
-        bool visionChatCreated = false;
-        for (int i = 0;
-            i < visionApproaches.length && !visionChatCreated;
-            i++) {
-          try {
-            print('FlutterGemmaLibrary: Trying vision approach ${i + 1}');
-            _chat = await visionApproaches[i]();
-            actualSupportsVision = true;
-            _chatSupportsVision = true; // Track that chat supports vision
-            visionChatCreated = true;
-            print(
-              'FlutterGemmaLibrary: Vision chat created successfully with approach ${i + 1}',
-            );
-          } catch (visionError) {
-            print(
-              'FlutterGemmaLibrary: Vision approach ${i + 1} failed: $visionError',
-            );
-          }
-        }
-
-        // If vision chat failed, fall back to text-only
-        if (!visionChatCreated) {
-          print(
-            'FlutterGemmaLibrary: All vision approaches failed, falling back to text-only',
-          );
-          try {
-            _chat = await _model!.createChat(
-              temperature: temperature,
-              randomSeed: DateTime.now().millisecondsSinceEpoch,
-              topK: 1,
-              topP: 0.95,
-              tokenBuffer: 256,
-              supportImage: false,
-              supportsFunctionCalls: false,
-              tools: [],
-              isThinking: false,
-              modelType: modelTypeEnum,
-            );
-            actualSupportsVision = false;
-            _chatSupportsVision = false; // Track that chat is text-only
-            print('FlutterGemmaLibrary: Text-only chat created successfully');
-          } catch (fallbackError) {
-            print(
-              'FlutterGemmaLibrary: Text-only chat creation also failed: $fallbackError',
-            );
-            return false;
-          }
-        }
-      } else {
-        // Create text-only chat directly for non-vision models
-        print(
-          'FlutterGemmaLibrary: Model does not support vision, creating text-only chat',
-        );
-        try {
-          _chat = await _model!.createChat(
+        visionStrategyIndices.add(chatCreationStrategies.length);
+        chatCreationStrategies.add(() async {
+          print('FlutterGemmaLibrary: Trying full vision chat');
+          return await _model!.createChat(
             temperature: temperature,
             randomSeed: DateTime.now().millisecondsSinceEpoch,
             topK: 1,
             topP: 0.95,
             tokenBuffer: 256,
-            supportImage: false,
+            supportImage: true,
             supportsFunctionCalls: false,
             tools: [],
             isThinking: false,
             modelType: modelTypeEnum,
           );
-          actualSupportsVision = false;
-          print('FlutterGemmaLibrary: Text-only chat created successfully');
-        } catch (chatError) {
-          print('FlutterGemmaLibrary: Chat creation failed: $chatError');
-          return false;
+        });
+      }
+
+      // Strategy 2: Simplified vision chat
+      if (potentiallySupportsVision) {
+        visionStrategyIndices.add(chatCreationStrategies.length);
+        chatCreationStrategies.add(() async {
+          print('FlutterGemmaLibrary: Trying simplified vision chat');
+          return await _model!.createChat(
+            temperature: temperature,
+            supportImage: true,
+            modelType: modelTypeEnum,
+          );
+        });
+      }
+
+      // Strategy 3: Full text-only chat
+      chatCreationStrategies.add(() async {
+        print('FlutterGemmaLibrary: Trying full text-only chat');
+        return await _model!.createChat(
+          temperature: temperature,
+          randomSeed: DateTime.now().millisecondsSinceEpoch,
+          topK: 1,
+          topP: 0.95,
+          tokenBuffer: 256,
+          supportImage: false,
+          supportsFunctionCalls: false,
+          tools: [],
+          isThinking: false,
+          modelType: modelTypeEnum,
+        );
+      });
+
+      // Strategy 4: Minimal text-only chat (most compatible)
+      chatCreationStrategies.add(() async {
+        print('FlutterGemmaLibrary: Trying minimal text-only chat');
+        return await _model!.createChat(
+          temperature: temperature,
+          modelType: modelTypeEnum,
+        );
+      });
+
+      // Strategy 5: Bare minimum chat creation
+      chatCreationStrategies.add(() async {
+        print('FlutterGemmaLibrary: Trying bare minimum chat');
+        return await _model!.createChat();
+      });
+
+      bool chatCreated = false;
+      for (int i = 0; i < chatCreationStrategies.length && !chatCreated; i++) {
+        try {
+          print(
+              'FlutterGemmaLibrary: Attempting chat creation strategy ${i + 1}');
+          _chat = await chatCreationStrategies[i]();
+          chatCreated = true;
+          actualSupportsVision = visionStrategyIndices.contains(i);
+          _chatSupportsVision = actualSupportsVision;
+          print(
+              'FlutterGemmaLibrary: Chat created successfully with strategy ${i + 1}');
+          print('FlutterGemmaLibrary: Vision support: $actualSupportsVision');
+        } catch (e) {
+          lastError = e.toString();
+          print('FlutterGemmaLibrary: Strategy ${i + 1} failed: $e');
+
+          // Special handling for "forGenAiTasks" error
+          if (e.toString().contains('forGenAiTasks')) {
+            print(
+                'FlutterGemmaLibrary: Detected "forGenAiTasks" error - trying next strategy');
+          }
         }
+      }
+
+      if (!chatCreated) {
+        print('FlutterGemmaLibrary: All chat creation strategies failed');
+        print('FlutterGemmaLibrary: Last error: $lastError');
+
+        // Update app state with specific error information and ensure consistent state
+        if (appState != null) {
+          appState.update(() {
+            appState.downloadProgress =
+                'Chat creation failed: ${lastError ?? "Unknown error"}';
+            appState.isInitializing = false;
+            appState.isDownloading = false;
+            appState.isModelInitialized = false;
+          });
+        }
+
+        return false;
       }
 
       // Update internal state
@@ -838,6 +843,34 @@ class FlutterGemmaLibrary {
         errorString.contains('delegate') ||
         errorString.contains('ret_check failure') ||
         errorString.contains('metal');
+  }
+
+  /// Analyze error and provide user-friendly recovery suggestions
+  String _analyzeErrorForRecovery(dynamic error) {
+    final errorString = error.toString().toLowerCase();
+
+    if (errorString.contains('forgenaitasks')) {
+      return 'Model compatibility issue. Try a different model or check model format.';
+    }
+
+    if (errorString.contains('gpu') || errorString.contains('metal')) {
+      return 'GPU acceleration failed. Try CPU backend or check device compatibility.';
+    }
+
+    if (errorString.contains('network') || errorString.contains('download')) {
+      return 'Network error. Check internet connection and model URL.';
+    }
+
+    if (errorString.contains('memory') ||
+        errorString.contains('out of memory')) {
+      return 'Insufficient memory. Try a smaller model or close other apps.';
+    }
+
+    if (errorString.contains('permission') || errorString.contains('access')) {
+      return 'Permission denied. Check app permissions and storage access.';
+    }
+
+    return 'Unknown error. Try different model parameters or restart the app.';
   }
 
   /// Store the current model URL for tracking
