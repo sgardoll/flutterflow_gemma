@@ -8,6 +8,11 @@ import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
+import 'index.dart';
+
+import '../actions/index.dart';
+import '/app_state.dart';
+
 /// Error Recovery Widget for FlutterFlow
 ///
 /// This widget provides user-friendly error recovery options when Gemma model

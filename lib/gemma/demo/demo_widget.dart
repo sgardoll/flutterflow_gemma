@@ -155,19 +155,18 @@ class _DemoWidgetState extends State<DemoWidget> {
                 ),
               ),
               if (!valueOrDefault<bool>(
-                FFAppState().isModelInitialized,
-                true,
-              ))
+                    FFAppState().isModelInitialized,
+                    true,
+                  ) &&
+                  ((FFAppState().hfToken != '') ||
+                      (FFAppState().downloadUrl != '')))
                 wrapWithModel(
                   model: _model.initialzingModel,
                   updateCallback: () => safeSetState(() {}),
                   child: InitialzingWidget(),
                 ),
-              if (valueOrDefault<bool>(
-                (FFAppState().hfToken == '') &&
-                    (FFAppState().downloadUrl == ''),
-                true,
-              ))
+              if ((FFAppState().hfToken == '') &&
+                  (FFAppState().downloadUrl == ''))
                 Container(
                   width: MediaQuery.sizeOf(context).width * 1.0,
                   height: MediaQuery.sizeOf(context).height * 1.0,

@@ -8,6 +8,9 @@ import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
+import 'index.dart';
+
+import '/app_state.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Model Configuration Widget for FlutterFlow
