@@ -279,8 +279,7 @@ class ModelFileManager {
     final files = await directory.list().toList();
 
     for (final file in files) {
-      if (file is File &&
-          (file.path.endsWith('.task') || file.path.endsWith('.litertlm'))) {
+      if (file is File && _isModelFile(file.path)) {
         final fileName = path.basename(file.path);
         final fileStat = await file.stat();
 
@@ -415,8 +414,7 @@ class ModelFileManager {
     int deletedCount = 0;
 
     for (final file in files) {
-      if (file is File &&
-          (file.path.endsWith('.task') || file.path.endsWith('.litertlm'))) {
+      if (file is File && _isModelFile(file.path)) {
         try {
           await file.delete();
           deletedCount++;
@@ -483,6 +481,15 @@ class ModelFileManager {
       // Fallback filename on error
       return 'model_${DateTime.now().millisecondsSinceEpoch}.task';
     }
+  }
+
+  /// Check if the file path is a model file we manage
+  bool _isModelFile(String filePath) {
+    final lowerPath = filePath.toLowerCase();
+    return lowerPath.endsWith('.task') ||
+        lowerPath.endsWith('.tflite') ||
+        lowerPath.endsWith('.bin') ||
+        lowerPath.endsWith('.litertlm');
   }
 
   /// Check if a model supports vision based on filename

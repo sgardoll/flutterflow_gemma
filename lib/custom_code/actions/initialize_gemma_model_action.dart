@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 // Begin custom action code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
+import 'index.dart'; // Imports other custom actions
+
 import '/app_state.dart';
 import '../flutter_gemma_library.dart';
 
@@ -50,25 +52,22 @@ Future<bool> initializeGemmaModelAction(
   String backend,
   double temperature,
 ) async {
+  final appState = FFAppState();
+
   try {
     print('initializeGemmaModelAction: Starting complete model initialization');
     print('initializeGemmaModelAction: URL: $modelUrl');
     print(
         'initializeGemmaModelAction: Backend: $backend, Temperature: $temperature');
 
-    // Get app state for progress tracking
-    final appState = FFAppState();
+    // Reset any previous error state and set initializing
+    _resetErrorState(appState);
     appState.isInitializing = true;
     appState.downloadProgress = 'Initializing...';
 
     // Smart URL and token validation
     appState.downloadProgress = 'Validating configuration...';
-    final isHuggingFaceUrl = _isHuggingFaceUrl(modelUrl);
-    if (isHuggingFaceUrl && (authToken == null || authToken.isEmpty)) {
-      final error = 'HuggingFace URLs require authentication token';
-      print('initializeGemmaModelAction: Error - $error');
-      appState.isInitializing = false;
-      appState.downloadProgress = 'Error: $error';
+    if (!_validateConfiguration(modelUrl, authToken, appState)) {
       return false;
     }
 
@@ -99,8 +98,7 @@ Future<bool> initializeGemmaModelAction(
 
       if (!success) {
         print('initializeGemmaModelAction: Model initialization failed');
-        appState.isInitializing = false;
-        appState.downloadProgress = 'Model initialization failed';
+        _setErrorState(appState, 'Model initialization failed');
         return false;
       }
 
@@ -108,9 +106,7 @@ Future<bool> initializeGemmaModelAction(
       appState.isDownloading = false;
     } catch (loadError) {
       print('initializeGemmaModelAction: Model loading failed: $loadError');
-      appState.isInitializing = false;
-      appState.downloadProgress =
-          'Model loading failed: ${loadError.toString()}';
+      _setErrorState(appState, 'Model loading failed: ${loadError.toString()}');
       return false;
     }
 
@@ -129,12 +125,81 @@ Future<bool> initializeGemmaModelAction(
     print('initializeGemmaModelAction: Initialization completed successfully');
     return true;
   } catch (e) {
-    // Global error handler
+    // Global error handler with improved error recovery
     print('initializeGemmaModelAction: Unexpected error: $e');
-    FFAppState().isInitializing = false;
-    FFAppState().downloadProgress = 'Initialization failed: ${e.toString()}';
+    _handleCriticalError(appState, e);
     return false;
   }
+}
+
+/// Reset error state before attempting new initialization
+void _resetErrorState(FFAppState appState) {
+  appState.update(() {
+    appState.isInitializing = false;
+    appState.isDownloading = false;
+    appState.isModelInitialized = false;
+    appState.downloadProgress = '';
+    appState.downloadPercentage = 0.0;
+    appState.fileName = '';
+  });
+}
+
+/// Set error state with user-friendly message
+void _setErrorState(FFAppState appState, String error) {
+  appState.update(() {
+    appState.isInitializing = false;
+    appState.isDownloading = false;
+    appState.isModelInitialized = false;
+    appState.downloadProgress = error;
+    appState.downloadPercentage = 0.0;
+  });
+}
+
+/// Handle critical errors that may require cleanup
+Future<void> _handleCriticalError(FFAppState appState, dynamic error) async {
+  appState.update(() {
+    appState.isInitializing = false;
+    appState.isDownloading = false;
+    appState.isModelInitialized = false;
+    appState.downloadProgress = 'Initialization failed: ${error.toString()}';
+    appState.downloadPercentage = 0.0;
+  });
+
+// Attempt to cleanup any partially initialized resources
+  try {
+    final gemmaLibrary = FlutterGemmaLibrary.instance;
+    await gemmaLibrary.closeModel().catchError((cleanupError) {
+      print(
+          'initializeGemmaModelAction: CRITICAL - Error during cleanup: $cleanupError');
+    });
+  } catch (cleanupError) {
+    print(
+        'initializeGemmaModelAction: CRITICAL - Error initiating cleanup: $cleanupError');
+    // Critical since we couldn't even start cleanup
+  }
+}
+
+/// Validate configuration parameters
+bool _validateConfiguration(
+    String modelUrl, String? authToken, FFAppState appState) {
+  final isHuggingFaceUrl = _isHuggingFaceUrl(modelUrl);
+
+  if (isHuggingFaceUrl && (authToken == null || authToken.isEmpty)) {
+    final error = 'HuggingFace URLs require authentication token';
+    print('initializeGemmaModelAction: Error - $error');
+    _setErrorState(appState, error);
+    return false;
+  }
+
+  if (!_isSupportedModelFile(modelUrl)) {
+    final error =
+        'Unsupported model file. Use a .task, .tflite, or .bin LiteRT model.';
+    print('initializeGemmaModelAction: Error - $error');
+    _setErrorState(appState, error);
+    return false;
+  }
+
+  return true;
 }
 
 /// Check if URL is a HuggingFace URL requiring authentication
@@ -142,4 +207,14 @@ bool _isHuggingFaceUrl(String url) {
   final uri = Uri.tryParse(url);
   if (uri == null) return false;
   return uri.host.contains('huggingface.co') || uri.host.contains('hf.co');
+}
+
+/// Check for supported LiteRT/MediaPipe model formats.
+bool _isSupportedModelFile(String url) {
+  final uri = Uri.tryParse(url);
+  if (uri == null) return false;
+  final path = uri.path.toLowerCase();
+  return path.endsWith('.task') ||
+      path.endsWith('.tflite') ||
+      path.endsWith('.bin');
 }

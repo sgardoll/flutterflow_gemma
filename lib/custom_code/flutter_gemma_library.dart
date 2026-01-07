@@ -262,114 +262,124 @@ class FlutterGemmaLibrary {
 
       onProgress?.call('Creating chat session...', 95.0);
 
-      // Create chat session with improved vision support detection
+      // Create chat session with improved error handling for "forGenAiTasks" issue
       bool actualSupportsVision = false;
+      String? lastError;
 
-      // First, try to create chat based on detected model capabilities
+// Enhanced chat creation with multiple fallback strategies
+      final chatCreationStrategies = <Future<InferenceChat> Function()>[];
+      final visionStrategyIndices = <int>[];
+
+      // Strategy 1: Full text-only chat (always tried first)
+      chatCreationStrategies.add(() async {
+        print('FlutterGemmaLibrary: Strategy 1: Full text-only chat');
+        return await _model!.createChat(
+          temperature: temperature,
+          randomSeed: DateTime.now().millisecondsSinceEpoch,
+          topK: 1,
+          topP: 0.95,
+          tokenBuffer: 256,
+          supportImage: false,
+          supportsFunctionCalls: false,
+          tools: [],
+          isThinking: false,
+          modelType: modelTypeEnum,
+        );
+      });
+
+      // Strategy 2: Minimal text-only chat (most compatible)
+      chatCreationStrategies.add(() async {
+        print('FlutterGemmaLibrary: Strategy 2: Minimal text-only chat');
+        return await _model!.createChat(
+          temperature: temperature,
+          modelType: modelTypeEnum,
+        );
+      });
+
+      // Strategy 3: Bare minimum chat creation
+      chatCreationStrategies.add(() async {
+        print('FlutterGemmaLibrary: Strategy 3: Bare minimum chat');
+        return await _model!.createChat();
+      });
+
+      // Vision strategies (added only if model supports vision)
       if (potentiallySupportsVision) {
         print(
-          'FlutterGemmaLibrary: Model potentially supports vision, attempting vision chat',
-        );
+            'FlutterGemmaLibrary: Adding vision strategies for vision-capable model');
 
-        // Try different approaches for vision support
-        final visionApproaches = [
-          // Approach 1: Standard vision chat with all parameters
-          () async {
-            return await _model!.createChat(
-              temperature: temperature,
-              randomSeed: DateTime.now().millisecondsSinceEpoch,
-              topK: 1,
-              topP: 0.95,
-              tokenBuffer: 256,
-              supportImage: true,
-              supportsFunctionCalls: false,
-              tools: [],
-              isThinking: false,
-              modelType: modelTypeEnum,
-            );
-          },
-          // Approach 2: Simplified vision chat (some models might not support all parameters)
-          () async {
-            return await _model!.createChat(
-              temperature: temperature,
-              supportImage: true,
-              modelType: modelTypeEnum,
-            );
-          },
-        ];
-
-        bool visionChatCreated = false;
-        for (int i = 0;
-            i < visionApproaches.length && !visionChatCreated;
-            i++) {
-          try {
-            print('FlutterGemmaLibrary: Trying vision approach ${i + 1}');
-            _chat = await visionApproaches[i]();
-            actualSupportsVision = true;
-            _chatSupportsVision = true; // Track that chat supports vision
-            visionChatCreated = true;
-            print(
-              'FlutterGemmaLibrary: Vision chat created successfully with approach ${i + 1}',
-            );
-          } catch (visionError) {
-            print(
-              'FlutterGemmaLibrary: Vision approach ${i + 1} failed: $visionError',
-            );
-          }
-        }
-
-        // If vision chat failed, fall back to text-only
-        if (!visionChatCreated) {
-          print(
-            'FlutterGemmaLibrary: All vision approaches failed, falling back to text-only',
+        visionStrategyIndices.add(chatCreationStrategies.length);
+        chatCreationStrategies.add(() async {
+          print('FlutterGemmaLibrary: Strategy 4: Simplified vision chat');
+          return await _model!.createChat(
+            temperature: temperature,
+            supportImage: true,
+            modelType: modelTypeEnum,
           );
-          try {
-            _chat = await _model!.createChat(
-              temperature: temperature,
-              randomSeed: DateTime.now().millisecondsSinceEpoch,
-              topK: 1,
-              topP: 0.95,
-              tokenBuffer: 256,
-              supportImage: false,
-              supportsFunctionCalls: false,
-              tools: [],
-              isThinking: false,
-              modelType: modelTypeEnum,
-            );
-            actualSupportsVision = false;
-            _chatSupportsVision = false; // Track that chat is text-only
-            print('FlutterGemmaLibrary: Text-only chat created successfully');
-          } catch (fallbackError) {
-            print(
-              'FlutterGemmaLibrary: Text-only chat creation also failed: $fallbackError',
-            );
-            return false;
-          }
-        }
-      } else {
-        // Create text-only chat directly for non-vision models
-        print(
-          'FlutterGemmaLibrary: Model does not support vision, creating text-only chat',
-        );
-        try {
-          _chat = await _model!.createChat(
+        });
+
+        visionStrategyIndices.add(chatCreationStrategies.length);
+        chatCreationStrategies.add(() async {
+          print('FlutterGemmaLibrary: Strategy 5: Full vision chat');
+          return await _model!.createChat(
             temperature: temperature,
             randomSeed: DateTime.now().millisecondsSinceEpoch,
             topK: 1,
             topP: 0.95,
             tokenBuffer: 256,
-            supportImage: false,
+            supportImage: true,
             supportsFunctionCalls: false,
             tools: [],
             isThinking: false,
             modelType: modelTypeEnum,
           );
-          actualSupportsVision = false;
-          print('FlutterGemmaLibrary: Text-only chat created successfully');
-        } catch (chatError) {
-          print('FlutterGemmaLibrary: Chat creation failed: $chatError');
-          return false;
+        });
+      }
+
+      bool chatCreated = false;
+      print(
+          'FlutterGemmaLibrary: Total strategies to try: ${chatCreationStrategies.length}');
+      print(
+          'FlutterGemmaLibrary: Vision strategy indices: $visionStrategyIndices');
+
+      for (int i = 0; i < chatCreationStrategies.length && !chatCreated; i++) {
+        try {
+          print(
+              'FlutterGemmaLibrary: Attempting chat creation strategy ${i + 1} of ${chatCreationStrategies.length}');
+          _chat = await chatCreationStrategies[i]();
+          chatCreated = true;
+          actualSupportsVision = visionStrategyIndices.contains(i);
+          _chatSupportsVision = actualSupportsVision;
+          print(
+              'FlutterGemmaLibrary: Chat created successfully with strategy ${i + 1}');
+          print('FlutterGemmaLibrary: Vision support: $actualSupportsVision');
+        } catch (e) {
+          lastError = e.toString();
+          print('FlutterGemmaLibrary: Strategy ${i + 1} failed: $e');
+
+          // Special handling for "forGenAiTasks" error
+          if (e.toString().contains('forGenAiTasks')) {
+            print(
+                'FlutterGemmaLibrary: Detected "forGenAiTasks" error - trying next strategy');
+          }
         }
+      }
+
+      if (!chatCreated) {
+        print('FlutterGemmaLibrary: All chat creation strategies failed');
+        print('FlutterGemmaLibrary: Last error: $lastError');
+
+        // Update app state with specific error information and ensure consistent state
+        if (appState != null) {
+          appState.update(() {
+            appState.downloadProgress =
+                'Chat creation failed: ${lastError ?? "Unknown error"}';
+            appState.isInitializing = false;
+            appState.isDownloading = false;
+            appState.isModelInitialized = false;
+          });
+        }
+
+        return false;
       }
 
       // Update internal state
@@ -939,6 +949,46 @@ class ModelUtils {
     return false;
   }
 
+  /// Determine if a model supports function calling capabilities
+  /// FunctionGemma models are specifically designed for function calling
+  static bool isFunctionCallingModel(String modelType) {
+    final normalizedType = modelType.toLowerCase().trim().replaceAll(
+          RegExp(r'[-_\s]+'),
+          '-',
+        );
+
+    print(
+        'ModelUtils: Checking function calling support for model type: "$modelType"');
+    print('ModelUtils: Normalized type: "$normalizedType"');
+
+    // FunctionGemma models support function calling
+    final functionCallingModels = [
+      'functiongemma',
+      'function-gemma',
+      'functiongemma-270m',
+      'functiongemma-270m-it',
+    ];
+
+    for (final fcModel in functionCallingModels) {
+      if (normalizedType.contains(fcModel)) {
+        print('ModelUtils: Found function-calling model: $fcModel');
+        return true;
+      }
+    }
+
+    // Check for explicit function calling indicators
+    if (normalizedType.contains('function') ||
+        normalizedType.contains('tool-use') ||
+        normalizedType.contains('tooluse')) {
+      print('ModelUtils: Found function calling indicator in model name');
+      return true;
+    }
+
+    print(
+        'ModelUtils: No function calling support detected for: $normalizedType');
+    return false;
+  }
+
   /// Convert string to ModelType enum
   static ModelType getModelType(String modelType) {
     final normalized = modelType.toLowerCase().replaceAll('_', '-');
@@ -1001,6 +1051,20 @@ class ModelUtils {
           ) // Remove quantization suffix (-int4)
           .replaceAll(RegExp(r'\.litertlm$'), '') // Remove .litertlm extension
           .replaceAll(RegExp(r'\.task$'), ''); // Remove .task extension
+
+      // FunctionGemma model detection (check first as it's a specialized model)
+      // tiny_garden is the official FunctionGemma demo model
+      if (normalized.contains('functiongemma') ||
+          normalized.contains('function-gemma') ||
+          normalized.contains('function_gemma') ||
+          normalized.contains('tiny_garden') ||
+          normalized.contains('tiny-garden') ||
+          normalized.contains('tinygarden')) {
+        if (normalized.contains('270m')) {
+          return 'functiongemma-270m-it';
+        }
+        return 'functiongemma-270m-it'; // Default FunctionGemma variant
+      }
 
       // Special handling for common model naming patterns
       if (normalized.contains('gemma-3n-e4b') ||

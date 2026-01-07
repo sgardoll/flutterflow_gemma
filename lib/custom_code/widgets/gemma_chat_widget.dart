@@ -10,6 +10,8 @@ import 'package:flutter/material.dart';
 
 import 'index.dart'; // Imports other custom widgets
 
+import 'index.dart'; // Imports other custom widgets
+
 import '../actions/send_message_action.dart';
 import '../flutter_gemma_library.dart';
 import 'package:image_picker/image_picker.dart';
@@ -41,6 +43,8 @@ class GemmaChatWidget extends StatefulWidget {
     this.placeholder,
     this.onMessageSent,
     this.showImageButton,
+    this.onError,
+    this.onChangeModel,
   });
 
   final double? width;
@@ -48,6 +52,14 @@ class GemmaChatWidget extends StatefulWidget {
   final String? placeholder;
   final Future Function(String message, String response)? onMessageSent;
   final bool? showImageButton; // Override image button visibility
+
+  /// Callback when an error occurs (e.g., authentication error, download failure)
+  /// The error message is passed to the callback
+  final Future Function(String errorMessage)? onError;
+
+  /// Callback when user wants to change/select a different model
+  /// Use this to navigate back to model selection screen
+  final Future Function()? onChangeModel;
 
   @override
   State<GemmaChatWidget> createState() => _GemmaChatWidgetState();
@@ -104,29 +116,40 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
     final isDownloading = appState.isDownloading;
     final isInitializing = appState.isInitializing;
     final downloadPercentage = appState.downloadPercentage;
+    final progressText = appState.downloadProgress;
+
+    // Check if this is an error message
+    final isError = progressText.toLowerCase().startsWith('error');
 
     // Update the last progress message if it exists
-    if (_messages.isNotEmpty && _messages.last.isProgress) {
+    if (_messages.isNotEmpty &&
+        (_messages.last.isProgress || _messages.last.isError)) {
       setState(() {
         _messages[_messages.length - 1] = ChatMessage(
-          text: appState.downloadProgress.isNotEmpty
-              ? appState.downloadProgress
+          text: progressText.isNotEmpty
+              ? progressText
               : (isDownloading
                   ? 'Downloading model...'
                   : 'Initializing model...'),
           isUser: false,
           isSystemMessage: true,
-          isProgress: isDownloading || isInitializing,
+          isProgress: !isError && (isDownloading || isInitializing),
           progressPercentage: downloadPercentage,
+          isError: isError,
         );
       });
 
-      // Remove progress message when done
-      if (!isDownloading && !isInitializing) {
+      // Call error callback if provided
+      if (isError && widget.onError != null) {
+        widget.onError!(progressText);
+      }
+
+      // Remove progress message when done (but not error messages)
+      if (!isDownloading && !isInitializing && !isError) {
         Future.delayed(Duration(seconds: 2), () {
           if (mounted) {
             setState(() {
-              _messages.removeWhere((msg) => msg.isProgress);
+              _messages.removeWhere((msg) => msg.isProgress && !msg.isError);
               _checkModelStatus(); // Check model status again
             });
           }
@@ -523,8 +546,104 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
     );
   }
 
+  /// Build error bubble with action buttons
+  Widget _buildErrorBubble(ChatMessage message) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: FlutterFlowTheme.of(context).error.withAlpha(25),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: FlutterFlowTheme.of(context).error.withAlpha(76),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Error icon and message
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                Icons.error_outline,
+                color: FlutterFlowTheme.of(context).error,
+                size: 24,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  message.text,
+                  style: TextStyle(
+                    color: FlutterFlowTheme.of(context).error,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Action button - only "Go Back" to navigate back
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () async {
+                // Clear error state
+                setState(() {
+                  _messages.removeWhere((msg) => msg.isError);
+                });
+
+                // Reset app state
+                final appState =
+                    Provider.of<FFAppState>(context, listen: false);
+                appState.update(() {
+                  appState.isDownloading = false;
+                  appState.isInitializing = false;
+                  appState.downloadProgress = '';
+                  appState.downloadPercentage = 0.0;
+                });
+
+                // Call the callback if provided
+                if (widget.onChangeModel != null) {
+                  await widget.onChangeModel!();
+                } else {
+                  // Default: use FlutterFlow's safePop navigation
+                  if (mounted) {
+                    context.safePop();
+                  }
+                }
+              },
+              icon: const Icon(Icons.arrow_back, size: 18),
+              label: const Text('Go Back'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: FlutterFlowTheme.of(context).primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// Build message bubble widget
   Widget _buildMessageBubble(ChatMessage message) {
+    // Special handling for error messages with action buttons
+    // Check both the isError flag AND if the text starts with "Error"
+    final isErrorMessage =
+        message.isError || message.text.toLowerCase().startsWith('error');
+
+    if (isErrorMessage && !message.isUser) {
+      return _buildErrorBubble(message);
+    }
+
     Widget bubble = Align(
       alignment: message.isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
@@ -563,7 +682,9 @@ class _GemmaChatWidgetState extends State<GemmaChatWidget> {
             ],
 
             // Progress indicator for download/initialization messages
-            if (message.isProgress) ...[
+            // Don't show progress UI if the message is an error
+            if (message.isProgress &&
+                !message.text.toLowerCase().startsWith('error')) ...[
               Row(
                 children: [
                   SizedBox(
@@ -657,6 +778,7 @@ class ChatMessage {
   final bool isSystemMessage;
   final bool isProgress;
   final double progressPercentage;
+  final bool isError;
 
   ChatMessage({
     required this.text,
@@ -666,5 +788,6 @@ class ChatMessage {
     this.isSystemMessage = false,
     this.isProgress = false,
     this.progressPercentage = 0.0,
+    this.isError = false,
   }) : timestamp = timestamp ?? DateTime.now();
 }

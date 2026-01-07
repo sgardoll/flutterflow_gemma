@@ -37,10 +37,10 @@ class _DemoWidgetState extends State<DemoWidget> {
     // On page load action.
     SchedulerBinding.instance.addPostFrameCallback((_) async {
       FFAppState().hfToken = FFLibraryValues().huggingFaceToken!;
-      FFAppState().downloadUrl = FFLibraryValues().modelDownloadUrl;
+      FFAppState().downloadUrl = FFLibraryValues().modelDownloadUrl!;
       safeSetState(() {});
       _model.initAction = await actions.initializeGemmaModelAction(
-        FFLibraryValues().modelDownloadUrl,
+        FFLibraryValues().modelDownloadUrl!,
         FFLibraryValues().huggingFaceToken,
         '',
         'gpu',
@@ -149,6 +149,8 @@ class _DemoWidgetState extends State<DemoWidget> {
                     showImageButton:
                         FlutterGemmaLibrary.instance.supportsVision,
                     onMessageSent: (message, response) async {},
+                    onError: (errorMessage) async {},
+                    onChangeModel: () async {},
                   ),
                 ),
               ),
@@ -160,6 +162,24 @@ class _DemoWidgetState extends State<DemoWidget> {
                   model: _model.initialzingModel,
                   updateCallback: () => safeSetState(() {}),
                   child: InitialzingWidget(),
+                ),
+              if (valueOrDefault<bool>(
+                (FFAppState().hfToken == '') &&
+                    (FFAppState().downloadUrl == ''),
+                true,
+              ))
+                Container(
+                  width: MediaQuery.sizeOf(context).width * 1.0,
+                  height: MediaQuery.sizeOf(context).height * 1.0,
+                  child: custom_widgets.ModelConfigurationWidget(
+                    width: MediaQuery.sizeOf(context).width * 1.0,
+                    height: MediaQuery.sizeOf(context).height * 1.0,
+                    onConfigurationSaved: (modelUrl, token) async {
+                      FFAppState().hfToken = modelUrl!;
+                      FFAppState().downloadUrl = modelUrl;
+                      FFAppState().update(() {});
+                    },
+                  ),
                 ),
             ],
           ),

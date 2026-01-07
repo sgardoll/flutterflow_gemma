@@ -140,16 +140,8 @@ class _InitialzingWidgetState extends State<InitialzingWidget>
                     ),
                     Text(
                       valueOrDefault<String>(
-                        '${valueOrDefault<String>(
-                          formatNumber(
-                            FFAppState().downloadPercentage,
-                            formatType: FormatType.custom,
-                            format: '###.0',
-                            locale: 'en_US',
-                          ),
-                          '0',
-                        )}%',
-                        '0%',
+                        FFAppState().fileName,
+                        'Model',
                       ),
                       style: FlutterFlowTheme.of(context).bodyMedium.override(
                             font: GoogleFonts.inter(

@@ -372,6 +372,8 @@ extension StatefulWidgetExtensions on State<StatefulWidget> {
   }
 }
 
+String getCORSProxyUrl(String path) => kIsWeb ? '/$path' : path;
+
 // For iOS 16 and below, set the status bar color to match the app's theme.
 // https://github.com/flutter/flutter/issues/41067
 Brightness? _lastBrightness;
