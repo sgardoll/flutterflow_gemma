@@ -36,31 +36,36 @@ class _DemoWidgetState extends State<DemoWidget> {
 
     // On page load action.
     SchedulerBinding.instance.addPostFrameCallback((_) async {
-      FFAppState().hfToken = FFLibraryValues().huggingFaceToken!;
-      FFAppState().downloadUrl = FFLibraryValues().modelDownloadUrl!;
+      FFAppState().hfToken = () {
+        if (FFLibraryValues().huggingFaceToken != null &&
+            FFLibraryValues().huggingFaceToken != '') {
+          return FFLibraryValues().huggingFaceToken!;
+        } else if (FFAppState().hfToken != '') {
+          return FFAppState().hfToken;
+        } else {
+          return null;
+        }
+      }();
+      FFAppState().downloadUrl = () {
+        if (FFLibraryValues().modelDownloadUrl != null &&
+            FFLibraryValues().modelDownloadUrl != '') {
+          return FFLibraryValues().modelDownloadUrl!;
+        } else if (FFAppState().downloadUrl != '') {
+          return FFAppState().downloadUrl;
+        } else {
+          return null;
+        }
+      }();
       safeSetState(() {});
       _model.initAction = await actions.initializeGemmaModelAction(
-        FFLibraryValues().modelDownloadUrl!,
-        FFLibraryValues().huggingFaceToken,
+        FFAppState().downloadUrl,
+        FFAppState().hfToken,
         '',
         'gpu',
         0.8,
       );
       if (_model.initAction!) {
         safeSetState(() {});
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Initialization Error',
-              style: GoogleFonts.interTight(
-                color: FlutterFlowTheme.of(context).primaryText,
-              ),
-            ),
-            duration: Duration(milliseconds: 4000),
-            backgroundColor: FlutterFlowTheme.of(context).secondary,
-          ),
-        );
       }
     });
 
