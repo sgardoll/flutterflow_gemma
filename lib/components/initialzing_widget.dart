@@ -120,7 +120,7 @@ class _InitialzingWidgetState extends State<InitialzingWidget>
                           }
                         }(),
                         style: FlutterFlowTheme.of(context).bodyMedium.override(
-                              font: GoogleFonts.inter(
+                              font: GoogleFonts.lato(
                                 fontWeight: FlutterFlowTheme.of(context)
                                     .bodyMedium
                                     .fontWeight,
@@ -144,7 +144,7 @@ class _InitialzingWidgetState extends State<InitialzingWidget>
                         'Model',
                       ),
                       style: FlutterFlowTheme.of(context).bodyMedium.override(
-                            font: GoogleFonts.inter(
+                            font: GoogleFonts.lato(
                               fontWeight: FlutterFlowTheme.of(context)
                                   .bodyMedium
                                   .fontWeight,
@@ -193,7 +193,7 @@ class _InitialzingWidgetState extends State<InitialzingWidget>
                   child: Text(
                     FFAppState().downloadProgress,
                     style: FlutterFlowTheme.of(context).labelMedium.override(
-                          font: GoogleFonts.inter(
+                          font: GoogleFonts.lato(
                             fontWeight: FlutterFlowTheme.of(context)
                                 .labelMedium
                                 .fontWeight,

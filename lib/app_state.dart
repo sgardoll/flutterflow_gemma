@@ -63,7 +63,7 @@ class FFAppState extends ChangeNotifier {
     _downloadProgress = value;
   }
 
-  double _downloadPercentage = 100.0;
+  double _downloadPercentage = 0.0;
   double get downloadPercentage => _downloadPercentage;
   set downloadPercentage(double value) {
     _downloadPercentage = value;

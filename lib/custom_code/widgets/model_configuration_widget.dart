@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-import 'index.dart';
+import 'index.dart'; // Imports other custom widgets
 
 import '/app_state.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -18,18 +18,17 @@ import 'package:url_launcher/url_launcher.dart';
 /// Allows users to select a Gemma model from pre-configured options or enter
 /// a custom URL, along with their HuggingFace token.
 ///
-/// Updates FFAppState with the selected configuration.
+/// Updates FFAppState with the selected configuration and triggers a state
+/// refresh so the parent page can react (e.g., show InitialzingWidget).
 class ModelConfigurationWidget extends StatefulWidget {
   const ModelConfigurationWidget({
     super.key,
     this.width,
     this.height,
-    this.onConfigurationSaved,
   });
 
   final double? width;
   final double? height;
-  final Future Function(String? modelUrl, String? token)? onConfigurationSaved;
 
   @override
   State<ModelConfigurationWidget> createState() =>
@@ -91,15 +90,12 @@ class _ModelConfigurationWidgetState extends State<ModelConfigurationWidget> {
     });
 
     try {
+      // Update FFAppState - this triggers a rebuild of parent widgets
       final appState = FFAppState();
       appState.update(() {
         appState.downloadUrl = modelUrl;
         appState.hfToken = token;
       });
-
-      if (widget.onConfigurationSaved != null) {
-        await widget.onConfigurationSaved!(modelUrl, token);
-      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

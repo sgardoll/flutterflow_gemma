@@ -36,27 +36,14 @@ class _DemoWidgetState extends State<DemoWidget> {
 
     // On page load action.
     SchedulerBinding.instance.addPostFrameCallback((_) async {
-      FFAppState().hfToken = () {
-        if (FFLibraryValues().huggingFaceToken != null &&
-            FFLibraryValues().huggingFaceToken != '') {
-          return FFLibraryValues().huggingFaceToken!;
-        } else if (FFAppState().hfToken != '') {
-          return FFAppState().hfToken;
-        } else {
-          return null;
-        }
-      }();
-      FFAppState().downloadUrl = () {
-        if (FFLibraryValues().modelDownloadUrl != null &&
-            FFLibraryValues().modelDownloadUrl != '') {
-          return FFLibraryValues().modelDownloadUrl!;
-        } else if (FFAppState().downloadUrl != '') {
-          return FFAppState().downloadUrl;
-        } else {
-          return null;
-        }
-      }();
-      safeSetState(() {});
+      if ((FFLibraryValues().modelDownloadUrl != null &&
+              FFLibraryValues().modelDownloadUrl != '') &&
+          (FFLibraryValues().huggingFaceToken != null &&
+              FFLibraryValues().huggingFaceToken != '')) {
+        FFAppState().hfToken = FFLibraryValues().huggingFaceToken!;
+        FFAppState().downloadUrl = FFLibraryValues().modelDownloadUrl!;
+        safeSetState(() {});
+      }
       _model.initAction = await actions.initializeGemmaModelAction(
         FFAppState().downloadUrl,
         FFAppState().hfToken,
@@ -115,7 +102,7 @@ class _DemoWidgetState extends State<DemoWidget> {
               textAlign: TextAlign.center,
               maxLines: 2,
               style: FlutterFlowTheme.of(context).titleLarge.override(
-                    font: GoogleFonts.interTight(
+                    font: GoogleFonts.openSans(
                       fontWeight:
                           FlutterFlowTheme.of(context).titleLarge.fontWeight,
                       fontStyle:
@@ -164,7 +151,8 @@ class _DemoWidgetState extends State<DemoWidget> {
                     true,
                   ) &&
                   ((FFAppState().hfToken != '') ||
-                      (FFAppState().downloadUrl != '')))
+                      (FFAppState().downloadUrl != '')) &&
+                  (FFAppState().isModelInitialized != true))
                 wrapWithModel(
                   model: _model.initialzingModel,
                   updateCallback: () => safeSetState(() {}),
@@ -178,11 +166,6 @@ class _DemoWidgetState extends State<DemoWidget> {
                   child: custom_widgets.ModelConfigurationWidget(
                     width: MediaQuery.sizeOf(context).width * 1.0,
                     height: MediaQuery.sizeOf(context).height * 1.0,
-                    onConfigurationSaved: (modelUrl, token) async {
-                      FFAppState().hfToken = modelUrl!;
-                      FFAppState().downloadUrl = modelUrl;
-                      FFAppState().update(() {});
-                    },
                   ),
                 ),
             ],

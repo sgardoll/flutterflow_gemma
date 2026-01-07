@@ -105,7 +105,7 @@ class _HfTokenWidgetState extends State<HfTokenWidget> {
                               style: FlutterFlowTheme.of(context)
                                   .bodyMedium
                                   .override(
-                                    font: GoogleFonts.inter(
+                                    font: GoogleFonts.lato(
                                       fontWeight: FlutterFlowTheme.of(context)
                                           .bodyMedium
                                           .fontWeight,
@@ -149,7 +149,7 @@ class _HfTokenWidgetState extends State<HfTokenWidget> {
                                 style: FlutterFlowTheme.of(context)
                                     .bodySmall
                                     .override(
-                                      font: GoogleFonts.inter(
+                                      font: GoogleFonts.lato(
                                         fontWeight: FlutterFlowTheme.of(context)
                                             .bodySmall
                                             .fontWeight,
@@ -183,7 +183,7 @@ class _HfTokenWidgetState extends State<HfTokenWidget> {
                           hintStyle: FlutterFlowTheme.of(context)
                               .bodyLarge
                               .override(
-                                font: GoogleFonts.inter(
+                                font: GoogleFonts.lato(
                                   fontWeight: FlutterFlowTheme.of(context)
                                       .bodyLarge
                                       .fontWeight,
@@ -248,7 +248,7 @@ class _HfTokenWidgetState extends State<HfTokenWidget> {
                           ),
                         ),
                         style: FlutterFlowTheme.of(context).bodyMedium.override(
-                              font: GoogleFonts.inter(
+                              font: GoogleFonts.lato(
                                 fontWeight: FlutterFlowTheme.of(context)
                                     .bodyMedium
                                     .fontWeight,
@@ -291,7 +291,7 @@ class _HfTokenWidgetState extends State<HfTokenWidget> {
                             textStyle: FlutterFlowTheme.of(context)
                                 .bodyMedium
                                 .override(
-                                  font: GoogleFonts.inter(
+                                  font: GoogleFonts.lato(
                                     fontWeight: FlutterFlowTheme.of(context)
                                         .bodyMedium
                                         .fontWeight,
@@ -335,7 +335,7 @@ class _HfTokenWidgetState extends State<HfTokenWidget> {
                             textStyle: FlutterFlowTheme.of(context)
                                 .bodyMedium
                                 .override(
-                                  font: GoogleFonts.inter(
+                                  font: GoogleFonts.lato(
                                     fontWeight: FlutterFlowTheme.of(context)
                                         .bodyMedium
                                         .fontWeight,
