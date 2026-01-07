@@ -54,7 +54,7 @@ class _InitialzingWidgetState extends State<InitialzingWidget>
         effectsBuilder: () => [
           ShimmerEffect(
             curve: Curves.easeInOut,
-            delay: 0.0.ms,
+            delay: 600.0.ms,
             duration: 600.0.ms,
             color: Color(0x80FFFFFF),
             angle: 0.524,
@@ -104,31 +104,21 @@ class _InitialzingWidgetState extends State<InitialzingWidget>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Row(
+                Column(
                   mainAxisSize: MainAxisSize.max,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Flexible(
-                      child: Text(
-                        () {
-                          if (FFAppState().isDownloading) {
-                            return 'Downloading...';
-                          } else if (FFAppState().isInitializing) {
-                            return 'Initializing...';
-                          } else {
-                            return FFAppState().downloadProgress;
-                          }
-                        }(),
-                        style: FlutterFlowTheme.of(context).bodyMedium.override(
-                              font: GoogleFonts.lato(
-                                fontWeight: FlutterFlowTheme.of(context)
-                                    .bodyMedium
-                                    .fontWeight,
-                                fontStyle: FlutterFlowTheme.of(context)
-                                    .bodyMedium
-                                    .fontStyle,
-                              ),
-                              letterSpacing: 0.0,
+                    Text(
+                      () {
+                        if (FFAppState().isDownloading) {
+                          return 'Model selected:';
+                        } else if (FFAppState().isInitializing) {
+                          return 'Initializing...';
+                        } else {
+                          return 'Error...';
+                        }
+                      }(),
+                      style: FlutterFlowTheme.of(context).bodyMedium.override(
+                            font: GoogleFonts.lato(
                               fontWeight: FlutterFlowTheme.of(context)
                                   .bodyMedium
                                   .fontWeight,
@@ -136,13 +126,22 @@ class _InitialzingWidgetState extends State<InitialzingWidget>
                                   .bodyMedium
                                   .fontStyle,
                             ),
-                      ),
+                            color: FlutterFlowTheme.of(context).secondaryText,
+                            letterSpacing: 0.0,
+                            fontWeight: FlutterFlowTheme.of(context)
+                                .bodyMedium
+                                .fontWeight,
+                            fontStyle: FlutterFlowTheme.of(context)
+                                .bodyMedium
+                                .fontStyle,
+                          ),
                     ),
                     Text(
                       valueOrDefault<String>(
                         FFAppState().fileName,
                         'Model',
                       ),
+                      maxLines: 2,
                       style: FlutterFlowTheme.of(context).bodyMedium.override(
                             font: GoogleFonts.lato(
                               fontWeight: FlutterFlowTheme.of(context)
@@ -176,10 +175,14 @@ class _InitialzingWidgetState extends State<InitialzingWidget>
                         ],
                         stops: [
                           valueOrDefault<double>(
-                            FFAppState().downloadPercentage,
+                            FFAppState().downloadPercentage -
+                                FFAppState().downloadPercentage,
                             0.0,
                           ),
-                          1.0
+                          valueOrDefault<double>(
+                            FFAppState().downloadPercentage,
+                            1.0,
+                          )
                         ],
                         begin: AlignmentDirectional(1.0, 0.0),
                         end: AlignmentDirectional(-1.0, 0),

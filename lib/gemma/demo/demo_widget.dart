@@ -98,7 +98,7 @@ class _DemoWidgetState extends State<DemoWidget> {
           ],
           flexibleSpace: FlexibleSpaceBar(
             title: AutoSizeText(
-              'Gemma 3n Demo',
+              'On-Device AI Demo',
               textAlign: TextAlign.center,
               maxLines: 2,
               style: FlutterFlowTheme.of(context).titleLarge.override(
@@ -160,12 +160,19 @@ class _DemoWidgetState extends State<DemoWidget> {
                 ),
               if ((FFAppState().hfToken == '') &&
                   (FFAppState().downloadUrl == ''))
-                Container(
-                  width: MediaQuery.sizeOf(context).width * 1.0,
-                  height: MediaQuery.sizeOf(context).height * 1.0,
-                  child: custom_widgets.ModelConfigurationWidget(
-                    width: MediaQuery.sizeOf(context).width * 1.0,
-                    height: MediaQuery.sizeOf(context).height * 1.0,
+                SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.max,
+                    children: [
+                      Container(
+                        width: MediaQuery.sizeOf(context).width * 1.0,
+                        height: MediaQuery.sizeOf(context).height * 1.0,
+                        child: custom_widgets.ModelConfigurationWidget(
+                          width: MediaQuery.sizeOf(context).width * 1.0,
+                          height: MediaQuery.sizeOf(context).height * 1.0,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
             ],
