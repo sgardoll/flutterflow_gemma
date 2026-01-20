@@ -1,5 +1,7 @@
 # Gemma 3n FlutterFlow Integration
 
+<img width="1248" height="832" alt="MP" src="https://github.com/user-attachments/assets/5246b3a6-5c57-442f-99e7-184c13ec5f08" />
+
 An integration of Google's Gemma 3n AI models, providing offline/local on-device multimodel AI capabilities with authenticated model downloads and real-time chat functionality.
 
 ## ✨ Features
