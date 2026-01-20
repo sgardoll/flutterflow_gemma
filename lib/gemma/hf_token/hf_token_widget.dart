@@ -233,10 +233,10 @@ class _HfTokenWidgetState extends State<HfTokenWidget> {
                           contentPadding: EdgeInsetsDirectional.fromSTEB(
                               12.0, 16.0, 12.0, 16.0),
                           suffixIcon: InkWell(
-                            onTap: () => safeSetState(
-                              () => _model.tokenVisibility =
-                                  !_model.tokenVisibility,
-                            ),
+                            onTap: () async {
+                              safeSetState(() => _model.tokenVisibility =
+                                  !_model.tokenVisibility);
+                            },
                             focusNode: FocusNode(skipTraversal: true),
                             child: Icon(
                               _model.tokenVisibility
