@@ -158,7 +158,6 @@ class _DemoWidgetState extends State<DemoWidget> {
                       width: MediaQuery.sizeOf(context).width * 1.0,
                       height: MediaQuery.sizeOf(context).height * 1.0,
                       placeholder: 'Type your prompt here',
-                      showImageButton: null,
                       onMessageSent: (message, response) async {},
                       onError: (errorMessage) async {
                         ScaffoldMessenger.of(context).showSnackBar(

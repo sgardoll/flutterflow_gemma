@@ -71,6 +71,7 @@ Future<bool> aiInitialize(
     );
 
     // Update final state
+    print('aiInitialize: success = $success');
     appState.update(() {
       appState.isInitializing = false;
       appState.isDownloading = false;
@@ -79,6 +80,7 @@ Future<bool> aiInitialize(
       appState.downloadProgress =
           success ? 'Model ready for chat!' : 'Initialization failed.';
     });
+    print('aiInitialize: isModelInitialized set to $success');
 
     // If init succeeded, auto-create a session
     if (success) {
