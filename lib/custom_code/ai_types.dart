@@ -144,6 +144,17 @@ class AiMessageRecord {
       status: status ?? this.status,
     );
   }
+
+  /// Serialize to a plain map — safe for FlutterFlow action return values.
+  Map<String, dynamic> toMap() => {
+        'id': id,
+        'sessionId': sessionId,
+        'text': text,
+        'isUser': isUser,
+        'isPartial': isPartial,
+        'timestamp': timestamp.millisecondsSinceEpoch,
+        'status': status.name,
+      };
 }
 
 // ---------------------------------------------------------------------------
@@ -187,6 +198,20 @@ class AiModelInfo {
     }
     return '$bytes bytes';
   }
+
+  /// Serialize to a plain map — safe for FlutterFlow action return values.
+  Map<String, dynamic> toMap() => {
+        'id': id,
+        'displayName': displayName,
+        'filePath': filePath,
+        'fileSizeBytes': fileSizeBytes,
+        'fileSizeFormatted': fileSizeFormatted,
+        'supportsVision': supportsVision,
+        'supportsFunctionCalling': supportsFunctionCalling,
+        'isInstalled': isInstalled,
+        'downloadUrl': downloadUrl,
+        'installedAt': installedAt?.millisecondsSinceEpoch,
+      };
 }
 
 // ---------------------------------------------------------------------------
@@ -227,6 +252,15 @@ class AiCapabilityInfo {
     this.recommendedBackend,
     required this.platform,
   });
+
+  /// Serialize to a plain map — safe for FlutterFlow action return values.
+  Map<String, dynamic> toMap() => {
+        'supportsGpu': supportsGpu,
+        'supportsCpu': supportsCpu,
+        'supportsTpu': supportsTpu,
+        'recommendedBackend': recommendedBackend,
+        'platform': platform,
+      };
 }
 
 /// Result of a model install/download operation.
@@ -246,4 +280,11 @@ class AiInstallResult {
 
   factory AiInstallResult.fail(String error) =>
       AiInstallResult(success: false, errorMessage: error);
+
+  /// Serialize to a plain map — safe for FlutterFlow action return values.
+  Map<String, dynamic> toMap() => {
+        'success': success,
+        'filePath': filePath,
+        'errorMessage': errorMessage,
+      };
 }

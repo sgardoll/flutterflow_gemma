@@ -8,19 +8,26 @@ import 'package:flutter/material.dart';
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
 import '../ai_rust_api.dart';
-import '../ai_types.dart';
 
 /// Fetch all messages for the current session.
 ///
 /// If generation is in progress, the list includes a partial assistant
-/// message with [AiMessageStatus.generating].
+/// message with status 'generating'.
 ///
-/// Designed to be called on a polling timer from the chat widget.
+/// Designed to be called on a polling timer from FlutterFlow pages.
+/// The chat widget calls AiRustApi directly; this action is the
+/// FlutterFlow-facing counterpart.
 ///
 /// ## Returns
-/// A list of [AiMessageRecord] sorted oldest-first.
-/// Returns an empty list if no session is active.
-List<AiMessageRecord> aiGetSessionMessages() {
-  final api = AiRustApi.instance;
-  return api.getSessionMessages();
+/// `Future<List<dynamic>>` — each item is a `Map<String, dynamic>` with keys:
+///   - `id` (String)
+///   - `sessionId` (String)
+///   - `text` (String)
+///   - `isUser` (bool)
+///   - `isPartial` (bool)
+///   - `timestamp` (int — millisecondsSinceEpoch)
+///   - `status` (String — 'pending' | 'generating' | 'complete' | 'error' | 'cancelled')
+Future<List<dynamic>> aiGetSessionMessages() async {
+  final messages = AiRustApi.instance.getSessionMessages();
+  return messages.map((m) => m.toMap()).toList();
 }

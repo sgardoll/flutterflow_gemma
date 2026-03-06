@@ -10,3 +10,10 @@ export 'recover_from_initialization_error.dart'
 export 'ai_initialize.dart' show aiInitialize;
 export 'ai_create_session.dart' show aiCreateSession;
 export 'ai_get_session_messages.dart' show aiGetSessionMessages;
+export 'ai_send_text_message.dart' show aiSendTextMessage;
+export 'ai_send_image_message.dart' show aiSendImageMessage;
+export 'ai_list_models.dart' show aiListModels;
+export 'ai_get_device_capabilities.dart' show aiGetDeviceCapabilities;
+export 'ai_install_model.dart' show aiInstallModel;
+export 'ai_delete_model.dart' show aiDeleteModel;
+export 'ai_cancel_generation.dart' show aiCancelGeneration;
