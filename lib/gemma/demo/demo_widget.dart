@@ -64,13 +64,18 @@ class _DemoWidgetState extends State<DemoWidget> {
           },
         );
       }
-      _model.initAction = await actions.aiInitialize(
-        FFAppState().downloadUrl,
-        FFAppState().hfToken,
-        ' ',
-        'gpu',
-        0.8,
-      );
+
+      if (!(FFAppState().isModelInitialized &&
+          (FFAppState().hfToken != '') &&
+          (FFAppState().downloadUrl != ''))) {
+        _model.init = await actions.aiInitialize(
+          FFAppState().downloadUrl,
+          FFAppState().hfToken,
+          '',
+          'gpu',
+          0.8,
+        );
+      }
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) => safeSetState(() {}));
@@ -143,51 +148,110 @@ class _DemoWidgetState extends State<DemoWidget> {
           ),
           body: SafeArea(
             top: true,
-            child: Stack(
-              children: [
-                Container(
-                  width: MediaQuery.sizeOf(context).width * 1.0,
-                  height: MediaQuery.sizeOf(context).height * 1.0,
-                  child: custom_widgets.GemmaChatRuntimeWidget(
+            child: Builder(
+              builder: (context) {
+                if (FFAppState().isModelInitialized) {
+                  return Container(
                     width: MediaQuery.sizeOf(context).width * 1.0,
                     height: MediaQuery.sizeOf(context).height * 1.0,
-                    showImageButton: FFAppState().modelSupportsVision,
-                    onMessageSent: (message, response) async {},
-                    onError: (errorMessage) async {},
-                    onChangeModel: () async {},
-                  ),
-                ),
-              ),
-              if (!valueOrDefault<bool>(
-                    FFAppState().isModelInitialized,
-                    true,
-                  ) &&
-                  ((FFAppState().hfToken != '') ||
-                      (FFAppState().downloadUrl != '')) &&
-                  (FFAppState().isModelInitialized != true))
-                wrapWithModel(
-                  model: _model.initialzingModel,
-                  updateCallback: () => safeSetState(() {}),
-                  child: InitialzingWidget(),
-                ),
-              if ((FFAppState().hfToken == '') &&
-                  (FFAppState().downloadUrl == ''))
-                SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.max,
-                    children: [
-                      Container(
+                    child: custom_widgets.GemmaChatRuntimeWidget(
+                      width: MediaQuery.sizeOf(context).width * 1.0,
+                      height: MediaQuery.sizeOf(context).height * 1.0,
+                      placeholder: 'Type your prompt here',
+                      showImageButton: null,
+                      onMessageSent: (message, response) async {},
+                      onError: (errorMessage) async {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              errorMessage,
+                              style: FlutterFlowTheme.of(context)
+                                  .bodyMedium
+                                  .override(
+                                    font: GoogleFonts.lato(
+                                      fontWeight: FlutterFlowTheme.of(context)
+                                          .bodyMedium
+                                          .fontWeight,
+                                      fontStyle: FlutterFlowTheme.of(context)
+                                          .bodyMedium
+                                          .fontStyle,
+                                    ),
+                                    color: FlutterFlowTheme.of(context)
+                                        .primaryText,
+                                    letterSpacing: 0.0,
+                                    fontWeight: FlutterFlowTheme.of(context)
+                                        .bodyMedium
+                                        .fontWeight,
+                                    fontStyle: FlutterFlowTheme.of(context)
+                                        .bodyMedium
+                                        .fontStyle,
+                                  ),
+                            ),
+                            duration: Duration(milliseconds: 4000),
+                            backgroundColor:
+                                FlutterFlowTheme.of(context).secondary,
+                          ),
+                        );
+                      },
+                      onChangeModel: () async {},
+                    ),
+                  );
+                } else {
+                  return Builder(
+                    builder: (context) => Container(
+                      width: MediaQuery.sizeOf(context).width * 1.0,
+                      height: 300.0,
+                      child: custom_widgets.GemmaSetupStatusWidget(
                         width: MediaQuery.sizeOf(context).width * 1.0,
-                        height: MediaQuery.sizeOf(context).height * 1.0,
-                        child: custom_widgets.ModelConfigurationWidget(
-                          width: MediaQuery.sizeOf(context).width * 1.0,
-                          height: MediaQuery.sizeOf(context).height * 1.0,
-                        ),
+                        height: 300.0,
+                        onRetry: () async {
+                          _model.initRetry = await actions.aiInitialize(
+                            FFAppState().downloadUrl,
+                            FFAppState().hfToken,
+                            '',
+                            'gpu',
+                            0.8,
+                          );
+
+                          safeSetState(() {});
+                        },
+                        onSelectModel: () async {
+                          await showDialog(
+                            context: context,
+                            builder: (dialogContext) {
+                              return Dialog(
+                                elevation: 0,
+                                insetPadding: EdgeInsets.zero,
+                                backgroundColor: Colors.transparent,
+                                alignment: AlignmentDirectional(0.0, 0.0)
+                                    .resolve(Directionality.of(context)),
+                                child: GestureDetector(
+                                  onTap: () {
+                                    FocusScope.of(dialogContext).unfocus();
+                                    FocusManager.instance.primaryFocus
+                                        ?.unfocus();
+                                  },
+                                  child: GemmaModelSelectorComponentWidget(),
+                                ),
+                              );
+                            },
+                          );
+
+                          _model.reInit = await actions.aiInitialize(
+                            FFAppState().downloadUrl,
+                            FFAppState().hfToken,
+                            '',
+                            'gpu',
+                            0.8,
+                          );
+
+                          safeSetState(() {});
+                        },
                       ),
-                    ],
-                  ),
-                ),
-              ],
+                    ),
+                  );
+                }
+              },
             ),
           ),
         ),

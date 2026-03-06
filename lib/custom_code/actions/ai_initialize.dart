@@ -8,6 +8,8 @@ import 'package:flutter/material.dart';
 // Begin custom action code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
+import 'index.dart'; // Imports other custom actions
+
 import '/app_state.dart';
 import '../ai_rust_api.dart';
 
@@ -54,14 +56,16 @@ Future<bool> aiInitialize(
       backend: backend,
       temperature: temperature,
       onProgress: (status, percentage) {
-        appState.downloadProgress = status;
-        appState.downloadPercentage = percentage;
+        appState.update(() {
+          appState.downloadProgress = status;
+          appState.downloadPercentage = percentage;
+        });
 
         // Track download vs init phase
         if (status.toLowerCase().contains('download')) {
-          appState.isDownloading = true;
+          appState.update(() => appState.isDownloading = true);
         } else {
-          appState.isDownloading = false;
+          appState.update(() => appState.isDownloading = false);
         }
       },
     );

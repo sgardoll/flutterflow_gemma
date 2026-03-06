@@ -41,6 +41,7 @@ class _ModelConfigurationWidgetState extends State<ModelConfigurationWidget> {
   late TextEditingController _tokenController;
   String? _selectedModel;
   bool _isSaving = false;
+  bool _tokenVisible = false;
 
   final defaultModels = {
     'Gemma 3n E4B (4B, Vision)':
@@ -282,19 +283,33 @@ class _ModelConfigurationWidgetState extends State<ModelConfigurationWidget> {
           const SizedBox(height: 8),
           TextField(
             controller: _tokenController,
-            obscureText: true,
+            obscureText: !_tokenVisible,
             decoration: InputDecoration(
               labelText: 'HuggingFace Token',
               hintText: 'hf_...',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
-              suffixIcon: IconButton(
-                icon: Icon(Icons.open_in_new, size: 20),
-                onPressed: () {
-                  launchUrl(
-                      Uri.parse('https://huggingface.co/settings/tokens'));
-                },
+              suffixIcon: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      _tokenVisible ? Icons.visibility_off : Icons.visibility,
+                      size: 20,
+                    ),
+                    onPressed: () =>
+                        setState(() => _tokenVisible = !_tokenVisible),
+                    tooltip: _tokenVisible ? 'Hide token' : 'Show token',
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.open_in_new, size: 20),
+                    onPressed: () {
+                      launchUrl(
+                          Uri.parse('https://huggingface.co/settings/tokens'));
+                    },
+                  ),
+                ],
               ),
             ),
           ),

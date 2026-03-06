@@ -9,6 +9,8 @@ import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
+import 'index.dart'; // Imports other custom widgets
+
 import 'dart:async';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -17,9 +19,9 @@ import '../ai_types.dart';
 
 /// Model selection and configuration UI.
 ///
-/// Displays available models (installed + well-known downloadable ones),
-/// lets the user pick one, enter a HuggingFace token, and save the
-/// configuration into FFAppState so the page can trigger [aiInitialize].
+/// Displays available models (installed + well-known downloadable ones), lets
+/// the user pick one, enter a HuggingFace token, and save the configuration
+/// into FFAppState so the page can trigger [aiInitialize].
 ///
 /// This widget contains **no** capability calculation, no runtime mapping,
 /// and no device heuristics. It reads from [AiRustApi] and writes to
@@ -68,6 +70,7 @@ class _GemmaModelSelectorWidgetState extends State<GemmaModelSelectorWidget> {
   bool _isSaving = false;
   List<AiModelInfo> _installedModels = [];
   bool _loadingInstalled = true;
+  bool _tokenVisible = false;
 
   @override
   void initState() {
@@ -280,18 +283,32 @@ class _GemmaModelSelectorWidgetState extends State<GemmaModelSelectorWidget> {
             const SizedBox(height: 8),
             TextField(
               controller: _tokenController,
-              obscureText: true,
+              obscureText: !_tokenVisible,
               decoration: InputDecoration(
                 labelText: 'HuggingFace Token',
                 hintText: 'hf_...',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.open_in_new, size: 20),
-                  onPressed: () => launchUrl(
-                    Uri.parse('https://huggingface.co/settings/tokens'),
-                  ),
+                suffixIcon: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: Icon(
+                        _tokenVisible ? Icons.visibility_off : Icons.visibility,
+                        size: 20,
+                      ),
+                      onPressed: () =>
+                          setState(() => _tokenVisible = !_tokenVisible),
+                      tooltip: _tokenVisible ? 'Hide token' : 'Show token',
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.open_in_new, size: 20),
+                      onPressed: () => launchUrl(
+                        Uri.parse('https://huggingface.co/settings/tokens'),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

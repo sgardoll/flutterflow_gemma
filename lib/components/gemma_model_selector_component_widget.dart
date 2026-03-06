@@ -1,4 +1,5 @@
 import '/flutter_flow/flutter_flow_util.dart';
+import 'dart:ui';
 import '/custom_code/widgets/index.dart' as custom_widgets;
 import 'package:flutter/material.dart';
 import 'gemma_model_selector_component_model.dart';
@@ -39,17 +40,24 @@ class _GemmaModelSelectorComponentWidgetState
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: MediaQuery.sizeOf(context).width * 1.0,
-      height: MediaQuery.sizeOf(context).height * 1.0,
-      child: custom_widgets.GemmaModelSelectorWidget(
-        width: MediaQuery.sizeOf(context).width * 1.0,
-        height: MediaQuery.sizeOf(context).height * 1.0,
-        onConfigSaved: (modelUrl, authToken) async {
-          FFAppState().downloadUrl = modelUrl;
-          FFAppState().hfToken = modelUrl;
-          safeSetState(() {});
-        },
+    return BackdropFilter(
+      filter: ImageFilter.blur(
+        sigmaX: 2.0,
+        sigmaY: 2.0,
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(24.0),
+        child: Container(
+          width: MediaQuery.sizeOf(context).width * 1.0,
+          height: MediaQuery.sizeOf(context).height * 1.0,
+          child: custom_widgets.GemmaModelSelectorWidget(
+            width: MediaQuery.sizeOf(context).width * 1.0,
+            height: MediaQuery.sizeOf(context).height * 1.0,
+            onConfigSaved: (modelUrl, authToken) async {
+              Navigator.pop(context);
+            },
+          ),
+        ),
       ),
     );
   }

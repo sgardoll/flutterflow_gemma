@@ -8,18 +8,19 @@ import 'package:flutter/material.dart';
 // Begin custom action code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
+import 'index.dart'; // Imports other custom actions
+
 import '../ai_rust_api.dart';
 
 /// Delete a locally installed model file.
 ///
-/// If the deleted model is currently loaded, the engine is closed first
-/// to avoid leaving the app in an inconsistent state.
+/// If the deleted model is currently loaded, the engine is closed first to
+/// avoid leaving the app in an inconsistent state.
 ///
-/// ## Parameters
-/// - [modelPath] — Full file path of the model to delete (from [AiModelInfo.filePath]).
+/// ## Parameters - [modelPath] — Full file path of the model to delete (from
+/// [AiModelInfo.filePath]).
 ///
-/// ## Returns
-/// `true` if the model was deleted successfully.
+/// ## Returns `true` if the model was deleted successfully.
 Future<bool> aiDeleteModel(String modelPath) async {
   if (modelPath.trim().isEmpty) {
     debugPrint('aiDeleteModel: modelPath is empty.');
