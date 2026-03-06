@@ -614,28 +614,24 @@ class AiRustApi {
     return ModelType.gemmaIt;
   }
 
-  /// Map user-facing backend string to [PreferredBackend].
-  ///
-  /// flutter_gemma 0.12.x only exposes: `cpu`, `gpu`, `npu`.
-  /// Legacy names (gpuFloat16, tpu, …) are mapped to the closest match.
   static PreferredBackend _toBackend(String backend) {
     switch (backend.toLowerCase()) {
       case 'cpu':
         return PreferredBackend.cpu;
-      case 'npu':
-        return PreferredBackend.npu;
-      case 'gpu':
       case 'gpufloat16':
       case 'gpu_float16':
       case 'gpu-float16':
+        return PreferredBackend.gpuFloat16;
       case 'gpumixed':
       case 'gpu_mixed':
       case 'gpu-mixed':
+        return PreferredBackend.gpuMixed;
       case 'gpufull':
       case 'gpu_full':
       case 'gpu-full':
+        return PreferredBackend.gpuFull;
       case 'tpu':
-        return PreferredBackend.gpu;
+        return PreferredBackend.tpu;
       default:
         return PreferredBackend.gpu;
     }

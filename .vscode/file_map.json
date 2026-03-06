@@ -92,7 +92,7 @@
     "new_identifier_name": "pubspec.yaml",
     "type": "D",
     "is_deleted": false,
-    "current_checksum": "555646e4c209b94449ebd791565ae67f0940804e33f7307f02e7ad190aec471b",
+    "current_checksum": "6a48cafd515e256ce2f979c56d84418ce782f76c0f49c1a79e97177aab2e341f",
     "original_checksum": "555646e4c209b94449ebd791565ae67f0940804e33f7307f02e7ad190aec471b"
   },
   "ai_types.dart": {
@@ -119,7 +119,7 @@
     "new_identifier_name": "aiRustApi",
     "type": "O",
     "is_deleted": false,
-    "current_checksum": "16674b15046ceaafdc1dd5cdad98133df08e37e2e32486cae12e03ccd5358a98"
+    "current_checksum": "954f65615f43954ea5862002a4336337b80d3954403ee6f67df3c1d1ff06c021"
   },
   "ai_initialize.dart": {
     "old_identifier_name": "aiInitialize",

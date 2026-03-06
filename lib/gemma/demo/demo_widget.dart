@@ -3,7 +3,6 @@ import '/flutter_flow/flutter_flow_icon_button.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/custom_code/actions/index.dart' as actions;
-import '/custom_code/flutter_gemma_library.dart';
 import '/custom_code/widgets/index.dart' as custom_widgets;
 import '/index.dart';
 import 'package:auto_size_text/auto_size_text.dart';
@@ -44,7 +43,7 @@ class _DemoWidgetState extends State<DemoWidget> {
         FFAppState().downloadUrl = FFLibraryValues().modelDownloadUrl!;
         safeSetState(() {});
       }
-      _model.initAction = await actions.initializeGemmaModelAction(
+      _model.initAction = await actions.aiInitialize(
         FFAppState().downloadUrl,
         FFAppState().hfToken,
         '',
@@ -135,11 +134,10 @@ class _DemoWidgetState extends State<DemoWidget> {
                 child: Container(
                   width: MediaQuery.sizeOf(context).width * 1.0,
                   height: MediaQuery.sizeOf(context).height * 1.0,
-                  child: custom_widgets.GemmaChatWidget(
+                  child: custom_widgets.GemmaChatRuntimeWidget(
                     width: MediaQuery.sizeOf(context).width * 1.0,
                     height: MediaQuery.sizeOf(context).height * 1.0,
-                    showImageButton:
-                        FlutterGemmaLibrary.instance.supportsVision,
+                    showImageButton: FFAppState().modelSupportsVision,
                     onMessageSent: (message, response) async {},
                     onError: (errorMessage) async {},
                     onChangeModel: () async {},
