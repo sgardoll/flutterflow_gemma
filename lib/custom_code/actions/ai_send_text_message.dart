@@ -8,18 +8,18 @@ import 'package:flutter/material.dart';
 // Begin custom action code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-import 'index.dart'; // Imports other custom actions
-
 import '../ai_rust_api.dart';
 
 /// Send a text message to the current AI session.
 ///
-/// Generation runs asynchronously — poll [aiGetSessionMessages] to track
-/// progress and retrieve the final response.
+/// Generation runs asynchronously — poll [aiGetSessionMessages] to
+/// track progress and retrieve the final response.
 ///
-/// ## Parameters - [message] — The user prompt text.
+/// ## Parameters
+/// - [message] — The user prompt text.
 ///
-/// ## Returns `true` if the message was accepted and generation started.
+/// ## Returns
+/// `true` if the message was accepted and generation started.
 /// `false` if the engine is not ready, already generating, or input is empty.
 Future<bool> aiSendTextMessage(String message) async {
   final api = AiRustApi.instance;

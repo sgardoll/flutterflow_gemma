@@ -9,8 +9,6 @@ import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-import 'index.dart'; // Imports other custom widgets
-
 import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -22,12 +20,14 @@ import '../ai_state_helpers.dart';
 
 /// Polling-based chat shell for Gemma on-device AI.
 ///
-/// This widget is intentionally thin. It renders messages, accepts input, and
-/// polls [AiRustApi] for updates. It contains **no** inference logic, prompt
-/// construction, model management, or runtime mapping.
+/// This widget is intentionally thin. It renders messages, accepts input,
+/// and polls [AiRustApi] for updates. It contains **no** inference logic,
+/// prompt construction, model management, or runtime mapping.
 ///
-/// ## FlutterFlow usage 1. Initialize the engine with [aiInitialize] action.
-/// 2. Drop this widget onto a page. 3. Chatting works.
+/// ## FlutterFlow usage
+/// 1. Initialize the engine with [aiInitialize] action.
+/// 2. Drop this widget onto a page.
+/// 3. Chatting works.
 class GemmaChatRuntimeWidget extends StatefulWidget {
   const GemmaChatRuntimeWidget({
     super.key,

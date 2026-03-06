@@ -9,8 +9,6 @@ import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-import 'index.dart'; // Imports other custom widgets
-
 import 'package:provider/provider.dart';
 
 /// Setup / install / initialization progress UI.
@@ -18,8 +16,8 @@ import 'package:provider/provider.dart';
 /// Displays current download progress, initialization state, and error
 /// messages. Surfaces a recovery path when errors occur.
 ///
-/// **Does not own any install logic.** It reads [FFAppState] and delegates to
-/// [aiInitialize] via callbacks — no direct [AiRustApi] calls here.
+/// **Does not own any install logic.** It reads [FFAppState] and delegates
+/// to [aiInitialize] via callbacks — no direct [AiRustApi] calls here.
 class GemmaSetupStatusWidget extends StatefulWidget {
   const GemmaSetupStatusWidget({
     super.key,

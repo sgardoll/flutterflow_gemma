@@ -1,0 +1,118 @@
+{
+  "session_id": "refactor_2025_03_06",
+  "project": "flutterflow_gemma",
+  "goal": "Reshape into FlutterFlow-safe architecture with Rust-ready boundaries",
+  "created_at": "2025-03-06T02:15:00Z",
+  "last_updated": "2025-03-06T04:00:00Z",
+  "status": "complete",
+  "milestones": [
+    {
+      "id": 1,
+      "name": "Boundary and Session",
+      "status": "complete",
+      "files": [
+        "lib/custom_code/ai_types.dart",
+        "lib/custom_code/ai_rust_api.dart",
+        "lib/custom_code/ai_mapper.dart",
+        "lib/custom_code/ai_state_helpers.dart",
+        "lib/custom_code/actions/ai_initialize.dart",
+        "lib/custom_code/actions/ai_create_session.dart",
+        "lib/custom_code/actions/ai_get_session_messages.dart"
+      ],
+      "notes": "All 7 files created. Fixed PreferredBackend enum (0.12.5 only has cpu/gpu/npu) and isModelInstalled (method not getter)."
+    },
+    {
+      "id": 2,
+      "name": "Usable Chat Shell",
+      "status": "complete",
+      "files": [
+        "lib/custom_code/widgets/gemma_chat_runtime_widget.dart",
+        "lib/custom_code/actions/ai_send_text_message.dart"
+      ],
+      "notes": "Polling-based chat widget (~470 lines vs old 795). Zero inference logic in widget. Image support included (AiRustApi.sendImageMessage available from M1)."
+    },
+    {
+      "id": 3,
+      "name": "Multimodal Support",
+      "status": "complete",
+      "files": ["lib/custom_code/actions/ai_send_image_message.dart"],
+      "notes": "Vision fallback to text-only when model lacks capability. 10 MB size guard."
+    },
+    {
+      "id": 4,
+      "name": "Model Setup",
+      "status": "complete",
+      "files": [
+        "lib/custom_code/actions/ai_list_models.dart",
+        "lib/custom_code/actions/ai_get_device_capabilities.dart",
+        "lib/custom_code/widgets/gemma_model_selector_widget.dart"
+      ],
+      "notes": "Selector shows installed models + known downloadable models + custom URL. Reads from AiRustApi, writes to FFAppState only."
+    },
+    {
+      "id": 5,
+      "name": "Lifecycle Management",
+      "status": "complete",
+      "files": [
+        "lib/custom_code/actions/ai_install_model.dart",
+        "lib/custom_code/actions/ai_delete_model.dart",
+        "lib/custom_code/widgets/gemma_setup_status_widget.dart",
+        "lib/custom_code/actions/ai_cancel_generation.dart"
+      ],
+      "notes": "Install/delete/cancel all thin. Setup widget reads FFAppState only, surfaces retry/change-model callbacks."
+    }
+  ],
+  "deprecated_files": [
+    "lib/custom_code/flutter_gemma_library.dart",
+    "lib/custom_code/model_file_manager.dart",
+    "lib/custom_code/function_gemma_helper.dart",
+    "lib/custom_code/function_chat_message.dart",
+    "lib/custom_code/actions/initialize_model_action.dart",
+    "lib/custom_code/actions/initialize_gemma_model_action.dart",
+    "lib/custom_code/actions/set_model_action.dart",
+    "lib/custom_code/actions/send_message_action.dart",
+    "lib/custom_code/actions/close_model.dart",
+    "lib/custom_code/actions/download_model_action.dart",
+    "lib/custom_code/actions/recover_from_initialization_error.dart",
+    "lib/custom_code/actions/sanitize_image_for_gemma.dart",
+    "lib/custom_code/widgets/gemma_chat_widget.dart",
+    "lib/custom_code/widgets/error_recovery_widget.dart",
+    "lib/custom_code/widgets/model_configuration_widget.dart"
+  ],
+  "completed_tasks": [
+    "Create ai_types.dart with shared data models",
+    "Create ai_rust_api.dart as runtime façade",
+    "Create ai_mapper.dart for response mapping",
+    "Create ai_state_helpers.dart for state coordination",
+    "Create ai_initialize.dart action",
+    "Create ai_create_session.dart action",
+    "Create ai_get_session_messages.dart action",
+    "Create gemma_chat_runtime_widget.dart",
+    "Create ai_send_text_message.dart action"
+  ],
+  "in_progress_tasks": [],
+  "pending_tasks": [],
+  "completed_tasks_all": [
+    "Create ai_types.dart",
+    "Create ai_rust_api.dart",
+    "Create ai_mapper.dart",
+    "Create ai_state_helpers.dart",
+    "Create ai_initialize.dart",
+    "Create ai_create_session.dart",
+    "Create ai_get_session_messages.dart",
+    "Create gemma_chat_runtime_widget.dart",
+    "Create ai_send_text_message.dart",
+    "Create ai_send_image_message.dart",
+    "Create ai_list_models.dart",
+    "Create ai_get_device_capabilities.dart",
+    "Create gemma_model_selector_widget.dart",
+    "Create ai_install_model.dart",
+    "Create ai_delete_model.dart",
+    "Create gemma_setup_status_widget.dart",
+    "Create ai_cancel_generation.dart",
+    "Verify action index exports",
+    "Verify widget index exports",
+    "Fix PreferredBackend enum (flutter_gemma 0.12.5)",
+    "Fix isModelInstalled method call pattern"
+  ]
+}

@@ -64,8 +64,7 @@ class _DemoWidgetState extends State<DemoWidget> {
           },
         );
       }
-
-      _model.initOutput = await actions.aiInitialize(
+      _model.initAction = await actions.aiInitialize(
         FFAppState().downloadUrl,
         FFAppState().hfToken,
         ' ',
@@ -149,53 +148,43 @@ class _DemoWidgetState extends State<DemoWidget> {
                 Container(
                   width: MediaQuery.sizeOf(context).width * 1.0,
                   height: MediaQuery.sizeOf(context).height * 1.0,
-                  decoration: BoxDecoration(
-                    color: FlutterFlowTheme.of(context).primaryBackground,
-                  ),
-                  child: Container(
+                  child: custom_widgets.GemmaChatRuntimeWidget(
                     width: MediaQuery.sizeOf(context).width * 1.0,
                     height: MediaQuery.sizeOf(context).height * 1.0,
-                    child: custom_widgets.GemmaChatRuntimeWidget(
-                      width: MediaQuery.sizeOf(context).width * 1.0,
-                      height: MediaQuery.sizeOf(context).height * 1.0,
-                      placeholder: 'Type your prompt here',
-                      showImageButton: null,
-                      onMessageSent: (message, response) async {},
-                      onError: (errorMessage) async {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              errorMessage,
-                              style: FlutterFlowTheme.of(context)
-                                  .bodyMedium
-                                  .override(
-                                    font: GoogleFonts.lato(
-                                      fontWeight: FlutterFlowTheme.of(context)
-                                          .bodyMedium
-                                          .fontWeight,
-                                      fontStyle: FlutterFlowTheme.of(context)
-                                          .bodyMedium
-                                          .fontStyle,
-                                    ),
-                                    color: FlutterFlowTheme.of(context)
-                                        .primaryText,
-                                    letterSpacing: 0.0,
-                                    fontWeight: FlutterFlowTheme.of(context)
-                                        .bodyMedium
-                                        .fontWeight,
-                                    fontStyle: FlutterFlowTheme.of(context)
-                                        .bodyMedium
-                                        .fontStyle,
-                                  ),
-                            ),
-                            duration: Duration(milliseconds: 4000),
-                            backgroundColor:
-                                FlutterFlowTheme.of(context).secondary,
-                          ),
-                        );
-                      },
-                      onChangeModel: () async {},
-                    ),
+                    showImageButton: FFAppState().modelSupportsVision,
+                    onMessageSent: (message, response) async {},
+                    onError: (errorMessage) async {},
+                    onChangeModel: () async {},
+                  ),
+                ),
+              ),
+              if (!valueOrDefault<bool>(
+                    FFAppState().isModelInitialized,
+                    true,
+                  ) &&
+                  ((FFAppState().hfToken != '') ||
+                      (FFAppState().downloadUrl != '')) &&
+                  (FFAppState().isModelInitialized != true))
+                wrapWithModel(
+                  model: _model.initialzingModel,
+                  updateCallback: () => safeSetState(() {}),
+                  child: InitialzingWidget(),
+                ),
+              if ((FFAppState().hfToken == '') &&
+                  (FFAppState().downloadUrl == ''))
+                SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.max,
+                    children: [
+                      Container(
+                        width: MediaQuery.sizeOf(context).width * 1.0,
+                        height: MediaQuery.sizeOf(context).height * 1.0,
+                        child: custom_widgets.ModelConfigurationWidget(
+                          width: MediaQuery.sizeOf(context).width * 1.0,
+                          height: MediaQuery.sizeOf(context).height * 1.0,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],

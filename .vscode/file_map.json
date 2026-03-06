@@ -92,7 +92,121 @@
     "new_identifier_name": "pubspec.yaml",
     "type": "D",
     "is_deleted": false,
-    "current_checksum": "555646e4c209b94449ebd791565ae67f0940804e33f7307f02e7ad190aec471b",
+    "current_checksum": "6a48cafd515e256ce2f979c56d84418ce782f76c0f49c1a79e97177aab2e341f",
     "original_checksum": "555646e4c209b94449ebd791565ae67f0940804e33f7307f02e7ad190aec471b"
+  },
+  "ai_types.dart": {
+    "old_identifier_name": "aiTypes",
+    "new_identifier_name": "aiTypes",
+    "type": "O",
+    "is_deleted": false,
+    "current_checksum": "8cc3746e32bfde8b4f59b58b4d0e26b7240cd54e594bc62eaf42dfb682aa9114"
+  },
+  "ai_mapper.dart": {
+    "old_identifier_name": "aiMapper",
+    "new_identifier_name": "aiMapper",
+    "type": "O",
+    "is_deleted": false
+  },
+  "ai_state_helpers.dart": {
+    "old_identifier_name": "aiStateHelpers",
+    "new_identifier_name": "aiStateHelpers",
+    "type": "O",
+    "is_deleted": false
+  },
+  "ai_rust_api.dart": {
+    "old_identifier_name": "aiRustApi",
+    "new_identifier_name": "aiRustApi",
+    "type": "O",
+    "is_deleted": false,
+    "current_checksum": "954f65615f43954ea5862002a4336337b80d3954403ee6f67df3c1d1ff06c021"
+  },
+  "ai_initialize.dart": {
+    "old_identifier_name": "aiInitialize",
+    "new_identifier_name": "aiInitialize",
+    "type": "A",
+    "is_deleted": false
+  },
+  "ai_create_session.dart": {
+    "old_identifier_name": "aiCreateSession",
+    "new_identifier_name": "aiCreateSession",
+    "type": "A",
+    "is_deleted": false
+  },
+  "ai_get_session_messages.dart": {
+    "old_identifier_name": "aiGetSessionMessages",
+    "new_identifier_name": "aiGetSessionMessages",
+    "type": "A",
+    "is_deleted": false,
+    "current_checksum": "3490d96756d359a66a8f3357da1e7a9810241537dd5a98a6bfe59345423463d6"
+  },
+  ".DS_Store": {
+    "old_identifier_name": ".DSStore",
+    "new_identifier_name": ".DSStore",
+    "type": "O",
+    "is_deleted": false
+  },
+  "ai_send_text_message.dart": {
+    "old_identifier_name": "aiSendTextMessage",
+    "new_identifier_name": "aiSendTextMessage",
+    "type": "A",
+    "is_deleted": false
+  },
+  "gemma_chat_runtime_widget.dart": {
+    "old_identifier_name": "GemmaChatRuntimeWidget",
+    "new_identifier_name": "GemmaChatRuntimeWidget",
+    "type": "W",
+    "is_deleted": false
+  },
+  "ai_send_image_message.dart": {
+    "old_identifier_name": "aiSendImageMessage",
+    "new_identifier_name": "aiSendImageMessage",
+    "type": "A",
+    "is_deleted": false
+  },
+  "ai_list_models.dart": {
+    "old_identifier_name": "aiListModels",
+    "new_identifier_name": "aiListModels",
+    "type": "A",
+    "is_deleted": false,
+    "current_checksum": "40dd2030a5b6ed835cae2d5b10e6f56e626494e02f6a507a9f3a57baa1dee46b"
+  },
+  "ai_get_device_capabilities.dart": {
+    "old_identifier_name": "aiGetDeviceCapabilities",
+    "new_identifier_name": "aiGetDeviceCapabilities",
+    "type": "A",
+    "is_deleted": false,
+    "current_checksum": "86ad35a68c213792458306e60f4266724afda70e52c35ec552408907c14db63e"
+  },
+  "ai_install_model.dart": {
+    "old_identifier_name": "aiInstallModel",
+    "new_identifier_name": "aiInstallModel",
+    "type": "A",
+    "is_deleted": false,
+    "current_checksum": "12ec7a31581476ae58f19c0fd933ed64772eff6d55eeaad4d57eca3d6d099904"
+  },
+  "ai_delete_model.dart": {
+    "old_identifier_name": "aiDeleteModel",
+    "new_identifier_name": "aiDeleteModel",
+    "type": "A",
+    "is_deleted": false
+  },
+  "ai_cancel_generation.dart": {
+    "old_identifier_name": "aiCancelGeneration",
+    "new_identifier_name": "aiCancelGeneration",
+    "type": "A",
+    "is_deleted": false
+  },
+  "gemma_model_selector_widget.dart": {
+    "old_identifier_name": "GemmaModelSelectorWidget",
+    "new_identifier_name": "GemmaModelSelectorWidget",
+    "type": "W",
+    "is_deleted": false
+  },
+  "gemma_setup_status_widget.dart": {
+    "old_identifier_name": "GemmaSetupStatusWidget",
+    "new_identifier_name": "GemmaSetupStatusWidget",
+    "type": "W",
+    "is_deleted": false
   }
 }

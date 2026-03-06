@@ -9,8 +9,6 @@ import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-import 'index.dart'; // Imports other custom widgets
-
 import 'dart:async';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -19,9 +17,9 @@ import '../ai_types.dart';
 
 /// Model selection and configuration UI.
 ///
-/// Displays available models (installed + well-known downloadable ones), lets
-/// the user pick one, enter a HuggingFace token, and save the configuration
-/// into FFAppState so the page can trigger [aiInitialize].
+/// Displays available models (installed + well-known downloadable ones),
+/// lets the user pick one, enter a HuggingFace token, and save the
+/// configuration into FFAppState so the page can trigger [aiInitialize].
 ///
 /// This widget contains **no** capability calculation, no runtime mapping,
 /// and no device heuristics. It reads from [AiRustApi] and writes to
