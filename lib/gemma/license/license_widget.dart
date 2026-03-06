@@ -83,6 +83,7 @@ class _LicenseWidgetState extends State<LicenseWidget>
                                           .bodyMedium
                                           .fontStyle,
                                     ),
+                                    fontSize: 12.0,
                                     letterSpacing: 0.0,
                                     fontWeight: FlutterFlowTheme.of(context)
                                         .bodyMedium
