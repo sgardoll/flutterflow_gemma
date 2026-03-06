@@ -7,3 +7,6 @@ export 'download_model_action.dart' show downloadModelAction;
 export 'initialize_gemma_model_action.dart' show initializeGemmaModelAction;
 export 'recover_from_initialization_error.dart'
     show recoverFromInitializationError;
+export 'ai_initialize.dart' show aiInitialize;
+export 'ai_create_session.dart' show aiCreateSession;
+export 'ai_get_session_messages.dart' show aiGetSessionMessages;

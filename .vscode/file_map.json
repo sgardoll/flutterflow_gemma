@@ -94,5 +94,54 @@
     "is_deleted": false,
     "current_checksum": "555646e4c209b94449ebd791565ae67f0940804e33f7307f02e7ad190aec471b",
     "original_checksum": "555646e4c209b94449ebd791565ae67f0940804e33f7307f02e7ad190aec471b"
+  },
+  "ai_types.dart": {
+    "old_identifier_name": "aiTypes",
+    "new_identifier_name": "aiTypes",
+    "type": "O",
+    "is_deleted": false
+  },
+  "ai_mapper.dart": {
+    "old_identifier_name": "aiMapper",
+    "new_identifier_name": "aiMapper",
+    "type": "O",
+    "is_deleted": false
+  },
+  "ai_state_helpers.dart": {
+    "old_identifier_name": "aiStateHelpers",
+    "new_identifier_name": "aiStateHelpers",
+    "type": "O",
+    "is_deleted": false
+  },
+  "ai_rust_api.dart": {
+    "old_identifier_name": "aiRustApi",
+    "new_identifier_name": "aiRustApi",
+    "type": "O",
+    "is_deleted": false,
+    "current_checksum": "16674b15046ceaafdc1dd5cdad98133df08e37e2e32486cae12e03ccd5358a98"
+  },
+  "ai_initialize.dart": {
+    "old_identifier_name": "aiInitialize",
+    "new_identifier_name": "aiInitialize",
+    "type": "A",
+    "is_deleted": false
+  },
+  "ai_create_session.dart": {
+    "old_identifier_name": "aiCreateSession",
+    "new_identifier_name": "aiCreateSession",
+    "type": "A",
+    "is_deleted": false
+  },
+  "ai_get_session_messages.dart": {
+    "old_identifier_name": "aiGetSessionMessages",
+    "new_identifier_name": "aiGetSessionMessages",
+    "type": "A",
+    "is_deleted": false
+  },
+  ".DS_Store": {
+    "old_identifier_name": ".DSStore",
+    "new_identifier_name": ".DSStore",
+    "type": "O",
+    "is_deleted": false
   }
 }
