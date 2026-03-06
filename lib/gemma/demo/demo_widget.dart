@@ -1,9 +1,8 @@
-import '/components/initialzing_widget.dart';
+import '/components/gemma_model_selector_component_widget.dart';
 import '/flutter_flow/flutter_flow_icon_button.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/custom_code/actions/index.dart' as actions;
-import '/custom_code/flutter_gemma_library.dart';
 import '/custom_code/widgets/index.dart' as custom_widgets;
 import '/index.dart';
 import 'package:auto_size_text/auto_size_text.dart';
@@ -43,17 +42,36 @@ class _DemoWidgetState extends State<DemoWidget> {
         FFAppState().hfToken = FFLibraryValues().huggingFaceToken!;
         FFAppState().downloadUrl = FFLibraryValues().modelDownloadUrl!;
         safeSetState(() {});
+      } else {
+        await showDialog(
+          barrierDismissible: false,
+          context: context,
+          builder: (dialogContext) {
+            return Dialog(
+              elevation: 0,
+              insetPadding: EdgeInsets.zero,
+              backgroundColor: Colors.transparent,
+              alignment: AlignmentDirectional(0.0, 0.0)
+                  .resolve(Directionality.of(context)),
+              child: GestureDetector(
+                onTap: () {
+                  FocusScope.of(dialogContext).unfocus();
+                  FocusManager.instance.primaryFocus?.unfocus();
+                },
+                child: GemmaModelSelectorComponentWidget(),
+              ),
+            );
+          },
+        );
       }
-      _model.initAction = await actions.initializeGemmaModelAction(
+
+      _model.initOutput = await actions.aiInitialize(
         FFAppState().downloadUrl,
         FFAppState().hfToken,
-        '',
+        ' ',
         'gpu',
         0.8,
       );
-      if (_model.initAction!) {
-        safeSetState(() {});
-      }
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) => safeSetState(() {}));
@@ -70,112 +88,118 @@ class _DemoWidgetState extends State<DemoWidget> {
   Widget build(BuildContext context) {
     context.watch<FFAppState>();
 
-    return GestureDetector(
-      onTap: () {
-        FocusScope.of(context).unfocus();
-        FocusManager.instance.primaryFocus?.unfocus();
-      },
-      child: Scaffold(
-        key: scaffoldKey,
-        backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
-        appBar: AppBar(
-          backgroundColor: FlutterFlowTheme.of(context).accent4,
-          iconTheme: IconThemeData(color: FlutterFlowTheme.of(context).primary),
-          automaticallyImplyLeading: false,
-          actions: [
-            FlutterFlowIconButton(
-              borderRadius: 8.0,
-              buttonSize: 40.0,
-              icon: Icon(
-                Icons.info_outlined,
-                color: FlutterFlowTheme.of(context).secondaryText,
-                size: 24.0,
+    return Builder(
+      builder: (context) => GestureDetector(
+        onTap: () {
+          FocusScope.of(context).unfocus();
+          FocusManager.instance.primaryFocus?.unfocus();
+        },
+        child: Scaffold(
+          key: scaffoldKey,
+          backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
+          appBar: AppBar(
+            backgroundColor: FlutterFlowTheme.of(context).accent4,
+            iconTheme:
+                IconThemeData(color: FlutterFlowTheme.of(context).primary),
+            automaticallyImplyLeading: false,
+            actions: [
+              FlutterFlowIconButton(
+                borderRadius: 8.0,
+                buttonSize: 40.0,
+                icon: Icon(
+                  Icons.info_outlined,
+                  color: FlutterFlowTheme.of(context).secondaryText,
+                  size: 24.0,
+                ),
+                onPressed: () async {
+                  context.pushNamed(LicenseWidget.routeName);
+                },
               ),
-              onPressed: () async {
-                context.pushNamed(LicenseWidget.routeName);
-              },
-            ),
-          ],
-          flexibleSpace: FlexibleSpaceBar(
-            title: AutoSizeText(
-              'On-Device AI Demo',
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              style: FlutterFlowTheme.of(context).titleLarge.override(
-                    font: GoogleFonts.openSans(
+            ],
+            flexibleSpace: FlexibleSpaceBar(
+              title: AutoSizeText(
+                'On-Device AI Demo',
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                style: FlutterFlowTheme.of(context).titleLarge.override(
+                      font: GoogleFonts.openSans(
+                        fontWeight:
+                            FlutterFlowTheme.of(context).titleLarge.fontWeight,
+                        fontStyle:
+                            FlutterFlowTheme.of(context).titleLarge.fontStyle,
+                      ),
+                      color: FlutterFlowTheme.of(context).primary,
+                      letterSpacing: 0.0,
                       fontWeight:
                           FlutterFlowTheme.of(context).titleLarge.fontWeight,
                       fontStyle:
                           FlutterFlowTheme.of(context).titleLarge.fontStyle,
+                      lineHeight: 0.9,
                     ),
-                    color: FlutterFlowTheme.of(context).primary,
-                    letterSpacing: 0.0,
-                    fontWeight:
-                        FlutterFlowTheme.of(context).titleLarge.fontWeight,
-                    fontStyle:
-                        FlutterFlowTheme.of(context).titleLarge.fontStyle,
-                    lineHeight: 0.9,
-                  ),
+              ),
+              centerTitle: true,
+              expandedTitleScale: 1.0,
             ),
-            centerTitle: true,
-            expandedTitleScale: 1.0,
+            elevation: 2.0,
           ),
-          elevation: 2.0,
-        ),
-        body: SafeArea(
-          top: true,
-          child: Stack(
-            children: [
-              Container(
-                width: MediaQuery.sizeOf(context).width * 1.0,
-                height: MediaQuery.sizeOf(context).height * 1.0,
-                decoration: BoxDecoration(
-                  color: FlutterFlowTheme.of(context).primaryBackground,
-                ),
-                child: Container(
+          body: SafeArea(
+            top: true,
+            child: Stack(
+              children: [
+                Container(
                   width: MediaQuery.sizeOf(context).width * 1.0,
                   height: MediaQuery.sizeOf(context).height * 1.0,
-                  child: custom_widgets.GemmaChatWidget(
+                  decoration: BoxDecoration(
+                    color: FlutterFlowTheme.of(context).primaryBackground,
+                  ),
+                  child: Container(
                     width: MediaQuery.sizeOf(context).width * 1.0,
                     height: MediaQuery.sizeOf(context).height * 1.0,
-                    showImageButton:
-                        FlutterGemmaLibrary.instance.supportsVision,
-                    onMessageSent: (message, response) async {},
-                    onError: (errorMessage) async {},
-                    onChangeModel: () async {},
+                    child: custom_widgets.GemmaChatRuntimeWidget(
+                      width: MediaQuery.sizeOf(context).width * 1.0,
+                      height: MediaQuery.sizeOf(context).height * 1.0,
+                      placeholder: 'Type your prompt here',
+                      showImageButton: null,
+                      onMessageSent: (message, response) async {},
+                      onError: (errorMessage) async {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              errorMessage,
+                              style: FlutterFlowTheme.of(context)
+                                  .bodyMedium
+                                  .override(
+                                    font: GoogleFonts.lato(
+                                      fontWeight: FlutterFlowTheme.of(context)
+                                          .bodyMedium
+                                          .fontWeight,
+                                      fontStyle: FlutterFlowTheme.of(context)
+                                          .bodyMedium
+                                          .fontStyle,
+                                    ),
+                                    color: FlutterFlowTheme.of(context)
+                                        .primaryText,
+                                    letterSpacing: 0.0,
+                                    fontWeight: FlutterFlowTheme.of(context)
+                                        .bodyMedium
+                                        .fontWeight,
+                                    fontStyle: FlutterFlowTheme.of(context)
+                                        .bodyMedium
+                                        .fontStyle,
+                                  ),
+                            ),
+                            duration: Duration(milliseconds: 4000),
+                            backgroundColor:
+                                FlutterFlowTheme.of(context).secondary,
+                          ),
+                        );
+                      },
+                      onChangeModel: () async {},
+                    ),
                   ),
                 ),
-              ),
-              if (!valueOrDefault<bool>(
-                    FFAppState().isModelInitialized,
-                    true,
-                  ) &&
-                  ((FFAppState().hfToken != '') ||
-                      (FFAppState().downloadUrl != '')) &&
-                  (FFAppState().isModelInitialized != true))
-                wrapWithModel(
-                  model: _model.initialzingModel,
-                  updateCallback: () => safeSetState(() {}),
-                  child: InitialzingWidget(),
-                ),
-              if ((FFAppState().hfToken == '') &&
-                  (FFAppState().downloadUrl == ''))
-                SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.max,
-                    children: [
-                      Container(
-                        width: MediaQuery.sizeOf(context).width * 1.0,
-                        height: MediaQuery.sizeOf(context).height * 1.0,
-                        child: custom_widgets.ModelConfigurationWidget(
-                          width: MediaQuery.sizeOf(context).width * 1.0,
-                          height: MediaQuery.sizeOf(context).height * 1.0,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
