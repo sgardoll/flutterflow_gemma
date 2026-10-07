@@ -4,6 +4,8 @@
 
 An integration of Google's Gemma 3n AI models, providing offline/local on-device multimodel AI capabilities with authenticated model downloads and real-time chat functionality.
 
+For Flutter and FlutterFlow developers inspecting or adapting the exported source. The feature and model overview below records the original project goals; it is not evidence of current build, device, memory or performance results. Use the source setup and current action contracts below rather than older selector/download examples.
+
 ## ✨ Features
 
 ### 🤖 AI Model Support
@@ -29,23 +31,19 @@ An integration of Google's Gemma 3n AI models, providing offline/local on-device
 
 ### Core Components
 
-#### GemmaManager (Singleton)
-- **Model Lifecycle**: Initialize, create sessions, send messages, cleanup
-- **Platform Compatibility**: iOS/Android-specific optimizations
-- **Error Handling**: Comprehensive fallback mechanisms
-- **Vision Support**: Automatic detection and handling of multimodal models
+#### AiRustApi (Singleton)
+- [AiRustApi](lib/custom_code/ai_rust_api.dart) is the current runtime boundary. Despite its name, this checkout wraps `flutter_gemma`; it does not establish a working Rust engine.
+- Actions and widgets call this boundary for model initialization, session management, messages and storage.
 
 #### Custom Widgets
-- **GemmaSimpleSetupWidget**: Complete setup wizard with progress tracking
-- **GemmaChatWidget**: Real-time chat interface with image support
-- **GemmaVisualModelSelector**: Visual model selection with expandable categories
-- **MarkdownDisplayWidget**: Rich text rendering for AI responses
+- [GemmaModelSelectorWidget](lib/custom_code/widgets/gemma_model_selector_widget.dart): saves model URL/token configuration; saving alone does not initialize or download a model.
+- [GemmaChatRuntimeWidget](lib/custom_code/widgets/gemma_chat_runtime_widget.dart): renders and polls the active session after initialization.
+- [ModelConfigurationWidget](lib/custom_code/widgets/model_configuration_widget.dart), [GemmaSetupStatusWidget](lib/custom_code/widgets/gemma_setup_status_widget.dart) and [MarkdownWidget](lib/custom_code/widgets/markdown_widget.dart) provide configuration, status and rendering UI.
 
 #### Custom Actions
-- **downloadAuthenticatedModel**: Secure model downloads with progress tracking
-- **installLocalModelFile**: Optimized model installation with validation
-- **validateAndRepairModel**: File integrity checking and repair
-- **closeModel**: Proper cleanup and state reset
+- [aiInitialize](lib/custom_code/actions/ai_initialize.dart): locates/downloads a model, initializes the engine and creates a session.
+- [aiInstallModel](lib/custom_code/actions/ai_install_model.dart): storage-only model download; does not initialize the engine.
+- [aiSendTextMessage](lib/custom_code/actions/ai_send_text_message.dart) and [aiGetSessionMessages](lib/custom_code/actions/ai_get_session_messages.dart): start generation and retrieve session messages.
 
 ## 📱 Supported Models
 
@@ -72,72 +70,77 @@ cd flutterflow_gemma
 This repository is an exported Flutter project with FlutterFlow custom code. Cloning it downloads source; it does not import a library into the FlutterFlow editor. No verified Marketplace link or editor library ID is supplied here.
 
 ### Prerequisites
-- Flutter SDK (stable channel)
-- FlutterFlow project setup
-- HuggingFace account with API token
+- [Flutter SDK](https://docs.flutter.dev/install), with Dart matching the root [pubspec.yaml](pubspec.yaml) constraint `>=3.0.0 <4.0.0`.
+- A compatible model file URL and enough device storage/memory for that model. Bundled model choices are examples, not live availability checks.
+- For a gated/private Hugging Face model, an account with access to that repository and a token permitted to read it. Public unauthenticated URLs can use a null token.
 
 ### Dependencies
-```yaml
-dependencies:
-  flutter_gemma: ^0.9.0
-  image_picker: ^1.1.2
-  markdown_widget: ^2.3.2+8
-  path_provider: ^2.1.4
-  url_launcher: ^6.3.1
+Use the checked-in manifest rather than copying an older dependency list. It pins `flutter_gemma: 0.11.16`; this README does not upgrade it. From the cloned root:
+
+```bash
+flutter pub get
 ```
+
+[Version-specific plugin documentation](https://pub.dev/packages/flutter_gemma/versions/0.11.16) describes platform setup. As checked on 7 October 2026, the [package page](https://pub.dev/packages/flutter_gemma) marks `flutter_gemma` discontinued and replaced by `flutter_edge_ai`. That does not migrate this checkout or prove compatibility with a newer package.
+
+### Current checkout limitations
+
+Acquisition and source contracts are documented here; a successful demo build is not established. The current [action export file](lib/custom_code/actions/index.dart) still exports absent legacy files, including `close_model.dart`. The [selector component wrapper](lib/components/gemma_model_selector_component_widget.dart) assigns `hfToken = modelUrl` in its callback, overwriting the supplied token. Runtime/export repairs need separate work; the explicit action inputs below describe the API without promising that the existing page wiring works.
 
 ### Setup Steps
 
-1. **Get HuggingFace Token**
-   - Visit [HuggingFace](https://huggingface.co/settings/tokens)
-   - Create a new token with read permissions
-   - Keep token secure for model downloads
-
-2. **Model Setup**
-   - Use the visual model selector to choose your preferred model
-   - Download will begin automatically with progress tracking
-   - Models are validated and installed locally
-
-3. **Start Chatting**
-   - Text-only models: Type messages and get AI responses
-   - Vision models: Attach images from camera or gallery
-   - Responses are rendered in rich markdown format
+1. **Choose a model URL and access**
+   - Supply a direct model file URL compatible with the pinned runtime. Inspect the bundled selector choices and [AiMapper](lib/custom_code/ai_mapper.dart); model names alone are not download URLs.
+   - For gated models, request access on the model page using [Hugging Face's access instructions](https://huggingface.co/docs/hub/models-gated), then use your own [read-capable token](https://huggingface.co/docs/hub/security-tokens). Do not commit token values.
+2. **Save configuration**
+   - `GemmaModelSelectorWidget` saves the URL to `FFAppState().downloadUrl` and the token to `FFAppState().hfToken`, then calls `onConfigSaved(modelUrl, authToken)` if supplied. It does not automatically download or initialize.
+   - [library_values.dart](lib/library_values.dart) declares `modelDownloadUrl` and `huggingFaceToken`; those names are not substitutes for passing the current action's arguments.
+3. **Initialize before chatting**
+   - Call `aiInitialize(modelUrl, authToken, modelType, backend, temperature)`. All five arguments must be supplied; nullable token/modelType can be null. For example, `'cpu'` and `0.8` are explicit values, not defaults on the action signature.
+   - Check its Boolean result. On success the action marks initialization state and calls `createSession`; on failure it returns false and updates progress/error state. The model type is inferred from the URL when no override is supplied.
+   - `aiInstallModel(downloadUrl, authToken)` is optional storage-only preparation. Inspect `success`, `filePath` and `errorMessage`; installation alone does not make a chat session ready. Initialize afterward using the model URL.
+4. **Use the initialized session**
+   - `GemmaChatRuntimeWidget` polls messages from `AiRustApi`. Text generation is asynchronous; an accepted send is not a completed response. Vision use additionally depends on the model and the created session's capabilities.
 
 ## 🎯 Usage
 
 ### Basic Chat
 ```dart
-// The chat widget handles all AI interactions
-GemmaChatWidget(
+// After successful aiInitialize, in a Flutter widget tree:
+GemmaChatRuntimeWidget(
   width: double.infinity,
   height: double.infinity,
   placeholder: 'Ask me anything...',
-  onMessageSent: (message) async {
-    // Optional callback for message events
+  onMessageSent: (message, response) async {
+    // Optional callback after a complete exchange
   },
 )
 ```
 
 ### Model Selection
 ```dart
-// Visual model selector with expandable categories
-GemmaVisualModelSelector(
-  selectedModelId: 'gemma-3n-e2b-it',
-  onModelSelected: (modelId) async {
-    // Handle model selection
+// Configuration only; initialize explicitly after saving:
+GemmaModelSelectorWidget(
+  onConfigSaved: (modelUrl, authToken) async {
+    final ready = await aiInitialize(modelUrl, authToken, null, 'cpu', 0.8);
+    // Only show the chat UI when ready is true.
   },
 )
 ```
 
 ### Custom Actions
 ```dart
-// Download and install models
-await downloadAuthenticatedModel('gemma-3n-e2b-it', token, onProgress);
-await installLocalModelFile(modelPath, null);
-
-// Proper cleanup
-await closeModel();
+// Contract example inside an async handler, with modelUrl and authToken
+// supplied by the caller. This does not certify the checkout's build.
+final ready = await aiInitialize(modelUrl, authToken, null, 'cpu', 0.8);
+if (ready) {
+  final accepted = await aiSendTextMessage('Hello');
+  // accepted means generation started; poll aiGetSessionMessages()
+  // for progress and the final response.
+}
 ```
+
+These snippets reference the current classes/actions in the exported source. Inspect their imports and generated dependencies before adapting them; the absent legacy exports noted above prevent treating them as a verified runnable quickstart. `AiRustApi.instance.closeEngine()` is the current cleanup method; no existing `closeModel` action file is supplied in this checkout.
 
 ## 📁 Project Structure
 
@@ -145,17 +148,15 @@ await closeModel();
 lib/
 ├── custom_code/
 │   ├── actions/
-│   │   ├── download_authenticated_model.dart
-│   │   ├── install_local_model_file.dart
-│   │   ├── validate_and_repair_model.dart
-│   │   ├── close_model.dart
-│   │   └── get_downloaded_models.dart
+│   │   ├── ai_initialize.dart
+│   │   ├── ai_install_model.dart
+│   │   ├── ai_send_text_message.dart
+│   │   └── ai_get_session_messages.dart
 │   ├── widgets/
-│   │   ├── gemma_simple_setup_widget.dart
-│   │   ├── gemma_chat_widget.dart
-│   │   ├── gemma_visual_model_selector.dart
-│   │   └── markdown_display_widget.dart
-│   └── GemmaManager.dart
+│   │   ├── gemma_model_selector_widget.dart
+│   │   ├── gemma_chat_runtime_widget.dart
+│   │   └── markdown_widget.dart
+│   └── ai_rust_api.dart
 ├── pages/
 │   └── home_page/
 │       └── home_page_widget.dart
@@ -167,14 +168,12 @@ lib/
 
 ### FlutterFlow Integration
 - All widgets follow FlutterFlow conventions
-- Custom actions are properly exported
+- Current action/widget files use generated imports; the action export file also contains missing legacy entries, as noted above.
 - Theme integration with FlutterFlowTheme
 - Responsive design patterns
 
 ### Platform Considerations
-- **iOS**: Automatic CPU fallback for compatibility
-- **Android**: Full GPU acceleration support
-- **Web**: Optimized model variants available
+The source attempts the requested backend and may fall back to CPU. This is a source strategy, not proof of device support. Consult the pinned plugin's platform setup and validate on the intended device; Android, iOS and web results are not established by this documentation change.
 
 ### Performance Optimizations
 - Image compression and resizing before processing
