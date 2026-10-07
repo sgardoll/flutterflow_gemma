@@ -62,6 +62,15 @@ An integration of Google's Gemma 3n AI models, providing offline/local on-device
 
 ## 🛠️ Installation & Setup
 
+### Get the exported source
+
+```bash
+git clone https://github.com/sgardoll/flutterflow_gemma.git
+cd flutterflow_gemma
+```
+
+This repository is an exported Flutter project with FlutterFlow custom code. Cloning it downloads source; it does not import a library into the FlutterFlow editor. No verified Marketplace link or editor library ID is supplied here.
+
 ### Prerequisites
 - Flutter SDK (stable channel)
 - FlutterFlow project setup
